@@ -237,10 +237,21 @@ Linux 启动路径（`docs/Decisions.md` 第 8.2 节）：
 | `tst_gesture` | 14 | 阈值边界、无中间移动事件的快速拖动、拖出再拖回、取消、对角线 |
 | `tst_characterwindow` | 17 | 1×–4× 窗口尺寸、后端只配置一次、置顶转发、掩码与帧 alpha 一致、换帧重算掩码、最近邻放大逐像素校验、后端不支持掩码时不调用 |
 
+双平台 CI 通过（run 32999324988，commit `179c6ef`）：
+
+| 检查 | Linux（ubuntu-22.04，GCC） | Windows（windows-2022，MSVC 2022） |
+| --- | --- | --- |
+| 配置与编译 | 通过，1 分 17 秒 | 通过，1 分 26 秒 |
+| 编译警告 | 零（`-Werror`） | 零（`/WX`） |
+| 平台专用源文件 | `LinuxStartupProbe.cpp` 已编译 | `WindowsWindowBackend.cpp` 已编译 |
+| CTest | 7/7 | 7/7 |
+| `--self-test` | 通过，退出码 0 | 通过，退出码 0 |
+
+`WindowsWindowBackend.cpp` 是本项目第一份 Win32 代码，`/WX` 打开后首次编译即无警告。
+
 未完成：
 
-- Windows 侧代码从未编译过，CI 结果待确认。
-- 人工检查（KDE Plasma + XCB、Windows 11）未做。
+- 人工检查（KDE Plasma + XCB、Windows 11）未做。Windows 侧的实际窗口行为仍然全部是假设，不是结论。
 - 退出门不判定：要求「正式产品窗口在 KDE 与 Windows 都达到探针已验证的核心表现」，需要真实桌面人工验收。
 
 ## Linux 侧已有结果
