@@ -150,11 +150,14 @@ jobs:
           # 保留 opengl-sw 与 d3dcompiler：项目所有者的测试机不一定有可用的
           # 图形驱动路径，少一个 DLL 就要多一轮往返。
           #
-          # 不用 --compiler-runtime：它复制的是 25 MB 的 vc_redist.x64.exe
-          # 安装器，不是运行库本身。没装过 VC++ 运行库的机器仍然起不来，
-          # 测试者还得先手动跑安装器。改为直接把运行库 DLL 放在 exe 旁边
-          # （app-local 部署），体积从 25 MB 降到约 0.6 MB，且真正免安装。
-          windeployqt --release --no-translations package\deskpet-probe.exe
+          # 必须显式写 --no-compiler-runtime：windeployqt 在检测到 Visual
+          # Studio 环境时默认会带上运行库，而它带的是 25 MB 的
+          # vc_redist.x64.exe 安装器，不是运行库本身。没装过 VC++ 运行库
+          # 的机器仍然起不来，测试者还得先手动跑安装器。
+          # 改为直接把运行库 DLL 放在 exe 旁边（app-local 部署），
+          # 体积从 25 MB 降到约 1 MB，且真正免安装。
+          windeployqt --release --no-translations --no-compiler-runtime `
+            package\deskpet-probe.exe
 
           $crt = Get-ChildItem -Path (Join-Path $env:VCToolsRedistDir 'x64') `
             -Filter 'Microsoft.VC*.CRT' -Directory | Select-Object -First 1
@@ -166,6 +169,9 @@ jobs:
             if (-not (Test-Path (Join-Path 'package' $required))) {
               throw "Missing MSVC runtime in package: $required"
             }
+          }
+          if (Test-Path 'package\vc_redist.x64.exe') {
+            throw "vc_redist.x64.exe must not be packaged; the runtime DLLs are deployed app-local instead."
           }
           "commit=${{ github.sha }}" | Out-File package\BUILD_INFO.txt -Encoding utf8
           "qt=${{ env.QT_VERSION }}" | Out-File package\BUILD_INFO.txt -Encoding utf8 -Append
