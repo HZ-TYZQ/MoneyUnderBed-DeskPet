@@ -16,5 +16,7 @@ function(mub_add_test name)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endfunction()
 
+add_subdirectory(character)
 add_subdirectory(core)
+add_subdirectory(platform)
 add_subdirectory(resources)

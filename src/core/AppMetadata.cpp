@@ -70,10 +70,8 @@ QString unofficialNotice()
         "也不由其发布或背书。");
 }
 
-void applyTo(QCoreApplication &application)
+void apply()
 {
-    Q_UNUSED(application)
-
     QCoreApplication::setApplicationName(applicationName());
     QCoreApplication::setApplicationVersion(versionString());
     QCoreApplication::setOrganizationName(organizationName());

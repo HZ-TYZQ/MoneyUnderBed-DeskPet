@@ -12,7 +12,7 @@ class TestAppMetadata final : public QObject
 private slots:
     void frozenIdentityValues();
     void versionStringIsNotEmpty();
-    void applyToSetsQtGlobals();
+    void applySetsQtGlobals();
     void userFacingTextIsTranslatable();
 };
 
@@ -39,9 +39,9 @@ void TestAppMetadata::versionStringIsNotEmpty()
     QVERIFY(version.startsWith(QStringLiteral("0.")));
 }
 
-void TestAppMetadata::applyToSetsQtGlobals()
+void TestAppMetadata::applySetsQtGlobals()
 {
-    mub::metadata::applyTo(*QCoreApplication::instance());
+    mub::metadata::apply();
 
     QCOMPARE(QCoreApplication::applicationName(),
              mub::metadata::applicationName());

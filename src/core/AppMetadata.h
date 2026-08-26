@@ -2,8 +2,6 @@
 
 #include <QString>
 
-class QCoreApplication;
-
 namespace mub {
 
 // 应用身份的唯一来源。取值见 docs/Decisions.md 第 1.2 节。
@@ -34,8 +32,9 @@ QString displayName();
 QString unofficialNotice();
 
 // 一次性把上述身份写入 Qt 全局状态。
-// 必须在读取 QSettings 或 QStandardPaths 之前调用。
-void applyTo(QCoreApplication &application);
+// 这些都是静态设置，可以在构造 QApplication 之前调用，
+// 使早期日志也能拿到正确的 QStandardPaths 路径。
+void apply();
 
 } // namespace metadata
 

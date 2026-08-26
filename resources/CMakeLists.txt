@@ -42,8 +42,27 @@ target_link_libraries(money-under-bed-resources
     PRIVATE MUB::Warnings
 )
 
+# 角色素材编入 Qt 资源系统，保持 assets/ 内的相对布局，
+# 使资源前缀与素材包目录结构一一对应（docs/Decisions.md 第 6 节的
+# 「资源与代码分离、可替换的角色资源包结构」）。
+# 编进资源可以避免运行时路径解析，也保证发行包内不会漏掉素材。
+file(GLOB_RECURSE MUB_ASSET_FILES CONFIGURE_DEPENDS
+     "${CMAKE_SOURCE_DIR}/assets/*.png")
+list(LENGTH MUB_ASSET_FILES MUB_ASSET_COUNT)
+if(MUB_ASSET_COUNT EQUAL 0)
+    message(FATAL_ERROR "No character assets found under ${CMAKE_SOURCE_DIR}/assets")
+endif()
+message(STATUS "Embedding ${MUB_ASSET_COUNT} character asset files")
+
+qt_add_resources(money-under-bed-resources "mub_assets"
+    PREFIX "/assets"
+    BASE "${CMAKE_SOURCE_DIR}/assets"
+    FILES ${MUB_ASSET_FILES}
+)
+
 # 资源路径的唯一来源，供加载方和测试共用。
 target_compile_definitions(money-under-bed-resources PUBLIC
     MUB_ARK_PIXEL_RESOURCE=":/fonts/ark-pixel-12px-proportional-zh_cn.ttf"
     MUB_ARK_PIXEL_SHA256="${MUB_ARK_PIXEL_SHA256}"
+    MUB_ASSET_PREFIX=":/assets"
 )
