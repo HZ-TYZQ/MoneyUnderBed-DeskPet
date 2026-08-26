@@ -1,0 +1,173 @@
+# 阶段 1 的临时工作流：只构建和打包 probes/window/。
+# 它不构建正式产品，也不是最终 CI。阶段 2 建立正式双平台 CI 后本文件即可删除。
+# 对应 docs/Plans/DevelopmentPlan.md 第 6.2 节。
+name: Windows window probe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'probes/window/**'
+      - 'assets/character/idle-down-left.png'
+      - 'assets/LICENSE.md'
+      - '.github/workflows/probe-windows.yml'
+  pull_request:
+    paths:
+      - 'probes/window/**'
+      - 'assets/character/idle-down-left.png'
+      - 'assets/LICENSE.md'
+      - '.github/workflows/probe-windows.yml'
+
+permissions:
+  contents: read
+
+env:
+  # 必须与正式工程一致，否则探针结论不能代表产品。
+  QT_VERSION: 6.11.2
+  QT_ARCH: win64_msvc2022_64
+
+jobs:
+  probe:
+    name: Build and package probe
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      # 第三方 Action 锁定完整提交 SHA，避免同一个 tag 指向不同代码。
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: ${{ env.QT_ARCH }}
+          cache: true
+
+      - name: Set up MSVC 2022 x64
+        uses: ilammy/msvc-dev-cmd@c1ed231f339aec74961130db0459823a08f1b215 # v1.9.0
+        with:
+          arch: x64
+
+      - name: Report toolchain
+        shell: pwsh
+        run: |
+          qmake -query QT_VERSION
+          cmake --version
+          ninja --version
+          cl 2>&1 | Select-Object -First 1
+
+      - name: Assert Qt version
+        shell: pwsh
+        run: |
+          $actual = (qmake -query QT_VERSION).Trim()
+          Write-Host "Qt reported: $actual"
+          if ($actual -ne "${{ env.QT_VERSION }}") {
+            throw "Qt version mismatch: expected ${{ env.QT_VERSION }}, got $actual"
+          }
+
+      - name: Configure
+        shell: pwsh
+        run: >
+          cmake -S probes/window -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build
+
+      # 无 GUI 的参数校验与 offscreen 冒烟。
+      # 这些检查只证明代码路径可执行，不能代表真实桌面行为。
+      - name: Argument validation
+        shell: pwsh
+        working-directory: build
+        run: |
+          $ErrorActionPreference = 'Continue'
+          function Assert-Exit([string]$label, [int]$expected, [scriptblock]$run) {
+            & $run *> $null
+            $code = $LASTEXITCODE
+            Write-Host "$label -> exit=$code (expected $expected)"
+            if ($code -ne $expected) { throw "$label expected exit $expected, got $code" }
+          }
+          Assert-Exit 'unknown case'    2 { .\deskpet-probe.exe --case bogus }
+          Assert-Exit 'invalid scale'   2 { .\deskpet-probe.exe --case render --scale 0 }
+          Assert-Exit 'invalid scale'   2 { .\deskpet-probe.exe --case render --scale 99 }
+          Assert-Exit 'invalid duration' 2 { .\deskpet-probe.exe --case render --duration -1 }
+          Assert-Exit 'missing sprite'  3 { .\deskpet-probe.exe --case render --sprite nope.png }
+          Assert-Exit 'bad dimensions'  3 { .\deskpet-probe.exe --case render --sprite ..\assets\face\natural.png }
+
+      - name: Offscreen smoke test
+        shell: pwsh
+        working-directory: build
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $cases = (.\deskpet-probe.exe --list-cases) -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          Write-Host "Cases: $($cases -join ', ')"
+          foreach ($c in $cases) {
+            .\deskpet-probe.exe --case $c --duration 1 --log "smoke-$c.log" *> $null
+            $code = $LASTEXITCODE
+            Write-Host "$c -> exit=$code"
+            if ($code -ne 0) {
+              Get-Content "smoke-$c.log" -Tail 20
+              throw "Case $c failed with exit $code"
+            }
+          }
+
+      - name: Stage package
+        shell: pwsh
+        run: |
+          cmake --install build --prefix package
+          # 保留 opengl-sw 与 d3dcompiler：项目所有者的测试机不一定有可用的
+          # 图形驱动路径，少一个 DLL 就要多一轮往返。
+          windeployqt --release --no-translations --compiler-runtime `
+            package\deskpet-probe.exe
+          "commit=${{ github.sha }}" | Out-File package\BUILD_INFO.txt -Encoding utf8
+          "qt=${{ env.QT_VERSION }}" | Out-File package\BUILD_INFO.txt -Encoding utf8 -Append
+          "arch=${{ env.QT_ARCH }}" | Out-File package\BUILD_INFO.txt -Encoding utf8 -Append
+          "runner=${{ runner.os }}-${{ runner.arch }}" | Out-File package\BUILD_INFO.txt -Encoding utf8 -Append
+          Get-ChildItem -Recurse package | Select-Object FullName, Length
+
+      - name: Verify packaged binary starts
+        shell: pwsh
+        working-directory: package
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          .\deskpet-probe.exe --case build
+          if ($LASTEXITCODE -ne 0) { throw "Packaged probe failed --case build" }
+          .\deskpet-probe.exe --case render --duration 1
+          if ($LASTEXITCODE -ne 0) { throw "Packaged probe failed to load the bundled sprite" }
+
+      - name: Create ZIP and checksum
+        id: pack
+        shell: pwsh
+        run: |
+          $short = "${{ github.sha }}".Substring(0, 12)
+          $name = "deskpet-probe-windows-x64-$short"
+          Compress-Archive -Path package\* -DestinationPath "$name.zip"
+          $hash = (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File "$name.zip.sha256" -Encoding ascii
+          Write-Host "sha256=$hash"
+          "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Job summary
+        shell: pwsh
+        run: |
+          "## Windows probe" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "- commit: ``${{ github.sha }}``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "- Qt: ``${{ env.QT_VERSION }}`` (${{ env.QT_ARCH }})" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "- ZIP: ``${{ steps.pack.outputs.name }}.zip``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "- SHA-256: ``${{ steps.pack.outputs.sha256 }}``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Upload probe package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.pack.outputs.name }}
+          path: |
+            ${{ steps.pack.outputs.name }}.zip
+            ${{ steps.pack.outputs.name }}.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
