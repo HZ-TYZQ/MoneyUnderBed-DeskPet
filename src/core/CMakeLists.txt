@@ -11,6 +11,13 @@ add_library(money-under-bed-core STATIC
     ActivityMode.h
     AutonomousBehavior.cpp
     AutonomousBehavior.h
+    BubbleFrequency.h
+    ClickFeedback.cpp
+    ClickFeedback.h
+    EventCoordinator.cpp
+    EventCoordinator.h
+    Feeding.cpp
+    Feeding.h
     GestureRecognizer.cpp
     GestureRecognizer.h
     RandomSource.cpp

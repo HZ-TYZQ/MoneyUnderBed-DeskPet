@@ -4,6 +4,7 @@
 #include "core/ScreenPlacement.h"
 #include "platform/DeskPetWindowBackend.h"
 
+#include <QContextMenuEvent>
 #include <QCursor>
 #include <QGuiApplication>
 #include <QLoggingCategory>
@@ -128,6 +129,14 @@ void CharacterWindow::moveToCursorScreenBottom()
         return;
     }
     moveToBottomOf(target->availableGeometry(), 0.5);
+}
+
+void CharacterWindow::contextMenuEvent(QContextMenuEvent *event)
+{
+    // 角色右键菜单是主要控制入口（docs/Decisions.md 第 3.3 节）。
+    // 菜单本身由上层构建，窗口只负责报告位置。
+    emit contextMenuRequested(event->globalPos());
+    event->accept();
 }
 
 void CharacterWindow::mousePressEvent(QMouseEvent *event)

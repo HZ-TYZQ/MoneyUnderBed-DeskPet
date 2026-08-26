@@ -7,6 +7,7 @@
 #include "platform/BackendFactory.h"
 #include "platform/DeskPetWindowBackend.h"
 #include "platform/StartupProbe.h"
+#include "core/BubbleFrequency.h"
 #include "core/RandomSource.h"
 #include "core/TimeSource.h"
 #include "ui/CharacterPresenter.h"
@@ -118,9 +119,12 @@ int main(int argc, char *argv[])
     mub::core::SeededRandomSource random(QRandomGenerator::global()->generate());
 
     mub::ui::CharacterPresenter presenter(window, timeSource, random);
-    // 首次启动默认为安静模式（docs/Decisions.md 第 2.2 节）。
-    // 设置界面在阶段 7 接管该取值。
+    // 首次启动默认为安静模式，气泡默认低频（docs/Decisions.md 第 2.2、4 节）。
+    // 设置界面在阶段 7 接管这两个取值。
     presenter.setMode(mub::core::ActivityMode::Quiet);
+    presenter.setBubbleFrequency(mub::core::BubbleFrequency::Low);
+    QObject::connect(&presenter, &mub::ui::CharacterPresenter::quitRequested,
+                     &application, &QCoreApplication::quit);
     presenter.start();
 
     return application.exec();

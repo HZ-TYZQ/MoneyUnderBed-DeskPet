@@ -9,6 +9,7 @@
 
 #include <memory>
 
+class QContextMenuEvent;
 class QMouseEvent;
 class QPaintEvent;
 class QShowEvent;
@@ -61,8 +62,10 @@ signals:
     void clicked();
     void dragStarted();
     void dragFinished();
+    void contextMenuRequested(const QPoint &globalPosition);
 
 protected:
+    void contextMenuEvent(QContextMenuEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;

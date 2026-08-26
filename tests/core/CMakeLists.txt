@@ -9,3 +9,9 @@ target_link_libraries(tst_gesture PRIVATE MUB::Core)
 
 mub_add_test(tst_autonomousbehavior tst_autonomousbehavior.cpp)
 target_link_libraries(tst_autonomousbehavior PRIVATE MUB::Core)
+
+mub_add_test(tst_eventcoordinator tst_eventcoordinator.cpp)
+target_link_libraries(tst_eventcoordinator PRIVATE MUB::Core)
+
+mub_add_test(tst_feedback tst_feedback.cpp)
+target_link_libraries(tst_feedback PRIVATE MUB::Core)

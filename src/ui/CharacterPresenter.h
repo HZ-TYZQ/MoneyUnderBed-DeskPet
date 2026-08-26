@@ -5,6 +5,10 @@
 #include "character/SpriteSheet.h"
 #include "core/ActivityMode.h"
 #include "core/AutonomousBehavior.h"
+#include "core/BubbleFrequency.h"
+#include "core/ClickFeedback.h"
+#include "core/EventCoordinator.h"
+#include "core/Feeding.h"
 
 #include <QHash>
 #include <QObject>
@@ -44,13 +48,35 @@ public:
     void setPaused(bool paused);
     bool isPaused() const;
 
+    void setBubbleFrequency(core::BubbleFrequency frequency);
+    core::BubbleFrequency bubbleFrequency() const;
+
+    // 提交一次行为请求。返回协调器的裁决。
+    // 所有行为请求都必须经过这里，功能模块不得直接切换全局状态
+    // （docs/Decisions.md 第 4.2 节）。
+    core::EventDecision requestEvent(core::EventKind kind);
+
+    const core::EventCoordinator &coordinator() const;
+
     // 从窗口当前所在屏幕同步活动区域。屏幕变化时应重新调用。
     void syncActivityArea();
 
     core::AutonomousBehavior &behavior();
 
+signals:
+    // 阶段 6 的对话系统接管这两个信号。
+    void textFeedbackRequested();
+    void dialogueRequested(const QString &dialogueId);
+    void quitRequested();
+
 private:
     void tick();
+    void handleClick();
+    void showContextMenu(const QPoint &globalPosition);
+    void startFeeding();
+    void finishFeeding();
+    void updateFreeze();
+    bool advanceEventAnimation();
     void applyFacing();
     const character::SpriteSheet *sheetFor(const QString &clipId);
 
@@ -59,6 +85,14 @@ private:
     character::DirectionResolver direction_;
     character::AnimationPlayer animation_;
     QTimer timer_;
+    core::EventCoordinator coordinator_;
+    core::ClickFeedbackSelector clickFeedback_;
+    core::FeedingSelector feeding_;
+    core::RandomSource *random_;
+    core::BubbleFrequency bubbleFrequency_ = core::BubbleFrequency::Low;
+    core::FeedingOutcome feedingOutcome_ = core::FeedingOutcome::Eat;
+    bool userPaused_ = false;
+    bool eventFreeze_ = false;
     QHash<QString, character::SpriteSheet> sheets_;
     QString currentClipId_;
 };
