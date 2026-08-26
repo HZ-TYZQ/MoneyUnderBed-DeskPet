@@ -402,6 +402,8 @@ Qt 在 `QApplication` 构造期间加载平台插件，失败时直接终止进�
 - 两个平台使用同一个工作流和同一个精确 Qt 版本。
 - Windows CI 固定 `windows-2022`、MSVC 2022、CMake 和 Ninja，不使用会迁移的 `windows-latest`，也不维护 MinGW 构建。
 - CI 使用经过审查并锁定完整提交 SHA 的 `install-qt-action`／aqt 路径从公开 Qt 存档取得精确版本，避免依赖 Qt 账号密钥；工作流打印最终 Qt 版本。
+- 具体选用 `jurplel/install-qt-action`，锁定 `48d3ad6db93f3627c8ee7a0454bc6f3744f7e730`（v4.3.1）。
+- aqtinstall 不使用 PyPI 发布版，改由该 Action 的 `aqtsource` 从 Git 安装，锁定 `16db45a70b5905ad596941b223469bc86a56901e`。原因是 Qt 官方存档在 `6.11.0` 改为按架构分目录，aqtinstall 在 PyPI 上的最新发布版 `3.3.0` 只认旧结构，装不了 `6.11.x`；修复已合入上游 master 但尚未发布。aqtinstall 发布 `3.4.0` 后改回固定版本号。
 - Linux AppImage 先在 Ubuntu 22.04 runner 验证。若 Qt 6.11 预编译包存在 glibc 兼容问题，则改为缓存从官方源码构建的相同 Qt 版本。
 - 正式发布二进制只由打标签后的 GitHub Actions 生成，不上传开发机手工构建的正式包。
 
@@ -597,6 +599,5 @@ README 和发行说明必须同时展示正式支持目标、实际验证配置�
 - 多显示器、热插拔和混合 DPI 多显示器的实际兼容性结果。
 - Linux AppImage 最终 glibc 兼容下限。
 - Linux 会话状态检测采用的具体 D-Bus 接口（`logind` 的 `PrepareForSleep` 与 `org.freedesktop.ScreenSaver` 的取舍），以及在 GNOME 与 KDE 上的实际可用性。
-- Qt 获取 Action 的具体项目与固定提交 SHA。
 - 正式发布时 KDE、GNOME、XWayland、GPU 和驱动的具体验证版本矩阵。
 - 首个测试版、候选版和正式版的完整版本编号方案。

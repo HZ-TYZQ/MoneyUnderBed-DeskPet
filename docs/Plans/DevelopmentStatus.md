@@ -77,9 +77,30 @@ offscreen 只证明代码路径和计时逻辑可执行，不能代表真实桌�
 - 修复：工作流改用 `aqtsource` 从 Git 安装 aqtinstall，锁定完整提交 SHA `16db45a70b5905ad596941b223469bc86a56901e`，不使用浮动 master。`3.4.0` 发布后应改回 `aqtversion` 固定版本号。
 - 该问题与探针代码、CMake 和 MSVC 无关，属于 Qt 取包路径问题。
 
+第二次失败（run 32993271199）与第三次成功（run 32993815259）：
+
+- 第二次失败在「参数校验」步骤，但六条断言全部通过。原因是该步骤刻意让探针以非零码退出，最后一条断言留下的 `$LASTEXITCODE` 成了整个步骤的退出码。三个 PowerShell 步骤统一改为收集失败项并显式 `exit 0`／`exit 1`，同时关掉 PowerShell 7 默认把非零原生退出码当成错误的行为。
+- 同时去掉了 `push` 与 `pull_request` 的 `paths` 过滤。新建分支的首次 push 不匹配 `paths`，前两次都没触发工作流；去掉后 push 直接触发成功。`push` 限定 `main`，避免同仓库 PR 分支跑两遍。
+
+Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 秒）：
+
+| 检查 | 结果 |
+| --- | --- |
+| MSVC 2022 配置与编译 | 通过，无 MSVC 警告 |
+| 实际 Qt 版本等于 `6.11.2` | 通过，`qmake -query` 报告 `6.11.2` |
+| 参数校验退出码 | 通过，6 条断言全部符合预期 |
+| 全部用例的 offscreen 冒烟 | 通过，15 个用例全部退出 0 |
+| `windeployqt` 后的可执行文件能加载随包素材 | 通过 |
+
+工具链实测版本：Qt `6.11.2`、CMake `3.31.6`、Ninja `1.13.2`、MSVC 工具集 `14.44.35207`、Windows SDK `10.0.26100.0`。
+
+打包问题（已修，待下一轮验证）：
+
+- `windeployqt --compiler-runtime` 复制的是 25 MB 的 `vc_redist.x64.exe` 安装器，不是运行库本身，包内没有任何 `msvcp140.dll`／`vcruntime140*.dll`。没装过 VC++ 运行库的机器仍然起不来。已改为直接把运行库 DLL 放在可执行文件旁（app-local 部署），并断言三个必需 DLL 存在。ZIP 体积从 55 MB 降到约 30 MB。
+
 未完成：
 
-- 修复后的工作流运行结果待确认；MSVC 2022 与 Qt `6.11.2` 的实际构建结果仍然未知。
+- 上述打包修复的运行结果待确认。
 - 项目所有者尚未在 Windows 11 上运行探针 ZIP。
 - `docs/WindowsFeasibilityResults.md` 全部结果仍为未实测。
 - 退出门未判定。阶段 2 不得开始。

@@ -145,11 +145,28 @@ jobs:
       - name: Stage package
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           cmake --install build --prefix package
           # 保留 opengl-sw 与 d3dcompiler：项目所有者的测试机不一定有可用的
           # 图形驱动路径，少一个 DLL 就要多一轮往返。
-          windeployqt --release --no-translations --compiler-runtime `
-            package\deskpet-probe.exe
+          #
+          # 不用 --compiler-runtime：它复制的是 25 MB 的 vc_redist.x64.exe
+          # 安装器，不是运行库本身。没装过 VC++ 运行库的机器仍然起不来，
+          # 测试者还得先手动跑安装器。改为直接把运行库 DLL 放在 exe 旁边
+          # （app-local 部署），体积从 25 MB 降到约 0.6 MB，且真正免安装。
+          windeployqt --release --no-translations package\deskpet-probe.exe
+
+          $crt = Get-ChildItem -Path (Join-Path $env:VCToolsRedistDir 'x64') `
+            -Filter 'Microsoft.VC*.CRT' -Directory | Select-Object -First 1
+          if (-not $crt) { throw "MSVC runtime redist folder not found under $env:VCToolsRedistDir" }
+          Write-Host "MSVC runtime from: $($crt.FullName)"
+          Copy-Item (Join-Path $crt.FullName 'msvcp140*.dll') package
+          Copy-Item (Join-Path $crt.FullName 'vcruntime140*.dll') package
+          foreach ($required in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+            if (-not (Test-Path (Join-Path 'package' $required))) {
+              throw "Missing MSVC runtime in package: $required"
+            }
+          }
           "commit=${{ github.sha }}" | Out-File package\BUILD_INFO.txt -Encoding utf8
           "qt=${{ env.QT_VERSION }}" | Out-File package\BUILD_INFO.txt -Encoding utf8 -Append
           "arch=${{ env.QT_ARCH }}" | Out-File package\BUILD_INFO.txt -Encoding utf8 -Append
