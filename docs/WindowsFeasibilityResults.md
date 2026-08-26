@@ -18,20 +18,35 @@
 - Qt：`6.11.2`，`win64_msvc2022_64`。
 - 素材：仓库内 `assets/character/idle-down-left.png`，`621 x 111`，按 `69 x 111` 裁切为 9 帧。
 - 测试机：待填（Windows 版本号、CPU、显卡与驱动、显示器数量与缩放）。
-- 测试用的 ZIP：待填（Actions run 编号、commit、ZIP 的 SHA-256）。
+- 待测试的 ZIP：Actions run 32995272648，commit `fc689995`，artifact `deskpet-probe-windows-x64-fc689995fbf9`，ZIP 大小 30 618 336 字节，SHA-256 `c335de582b6b06e8c64d94a94d4db3b084314a8484fed750293176bf26adb8f0`。
+- 下载后先核对 SHA-256 再解压。GitHub 会把 artifact 再套一层 zip，上面的 SHA-256 指的是里面那个 `deskpet-probe-windows-x64-fc689995fbf9.zip`。
 
 项目所有者测试的必须是 Actions 产出的同一份 ZIP，不使用本地构建替代。
 
 ## 2. CI 自动检查
 
+已完成。结果来自 Actions run 32995272648，commit `fc689995`。
+
 | 检查 | 结果 |
 | --- | --- |
-| MSVC 2022 配置与编译 | 未实测 |
-| 实际 Qt 版本等于 `6.11.2` | 未实测 |
-| 参数校验退出码（未知用例、非法倍率、非法时长 → 2） | 未实测 |
-| 素材校验退出码（缺失、加载失败、尺寸非法 → 3） | 未实测 |
-| 全部用例的 offscreen 冒烟正常退出 | 未实测 |
-| `windeployqt` 后的可执行文件能加载随包素材 | 未实测 |
+| MSVC 2022 配置与编译 | 通过，无 MSVC 警告 |
+| 实际 Qt 版本等于 `6.11.2` | 通过，`qmake -query QT_VERSION` 报告 `6.11.2` |
+| 参数校验退出码（未知用例、非法倍率、非法时长 → 2） | 通过，4 条断言 |
+| 素材校验退出码（缺失、加载失败、尺寸非法 → 3） | 通过，2 条断言 |
+| 全部用例的 offscreen 冒烟正常退出 | 通过，15 个用例全部退出 0 |
+| `windeployqt` 后的可执行文件能加载随包素材 | 通过 |
+| 包内含 app-local MSVC 运行库，且不含 `vc_redist.x64.exe` | 通过 |
+
+实测工具链：
+
+| 组件 | 版本 |
+| --- | --- |
+| Qt | `6.11.2`（`win64_msvc2022_64`） |
+| CMake | `3.31.6` |
+| Ninja | `1.13.2` |
+| MSVC 工具集 | `14.44.35207` |
+| Windows SDK | `10.0.26100.0` |
+| runner | `windows-2022` |
 
 offscreen 只证明代码路径和计时逻辑可执行，不能证明真实桌面中的透明、移动、输入和堆叠行为。
 

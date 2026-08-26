@@ -94,14 +94,22 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 
 工具链实测版本：Qt `6.11.2`、CMake `3.31.6`、Ninja `1.13.2`、MSVC 工具集 `14.44.35207`、Windows SDK `10.0.26100.0`。
 
-打包问题（已修，待下一轮验证）：
+打包问题（已修并验证）：
 
-- `windeployqt --compiler-runtime` 复制的是 25 MB 的 `vc_redist.x64.exe` 安装器，不是运行库本身，包内没有任何 `msvcp140.dll`／`vcruntime140*.dll`。没装过 VC++ 运行库的机器仍然起不来。已改为直接把运行库 DLL 放在可执行文件旁（app-local 部署），并断言三个必需 DLL 存在。ZIP 体积从 55 MB 降到约 30 MB。
+- `windeployqt --compiler-runtime` 复制的是 25 MB 的 `vc_redist.x64.exe` 安装器，不是运行库本身，包内没有任何 `msvcp140.dll`／`vcruntime140*.dll`。没装过 VC++ 运行库的机器仍然起不来，测试者还得先手动跑安装器。
+- 改为直接把运行库 DLL 放在可执行文件旁做 app-local 部署，并断言三个必需 DLL 存在。
+- 只去掉 `--compiler-runtime` 不够：windeployqt 检测到 Visual Studio 环境时默认就带运行库，必须显式写 `--no-compiler-runtime`。已另加一条断言，包内不得出现 `vc_redist.x64.exe`。
+- ZIP 从 56 018 347 字节降到 30 618 336 字节。
+
+可交付给项目所有者测试的产物（run 32995272648，commit `fc689995`）：
+
+- artifact：`deskpet-probe-windows-x64-fc689995fbf9`
+- ZIP SHA-256：`c335de582b6b06e8c64d94a94d4db3b084314a8484fed750293176bf26adb8f0`
+- 检查表：包内 `WindowsChecklist.md`，结果填入 `docs/WindowsFeasibilityResults.md`
 
 未完成：
 
-- 上述打包修复的运行结果待确认。
-- 项目所有者尚未在 Windows 11 上运行探针 ZIP。
+- 项目所有者尚未在 Windows 11 上运行探针 ZIP。第 4 节全部核心能力仍为未实测。
 - `docs/WindowsFeasibilityResults.md` 全部结果仍为未实测。
 - 退出门未判定。阶段 2 不得开始。
 
