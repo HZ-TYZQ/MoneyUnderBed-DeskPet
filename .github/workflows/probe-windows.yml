@@ -5,18 +5,13 @@ name: Windows window probe
 
 on:
   workflow_dispatch:
+  # 不加 paths 过滤：新建分支的首次 push 不会匹配 paths，实测两次都没触发。
+  # push 限定 main，是为了避免同仓库的 PR 分支同时触发 push 和 pull_request
+  # 跑两遍；Windows runner 按 2 倍计费。需要每个分支都跑时去掉 branches 即可。
   push:
-    paths:
-      - 'probes/window/**'
-      - 'assets/character/idle-down-left.png'
-      - 'assets/LICENSE.md'
-      - '.github/workflows/probe-windows.yml'
+    branches:
+      - main
   pull_request:
-    paths:
-      - 'probes/window/**'
-      - 'assets/character/idle-down-left.png'
-      - 'assets/LICENSE.md'
-      - '.github/workflows/probe-windows.yml'
 
 permissions:
   contents: read
@@ -89,23 +84,36 @@ jobs:
 
       # 无 GUI 的参数校验与 offscreen 冒烟。
       # 这些检查只证明代码路径可执行，不能代表真实桌面行为。
+      # 本步骤刻意让探针以非零码退出，因此关掉 PowerShell 7 默认把非零原生
+      # 退出码当成错误的行为，并在结尾显式 exit 0。
+      # 否则最后一条断言留下的 $LASTEXITCODE 会成为整个步骤的退出码，
+      # 断言全过也会被判失败。
       - name: Argument validation
         shell: pwsh
         working-directory: build
         run: |
           $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failures = @()
           function Assert-Exit([string]$label, [int]$expected, [scriptblock]$run) {
             & $run *> $null
             $code = $LASTEXITCODE
-            Write-Host "$label -> exit=$code (expected $expected)"
-            if ($code -ne $expected) { throw "$label expected exit $expected, got $code" }
+            $ok = $code -eq $expected
+            Write-Host "$label -> exit=$code (expected $expected) $(if ($ok) { 'ok' } else { 'FAIL' })"
+            if (-not $ok) { $script:failures += "$label expected exit $expected, got $code" }
           }
-          Assert-Exit 'unknown case'    2 { .\deskpet-probe.exe --case bogus }
-          Assert-Exit 'invalid scale'   2 { .\deskpet-probe.exe --case render --scale 0 }
-          Assert-Exit 'invalid scale'   2 { .\deskpet-probe.exe --case render --scale 99 }
+          Assert-Exit 'unknown case'     2 { .\deskpet-probe.exe --case bogus }
+          Assert-Exit 'invalid scale 0'  2 { .\deskpet-probe.exe --case render --scale 0 }
+          Assert-Exit 'invalid scale 99' 2 { .\deskpet-probe.exe --case render --scale 99 }
           Assert-Exit 'invalid duration' 2 { .\deskpet-probe.exe --case render --duration -1 }
-          Assert-Exit 'missing sprite'  3 { .\deskpet-probe.exe --case render --sprite nope.png }
-          Assert-Exit 'bad dimensions'  3 { .\deskpet-probe.exe --case render --sprite ..\assets\face\natural.png }
+          Assert-Exit 'missing sprite'   3 { .\deskpet-probe.exe --case render --sprite nope.png }
+          Assert-Exit 'bad dimensions'   3 { .\deskpet-probe.exe --case render --sprite ..\assets\face\natural.png }
+          if ($failures.Count -gt 0) {
+            $failures | ForEach-Object { Write-Host "::error::$_" }
+            exit 1
+          }
+          Write-Host "All argument validation checks passed."
+          exit 0
 
       - name: Offscreen smoke test
         shell: pwsh
@@ -113,17 +121,26 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
           $cases = (.\deskpet-probe.exe --list-cases) -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
           Write-Host "Cases: $($cases -join ', ')"
+          $failed = @()
           foreach ($c in $cases) {
             .\deskpet-probe.exe --case $c --duration 1 --log "smoke-$c.log" *> $null
             $code = $LASTEXITCODE
             Write-Host "$c -> exit=$code"
             if ($code -ne 0) {
-              Get-Content "smoke-$c.log" -Tail 20
-              throw "Case $c failed with exit $code"
+              if (Test-Path "smoke-$c.log") { Get-Content "smoke-$c.log" -Tail 20 }
+              $failed += "$c (exit $code)"
             }
           }
+          if ($failed.Count -gt 0) {
+            $failed | ForEach-Object { Write-Host "::error::Offscreen case failed: $_" }
+            exit 1
+          }
+          Write-Host "All $($cases.Count) cases passed offscreen."
+          exit 0
 
       - name: Stage package
         shell: pwsh
@@ -145,10 +162,14 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
           .\deskpet-probe.exe --case build
-          if ($LASTEXITCODE -ne 0) { throw "Packaged probe failed --case build" }
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::Packaged probe failed --case build"; exit 1 }
           .\deskpet-probe.exe --case render --duration 1
-          if ($LASTEXITCODE -ne 0) { throw "Packaged probe failed to load the bundled sprite" }
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::Packaged probe failed to load the bundled sprite"; exit 1 }
+          Write-Host "Packaged probe starts and loads the bundled sprite."
+          exit 0
 
       - name: Create ZIP and checksum
         id: pack
