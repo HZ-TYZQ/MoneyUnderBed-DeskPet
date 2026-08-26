@@ -19,7 +19,7 @@
 | --- | --- | --- | --- |
 | 0 | 执行基线与历史计划整理 | 进行中 | 2026-08-27 |
 | 1 | Windows 窗口探针与 Actions 产物验收 | 进行中 | 2026-08-27 |
-| 2 | 正式工程骨架与双平台持续集成 | 未开始 | — |
+| 2 | 正式工程骨架与双平台持续集成 | 进行中 | 2026-08-27 |
 | 3 | 跨平台角色窗口最小纵切 | 未开始 | — |
 | 4 | 动画、方向映射与自主行为 | 未开始 | — |
 | 5 | 统一事件调度、单击、拖动与投喂 | 未开始 | — |
@@ -110,12 +110,54 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 未完成：
 
 - 项目所有者尚未在 Windows 11 上运行探针 ZIP。第 4 节全部核心能力仍为未实测。
+
+### 阶段顺序偏离（2026-08-27，项目所有者决定）
+
+计划第 7 节写的是「阶段 2 前置条件：阶段 1 通过」，第 17 节写的是「不在 Windows 探针结果出来前并行编写正式角色状态机、气泡或设置界面」。
+项目所有者以“去 Windows 测试比较麻烦”为由决定先继续后续阶段。
+
+本记录据此调整，调整范围和理由如下：
+
+- 阶段 1 **不填 `已通过`**，退出门维持未判定，`docs/WindowsFeasibilityResults.md` 第 3 至 8 节维持未实测。
+- 阶段 2 解除阻塞。该阶段只建立构建体系、CI、许可与元数据，不含任何窗口行为，与探针结果无关。
+- 阶段 3 的第 8.1 节「Windows 根据阶段 1 结果实现最小 Win32 边界」**继续挂起**。原阻断规则的真实目的是不让产品建立在未验证的平台假设上，该目的只落在这一条上。
+- 阶段 3 的其余部分、阶段 4、5、6 及阶段 7 的多数内容可以推进：这些是纯逻辑或 Linux 侧可验证的内容，在容器内有确定性测试覆盖。
+- 一旦取得 Windows 探针结果，先回填 `docs/WindowsFeasibilityResults.md` 并判定阶段 1 退出门，再实现 Windows 平台层。若届时核心能力失败，按计划第 6 节停止并重新形成假设，已完成的纯逻辑部分不因此免于返工。
 - `docs/WindowsFeasibilityResults.md` 全部结果仍为未实测。
 - 退出门未判定。阶段 2 不得开始。
 
 一处需要项目所有者知情的判断：
 
 - 计划 6.1 写的是“只有复现窗口重建问题后才引入 Win32 实现”。本轮已经把 `passthrough-native` 的 Win32 实现（只改 `WS_EX_TRANSPARENT`）一起放进探针，理由是它是独立用例，不参与 `passthrough-qt` 的纯 Qt 基线，而项目所有者在另一台机器上测试，每多一轮都要重新出包。若认为应当严格按原文先只测纯 Qt 路径，删掉该用例即可，其余部分不受影响。
+
+## 阶段 2
+
+状态：进行中
+
+已完成并在 `dev-fedora` 内实测（Qt 6.11.1、GCC 16.1.1）：
+
+- 根 `CMakeLists.txt`、`CMakePresets.json`（`dev`／`debug`／`release`／`ci` 四组预设）与计划第 4 节的目录结构。
+- C++20、Qt API 基线 `6.11`、CMake、Ninja 的统一入口。`QT_DISABLE_DEPRECATED_UP_TO=0x061100` 使基线之前被弃用的 Qt API 直接编译失败。
+- 严格警告配置 `cmake/ProjectWarnings.cmake`，GCC／Clang 与 MSVC 各自一套等价警告，默认按错误处理。GCC 下当前零警告通过。
+- 两个正式目标：`money-under-bed-core`（纯逻辑静态库，只链接 `Qt6::Core`）与 `money-under-bed-deskpet`（GUI 可执行文件，Windows 用 GUI 子系统）。`ui/` 把源文件加到可执行目标上，保留目录职责边界但不额外拆库。
+- 应用元数据集中在 `src/core/AppMetadata.*`，取值由 `src/core/Version.h.in` 在配置期注入，任何地方都不再硬编码。`tst_appmetadata` 锁住这些取值，改动必须同时改决策文档。
+- 界面文本一律走 `QCoreApplication::translate`，不提供语言设置。
+- 根 `LICENSE`（GPL-3.0 完整文本）、`packaging/LICENSES.md`（发行物许可清单模板）、根 `README.md`（含非官方声明与四类内容各自的许可）。
+- Ark Pixel `2026.08.11` 作为单一来源编入 Qt 资源系统。配置期核对 SHA-256，不符直接 `FATAL_ERROR`；`tst_resources` 另外校验资源系统内那一份的哈希，并断言仓库中只存在一份 TTF。
+- CTest 入口与两个测试目标，共 28 条断言：应用身份、字体哈希、许可文件存在性、11 个角色精灵表的 PNG 尺寸与帧数、11 个表情文件、以及 `assets/` 内每个 PNG 都登记在 `MANIFEST.md`。
+- `.github/workflows/build.yml`：Linux（`ubuntu-22.04`，显式安装 XCB 构建依赖）与 Windows（`windows-2022`，MSVC 2022）两个 job，每次 push 与 pull request 配置、编译、跑 CTest 并执行 `--self-test`。
+
+本地实测结果：`cmake --preset ci` 配置成功，编译零警告，`ctest --preset ci` 2 个测试全过，`--self-test` 退出码 0。
+
+说明：
+
+- `Network` 与 `DBus` 已在配置期 `find_package`，但尚未链接到任何目标。前者用于阶段 7 的本地 IPC，后者用于阶段 8 的 Linux 会话状态检测；在有使用者之前不链接，避免无谓依赖。
+- Windows 的 `--self-test` 用 `Start-Process -Wait` 取退出码。GUI 子系统程序直接在 shell 里调用不会等待进程结束，拿到的退出码不可信。
+
+未完成：
+
+- `.github/workflows/build.yml` 尚未在 Actions 上运行过。Windows 侧的配置、编译、MSVC 警告基线和测试结果均未知。
+- 计划第 7 节的四项自动检查在双平台 CI 通过前不勾选。
 
 ## Linux 侧已有结果
 

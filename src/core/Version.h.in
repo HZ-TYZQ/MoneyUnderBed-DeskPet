@@ -1,0 +1,18 @@
+#pragma once
+
+// 由 CMake 生成，不要手工编辑。源文件为 src/core/Version.h.in。
+// 版本编号方案尚未冻结，见 docs/Decisions.md 第 13 节。
+
+#define MUB_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define MUB_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define MUB_VERSION_PATCH @PROJECT_VERSION_PATCH@
+#define MUB_VERSION_STRING "@PROJECT_VERSION@"
+#define MUB_VERSION_SUFFIX "@PROJECT_VERSION_SUFFIX@"
+
+#define MUB_APPLICATION_NAME "MoneyUnderBed DeskPet"
+#define MUB_EXECUTABLE_NAME "money-under-bed-deskpet"
+#define MUB_APPLICATION_ID "io.github.hz_tyzq.MoneyUnderBedDeskPet"
+#define MUB_ORGANIZATION_NAME "HZ-TYZQ"
+#define MUB_ORGANIZATION_DOMAIN "hz-tyzq.github.io"
+#define MUB_HOMEPAGE_URL "@PROJECT_HOMEPAGE_URL@"
+#define MUB_QT_API_BASELINE "@MUB_QT_API_BASELINE@"

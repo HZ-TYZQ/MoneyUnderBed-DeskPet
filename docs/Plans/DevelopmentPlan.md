@@ -214,21 +214,21 @@ core 不依赖 Widgets、Win32、XCB 或 D-Bus
 
 ### 前置条件
 
-- 阶段 1 通过。
+- ~~阶段 1 通过。~~ 2026-08-27 由项目所有者决定解除：本阶段只建立构建体系、CI、许可与元数据，不含任何窗口行为，与 Windows 探针结果无关。偏离记录见 `docs/Plans/DevelopmentStatus.md`。
 
 ### 任务
 
-- [ ] 建立根 `CMakeLists.txt`、`CMakePresets.json` 和第 4 节目录结构。
-- [ ] 固定 C++20、Qt `6.11.2`、CMake 与 Ninja 的统一入口。
-- [ ] 建立 `Core`、`Gui`、`Widgets`、`Network`，Linux 额外 `DBus`，测试额外 `Test` 的目标依赖。
-- [ ] 建立开发期严格警告配置；GCC／Clang 和 MSVC 分别设置等价警告。
-- [ ] 建立最小 GUI 启动目标、纯逻辑测试目标和 CTest 入口；此时只显示测试占位窗口，不实现角色行为。
-- [ ] 建立统一应用元数据：名称、应用 ID、organization、版本注入和 GUI 子系统设置。
-- [ ] 建立简体中文界面文本约束：所有用户可见文本走 `tr()`，资源结构可加载翻译文件，但第一版不提供语言设置。
-- [ ] 加入根 `LICENSE`、第三方许可证目录结构和发行物许可清单模板，并写明 `Copyright (C) 2026 HZ-TYZQ`；项目文档采用同一 `GPL-3.0-or-later` 许可。
-- [ ] 将 Ark Pixel `2026.08.11` 完整 `12px-proportional-zh_cn.ttf` 作为单一来源加入，验证 SHA-256，不重复嵌入。
-- [ ] 建立 Linux／Windows 两个 CI job，每次 push 与 pull request 编译并运行 CTest。
-- [ ] Linux CI 显式安装 XCB 构建依赖；offscreen 只承担自动测试，不冒充真实桌面验收。
+- [x] 建立根 `CMakeLists.txt`、`CMakePresets.json` 和第 4 节目录结构。
+- [x] 固定 C++20、Qt `6.11.2`、CMake 与 Ninja 的统一入口。
+- [x] 建立 `Core`、`Gui`、`Widgets`、`Network`，Linux 额外 `DBus`，测试额外 `Test` 的目标依赖。
+- [x] 建立开发期严格警告配置；GCC／Clang 和 MSVC 分别设置等价警告。
+- [x] 建立最小 GUI 启动目标、纯逻辑测试目标和 CTest 入口；此时只显示测试占位窗口，不实现角色行为。
+- [x] 建立统一应用元数据：名称、应用 ID、organization、版本注入和 GUI 子系统设置。
+- [x] 建立简体中文界面文本约束：所有用户可见文本走 `tr()`，资源结构可加载翻译文件，但第一版不提供语言设置。
+- [x] 加入根 `LICENSE`、第三方许可证目录结构和发行物许可清单模板，并写明 `Copyright (C) 2026 HZ-TYZQ`；项目文档采用同一 `GPL-3.0-or-later` 许可。
+- [x] 将 Ark Pixel `2026.08.11` 完整 `12px-proportional-zh_cn.ttf` 作为单一来源加入，验证 SHA-256，不重复嵌入。
+- [x] 建立 Linux／Windows 两个 CI job，每次 push 与 pull request 编译并运行 CTest。
+- [x] Linux CI 显式安装 XCB 构建依赖；offscreen 只承担自动测试，不冒充真实桌面验收。
 
 ### 自动检查
 
@@ -252,7 +252,7 @@ core 不依赖 Widgets、Win32、XCB 或 D-Bus
 - [ ] 定义窄平台接口：置顶、输入命中／穿透、焦点策略、任务栏／窗口列表表现、工作区能力和会话事件入口。
 - [ ] Linux 在构造 `QApplication` 前探测 XCB 连接，并按决策实现只用于报错的 Wayland 对话框路径。
 - [ ] Linux 正式运行强制单值 `QT_QPA_PLATFORM=xcb`；记录实际平台名。
-- [ ] Windows 根据阶段 1 结果实现最小 Win32 边界，避免在 UI 和行为代码中散落条件编译。
+- [ ] Windows 根据阶段 1 结果实现最小 Win32 边界，避免在 UI 和行为代码中散落条件编译。**本条挂起**，等 `docs/WindowsFeasibilityResults.md` 取得实际结果后再实现；这是阶段 1 阻断规则唯一仍然生效的地方。
 
 ### 8.2 待机角色窗口
 
@@ -557,4 +557,8 @@ core 不依赖 Widgets、Win32、XCB 或 D-Bus
 3. 从 Actions 下载同一份探针 ZIP，由项目所有者在 Windows 11 完成检查表。
 4. 将结果写入 `docs/WindowsFeasibilityResults.md`；通过阶段 1 后才创建正式 `src/` 工程。
 
-不在 Windows 探针结果出来前并行编写正式角色状态机、气泡或设置界面。
+2026-08-27 更新：项目所有者决定先推进后续阶段，本节的顺序限制随之调整。
+原限制“不在 Windows 探针结果出来前并行编写正式角色状态机、气泡或设置界面”
+收窄为：不在 Windows 探针结果出来前实现第 8.1 节的 Windows 平台层。
+纯逻辑与 Linux 侧可验证的内容照常推进。偏离理由与范围见
+`docs/Plans/DevelopmentStatus.md`。

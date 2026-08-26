@@ -1,0 +1,150 @@
+# 正式工程的双平台 CI。对应 docs/Plans/DevelopmentPlan.md 阶段 2。
+# 每次 push 与 pull request 都在 Linux 与 Windows 编译并运行 CTest。
+#
+# 本工作流不做真实桌面验收：offscreen 只承担自动测试，
+# 置顶、穿透、任务栏和窗口管理行为必须真实桌面手工验收
+# （docs/Decisions.md 第 11.1 节）。
+name: Build and test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # docs/Decisions.md 第 9.1 节：CI 精确锁定 Qt 6.11.2。
+  QT_VERSION: 6.11.2
+  # aqtinstall 的 PyPI 最新发布版 3.3.0 认不出 Qt 6.11 起改用的
+  # 按架构分目录结构。修复已合入上游 master 但尚未发布，因此锁定提交。
+  # 上游发布 3.4.0 后改回固定版本号。
+  AQT_SOURCE: git+https://github.com/miurahr/aqtinstall.git@16db45a70b5905ad596941b223469bc86a56901e
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # AppImage 以 Ubuntu 22.04 为基线，CI 与打包保持同一发行版，
+          # 使 glibc 兼容问题在这里就暴露（docs/Decisions.md 第 9.3 节）。
+          - name: Linux (Ubuntu 22.04, GCC)
+            runner: ubuntu-22.04
+            qt_host: linux
+            qt_arch: linux_gcc_64
+          - name: Windows (windows-2022, MSVC 2022)
+            runner: windows-2022
+            qt_host: windows
+            qt_arch: win64_msvc2022_64
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      # 显式安装 XCB 构建依赖，不依赖 Action 的隐式依赖处理。
+      # Linux 正式后端是 XCB（docs/Decisions.md 第 8.2 节）。
+      - name: Install XCB build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-0 \
+            libx11-xcb1 \
+            libxcb1-dev \
+            libxcb-cursor0 \
+            libxcb-glx0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-shm0 \
+            libxcb-sync1 \
+            libxcb-util1 \
+            libxcb-xfixes0 \
+            libxcb-xinerama0 \
+            libxcb-xkb1
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: ${{ matrix.qt_host }}
+          target: desktop
+          arch: ${{ matrix.qt_arch }}
+          aqtsource: ${{ env.AQT_SOURCE }}
+          cache: true
+
+      - name: Set up MSVC 2022 x64
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@c1ed231f339aec74961130db0459823a08f1b215 # v1.9.0
+        with:
+          arch: x64
+
+      - name: Assert Qt version
+        shell: bash
+        run: |
+          if command -v qmake >/dev/null 2>&1; then
+            qt_tool=qmake
+          elif command -v qmake6 >/dev/null 2>&1; then
+            qt_tool=qmake6
+          else
+            echo "::error::Neither qmake nor qmake6 is on PATH"
+            exit 1
+          fi
+          actual="$($qt_tool -query QT_VERSION | tr -d '[:space:]')"
+          echo "Qt reported: $actual (via $qt_tool)"
+          if [ "$actual" != "${QT_VERSION}" ]; then
+            echo "::error::Qt version mismatch: expected ${QT_VERSION}, got $actual"
+            exit 1
+          fi
+
+      - name: Report toolchain
+        shell: bash
+        run: |
+          cmake --version
+          ninja --version
+
+      - name: Configure
+        run: cmake --preset ci
+
+      - name: Build
+        run: cmake --build --preset ci
+
+      - name: Test
+        run: ctest --preset ci
+
+      # 打包产物自检在阶段 9 加入。这里先验证未打包的可执行文件能启动并退出，
+      # 结果以退出码为准，不依赖标准输出（docs/Decisions.md 第 11.1 节）。
+      - name: Self-test (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./build/ci/bin/money-under-bed-deskpet --self-test
+
+      # Windows 上程序是 GUI 子系统，没有控制台。直接在 shell 里调用不会等待
+      # 进程结束，拿到的退出码不可信，因此必须用 Start-Process -Wait 取真实值。
+      - name: Self-test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $exe = Join-Path $PWD 'build\ci\bin\money-under-bed-deskpet.exe'
+          if (-not (Test-Path $exe)) { throw "Executable not found: $exe" }
+          $process = Start-Process -FilePath $exe -ArgumentList '--self-test' `
+            -Wait -PassThru -NoNewWindow
+          Write-Host "self-test exit=$($process.ExitCode)"
+          exit $process.ExitCode
