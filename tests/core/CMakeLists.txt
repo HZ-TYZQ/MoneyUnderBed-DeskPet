@@ -6,3 +6,6 @@ target_link_libraries(tst_screenplacement PRIVATE MUB::Core)
 
 mub_add_test(tst_gesture tst_gesture.cpp)
 target_link_libraries(tst_gesture PRIVATE MUB::Core)
+
+mub_add_test(tst_autonomousbehavior tst_autonomousbehavior.cpp)
+target_link_libraries(tst_autonomousbehavior PRIVATE MUB::Core)

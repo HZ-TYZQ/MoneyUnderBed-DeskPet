@@ -1,4 +1,4 @@
-#include "character/CharacterAssets.h"
+#include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
 
 #include <QImage>
@@ -110,9 +110,9 @@ void TestSpriteSheet::everyRegisteredSheetLoadsWithTheExpectedFrameCount_data()
     QTest::addColumn<QString>("resourcePath");
     QTest::addColumn<int>("expectedFrames");
 
-    for (const auto &entry : mub::character::registeredSpriteSheets()) {
+    for (const auto &entry : mub::character::registeredClips()) {
         QTest::newRow(entry.id)
-            << QString::fromLatin1(entry.resourcePath) << entry.expectedFrameCount;
+            << QString::fromLatin1(entry.resourcePath) << entry.frameCount;
     }
 }
 

@@ -36,6 +36,11 @@ public:
     ~CharacterWindow() override;
 
     int integerScale() const;
+
+    // 切换精灵表。所有角色素材的帧尺寸相同，因此窗口大小不变。
+    void setSpriteSheet(character::SpriteSheet sheet);
+    const character::SpriteSheet &spriteSheet() const;
+
     int frameIndex() const;
     void setFrameIndex(int index);
 
@@ -52,8 +57,9 @@ public:
     void moveToCursorScreenBottom();
 
 signals:
-    // 阶段 5 由事件协调器接管。阶段 3 只发出信号，不做任何反馈。
+    // 阶段 5 由事件协调器接管。窗口本身不做任何产品反馈。
     void clicked();
+    void dragStarted();
     void dragFinished();
 
 protected:

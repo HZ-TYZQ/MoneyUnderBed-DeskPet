@@ -1,12 +1,15 @@
 #include "app/DiagnosticLog.h"
 #include "app/SelfTest.h"
 #include "app/StartupFailureReport.h"
-#include "character/CharacterAssets.h"
+#include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
 #include "core/AppMetadata.h"
 #include "platform/BackendFactory.h"
 #include "platform/DeskPetWindowBackend.h"
 #include "platform/StartupProbe.h"
+#include "core/RandomSource.h"
+#include "core/TimeSource.h"
+#include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
 
 #include <QApplication>
@@ -14,6 +17,7 @@
 #include <QCommandLineParser>
 #include <QGuiApplication>
 #include <QLoggingCategory>
+#include <QRandomGenerator>
 #include <QString>
 
 #include <memory>
@@ -24,9 +28,8 @@ Q_LOGGING_CATEGORY(lcMain, "mub.app")
 
 constexpr int kAssetFailureExitCode = 4;
 
-// 阶段 3 只显示一个方向的待机角色。
-// 完整的方向映射与动画播放在阶段 4 加入。
-constexpr auto kStartupSheetId = "idle-down-left";
+// 启动时的初始动画。方向映射会在第一次移动后接管。
+constexpr auto kStartupClipId = u"idle-down-left";
 
 } // namespace
 
@@ -88,7 +91,7 @@ int main(int argc, char *argv[])
     }
 
     const QString sheetPath =
-        mub::character::spriteSheetPath(QLatin1String(kStartupSheetId));
+        mub::character::clipResourcePath(kStartupClipId);
     mub::character::SpriteSheetError sheetError =
         mub::character::SpriteSheetError::None;
     mub::character::SpriteSheet sheet =
@@ -108,6 +111,17 @@ int main(int argc, char *argv[])
                                     backend.get());
     window.moveToCursorScreenBottom();
     window.show();
+
+    // 产品使用单调时钟与随机种子；测试通过注入替换两者，
+    // 使行为序列在假时钟和固定种子下完全可重复。
+    const mub::core::MonotonicTimeSource timeSource;
+    mub::core::SeededRandomSource random(QRandomGenerator::global()->generate());
+
+    mub::ui::CharacterPresenter presenter(window, timeSource, random);
+    // 首次启动默认为安静模式（docs/Decisions.md 第 2.2 节）。
+    // 设置界面在阶段 7 接管该取值。
+    presenter.setMode(mub::core::ActivityMode::Quiet);
+    presenter.start();
 
     return application.exec();
 }

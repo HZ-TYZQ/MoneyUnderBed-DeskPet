@@ -53,6 +53,23 @@ int CharacterWindow::integerScale() const
     return integerScale_;
 }
 
+void CharacterWindow::setSpriteSheet(character::SpriteSheet sheet)
+{
+    if (!sheet.isValid()) {
+        return;
+    }
+    sheet_ = std::move(sheet);
+    frameIndex_ = 0;
+    cachedFrameIndex_ = -1;
+    applyHitMask();
+    update();
+}
+
+const character::SpriteSheet &CharacterWindow::spriteSheet() const
+{
+    return sheet_;
+}
+
 int CharacterWindow::frameIndex() const
 {
     return frameIndex_;
@@ -135,7 +152,10 @@ void CharacterWindow::mouseMoveEvent(QMouseEvent *event)
     }
 
     const QPoint global = event->globalPosition().toPoint();
-    gesture_.move(global);
+    const bool becameDrag = gesture_.move(global);
+    if (becameDrag) {
+        emit dragStarted();
+    }
     if (gesture_.isDragging()) {
         // 产品使用手动移动而不是 startSystemDrag。
         // 由窗口管理器接管拖动后程序收不到松开事件，也就无法按

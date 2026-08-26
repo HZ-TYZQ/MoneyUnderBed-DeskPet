@@ -1,6 +1,6 @@
 #include "app/SelfTest.h"
 
-#include "character/CharacterAssets.h"
+#include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
 
 #include <QFile>
@@ -18,8 +18,7 @@ Q_LOGGING_CATEGORY(lcSelfTest, "mub.app.selftest")
 bool checkSpriteSheets(QStringList &failures)
 {
     bool ok = true;
-    for (const character::SpriteSheetEntry &entry :
-         character::registeredSpriteSheets()) {
+    for (const character::AnimationClip &entry : character::registeredClips()) {
         const QString path = QString::fromLatin1(entry.resourcePath);
         character::SpriteSheetError error = character::SpriteSheetError::None;
         const character::SpriteSheet sheet =
@@ -32,12 +31,16 @@ bool checkSpriteSheets(QStringList &failures)
             ok = false;
             continue;
         }
-        if (sheet.frameCount() != entry.expectedFrameCount) {
-            failures.append(
-                QStringLiteral("%1: frame count %2, expected %3")
-                    .arg(path)
-                    .arg(sheet.frameCount())
-                    .arg(entry.expectedFrameCount));
+        if (sheet.frameCount() != entry.frameCount) {
+            failures.append(QStringLiteral("%1: frame count %2, expected %3")
+                                .arg(path)
+                                .arg(sheet.frameCount())
+                                .arg(entry.frameCount));
+            ok = false;
+            continue;
+        }
+        if (entry.frameDurationMs <= 0) {
+            failures.append(QStringLiteral("%1: frame duration must be positive").arg(path));
             ok = false;
             continue;
         }

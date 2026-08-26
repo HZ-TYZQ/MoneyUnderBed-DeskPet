@@ -8,17 +8,28 @@ configure_file(Version.h.in "${CMAKE_CURRENT_BINARY_DIR}/generated/mub/Version.h
 add_library(money-under-bed-core STATIC
     AppMetadata.cpp
     AppMetadata.h
+    ActivityMode.h
+    AutonomousBehavior.cpp
+    AutonomousBehavior.h
     GestureRecognizer.cpp
     GestureRecognizer.h
+    RandomSource.cpp
+    RandomSource.h
     ScreenPlacement.cpp
     ScreenPlacement.h
+    TimeSource.cpp
+    TimeSource.h
     "${CMAKE_CURRENT_BINARY_DIR}/generated/mub/Version.h"
 )
 
 # character/ 的内容编入 core，不单独成库。
 target_sources(money-under-bed-core PRIVATE
-    ../character/CharacterAssets.cpp
-    ../character/CharacterAssets.h
+    ../character/AnimationClip.cpp
+    ../character/AnimationClip.h
+    ../character/AnimationPlayer.cpp
+    ../character/AnimationPlayer.h
+    ../character/Direction.cpp
+    ../character/Direction.h
     ../character/HitMask.cpp
     ../character/HitMask.h
     ../character/SpriteSheet.cpp
