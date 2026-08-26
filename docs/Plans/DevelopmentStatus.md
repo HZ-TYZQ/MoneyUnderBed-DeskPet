@@ -69,9 +69,17 @@ Linux 容器内的实际验证（`dev-fedora`，Qt 6.11.1，GCC 16.1.1）：
 
 offscreen 只证明代码路径和计时逻辑可执行，不能代表真实桌面行为，也不能代表 Windows 行为。
 
+首次 Actions 运行（run 32992591398）失败，已定位并修复：
+
+- 现象：`Install Qt 6.11.2` 步骤报 `Failed to locate XML data for Qt version '6.11.2'`，请求的是 `qt6_6112/qt6_6112/Updates.xml`。
+- 原因：Qt 官方存档在 `6.11.0` 改了目录结构。`6.10.1` 及更早是 `qt6_XXX/qt6_XXX/Updates.xml`，`6.11.0` 起改为按架构分目录的 `qt6_XXXX/qt6_XXXX_<arch>/Updates.xml`。已逐版本核对：`693`、`6100`、`6101` 只有旧结构，`6110`、`6111`、`6112` 只有新结构。
+- 根因位置：`aqtinstall` 在 PyPI 上的最新发布版是 `3.3.0`（2025-06-02），只认旧结构。上游已在 master 合入 `version >= Version("6.11.0")` 的分支处理（issue #959 与 #1000），但 `3.4.0` 尚未发布。
+- 修复：工作流改用 `aqtsource` 从 Git 安装 aqtinstall，锁定完整提交 SHA `16db45a70b5905ad596941b223469bc86a56901e`，不使用浮动 master。`3.4.0` 发布后应改回 `aqtversion` 固定版本号。
+- 该问题与探针代码、CMake 和 MSVC 无关，属于 Qt 取包路径问题。
+
 未完成：
 
-- `.github/workflows/probe-windows.yml` 尚未在 Actions 上运行过，MSVC 2022 与 Qt `6.11.2` 的实际构建结果未知。
+- 修复后的工作流运行结果待确认；MSVC 2022 与 Qt `6.11.2` 的实际构建结果仍然未知。
 - 项目所有者尚未在 Windows 11 上运行探针 ZIP。
 - `docs/WindowsFeasibilityResults.md` 全部结果仍为未实测。
 - 退出门未判定。阶段 2 不得开始。

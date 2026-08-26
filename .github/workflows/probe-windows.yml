@@ -36,6 +36,15 @@ jobs:
         uses: actions/checkout@v7
 
       # 第三方 Action 锁定完整提交 SHA，避免同一个 tag 指向不同代码。
+      #
+      # aqtsource 指向 aqtinstall 的 Git 提交而不是 PyPI 版本，原因是：
+      # Qt 官方存档在 6.11.0 改了目录结构，从 qt6_XXX/qt6_XXX/Updates.xml
+      # 改成按架构分目录的 qt6_XXXX/qt6_XXXX_<arch>/Updates.xml。
+      # aqtinstall 在 PyPI 上的最新发布版 3.3.0（2025-06-02）只认旧结构，
+      # 装 6.11.x 会报 "Failed to locate XML data for Qt version"。
+      # 该修复已经合入上游 master（issue #959 / #1000），但 3.4.0 尚未发布。
+      # 这里同样锁定完整提交 SHA，不使用浮动的 master。
+      # aqtinstall 发布 3.4.0 之后应改回 aqtversion 固定版本号。
       - name: Install Qt ${{ env.QT_VERSION }}
         uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
         with:
@@ -43,6 +52,7 @@ jobs:
           host: windows
           target: desktop
           arch: ${{ env.QT_ARCH }}
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git@16db45a70b5905ad596941b223469bc86a56901e
           cache: true
 
       - name: Set up MSVC 2022 x64
