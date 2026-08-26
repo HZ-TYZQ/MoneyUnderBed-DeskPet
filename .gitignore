@@ -1,0 +1,19 @@
+# 本地素材与一次性实验，不进入正式构建，也不作为 CI 输入
+Reference/
+Temp/
+
+# 构建目录
+build/
+build-*/
+out/
+/install/
+CMakeUserPresets.json
+
+# 编辑器与系统产物
+.vscode/
+.idea/
+.cache/
+compile_commands.json
+*.user
+.DS_Store
+Thumbs.db
