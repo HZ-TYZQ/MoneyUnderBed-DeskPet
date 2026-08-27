@@ -2,8 +2,14 @@
 qt_add_executable(money-under-bed-deskpet
     DesktopEntry.cpp
     DesktopEntry.h
+    DesktopEnvironment.cpp
+    DesktopEnvironment.h
     DiagnosticLog.cpp
     DiagnosticLog.h
+    DiagnosticPrivacy.cpp
+    DiagnosticPrivacy.h
+    RotatingLogWriter.cpp
+    RotatingLogWriter.h
     SelfTest.cpp
     SelfTest.h
     SingleInstance.cpp

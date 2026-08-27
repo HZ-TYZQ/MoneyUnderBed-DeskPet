@@ -1,4 +1,5 @@
 #include "app/DesktopEntry.h"
+#include "app/DesktopEnvironment.h"
 #include "app/DiagnosticLog.h"
 #include "app/SelfTest.h"
 #include "app/SingleInstance.h"
@@ -9,6 +10,8 @@
 #include "platform/BackendFactory.h"
 #include "platform/DeskPetWindowBackend.h"
 #include "platform/StartupProbe.h"
+#include "platform/SessionMonitor.h"
+#include "platform/SessionMonitorFactory.h"
 #include "core/BubbleFrequency.h"
 #include "core/RandomSource.h"
 #include "core/Settings.h"
@@ -25,14 +28,20 @@
 #include <QApplication>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QLoggingCategory>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QRandomGenerator>
 #include <QIcon>
 #include <QImage>
 #include <QStandardPaths>
 #include <QSettings>
+#include <QScreen>
 #include <QString>
+#include <QTimer>
+#include <QWindow>
 
 #include <memory>
 
@@ -55,10 +64,29 @@ QString allowedScaleList()
     return values.join(QStringLiteral(", "));
 }
 
+void queueActivityAreaSync(mub::ui::CharacterPresenter *presenter)
+{
+    QTimer::singleShot(0, presenter,
+                       [presenter] { presenter->syncActivityArea(); });
+}
+
+void watchScreenGeometry(QScreen *screen, mub::ui::CharacterPresenter *presenter)
+{
+    if (screen == nullptr) {
+        return;
+    }
+    QObject::connect(screen, &QScreen::geometryChanged, presenter,
+                     [presenter] { queueActivityAreaSync(presenter); });
+    QObject::connect(screen, &QScreen::availableGeometryChanged, presenter,
+                     [presenter] { queueActivityAreaSync(presenter); });
+}
+
 } // namespace
 
 int main(int argc, char *argv[])
 {
+    QElapsedTimer startupTimer;
+    startupTimer.start();
     // 身份是静态设置，必须早于日志，否则日志目录路径不正确。
     mub::metadata::apply();
 
@@ -83,6 +111,26 @@ int main(int argc, char *argv[])
                .arg(probe.selectedPlatform)
                .arg(QGuiApplication::platformName())
                .arg(probe.detail);
+    const QList<QScreen *> startupScreens = QGuiApplication::screens();
+    for (qsizetype index = 0; index < startupScreens.size(); ++index) {
+        const QScreen *screen = startupScreens.at(index);
+        const QRect geometry = screen->geometry();
+        const QRect available = screen->availableGeometry();
+        qCInfo(lcMain).noquote()
+            << QStringLiteral("screen=%1 geometry=%2x%3 x=%4 y=%5 available=%6x%7 ax=%8 ay=%9 dpr=%10 dpi=%11 refresh_hz=%12")
+                   .arg(index)
+                   .arg(geometry.width())
+                   .arg(geometry.height())
+                   .arg(geometry.x())
+                   .arg(geometry.y())
+                   .arg(available.width())
+                   .arg(available.height())
+                   .arg(available.x())
+                   .arg(available.y())
+                   .arg(screen->devicePixelRatio())
+                   .arg(screen->logicalDotsPerInch())
+                   .arg(screen->refreshRate());
+    }
 
     QCommandLineParser parser;
     parser.setApplicationDescription(mub::metadata::unofficialNotice());
@@ -112,6 +160,26 @@ int main(int argc, char *argv[])
     if (instance.acquire() == mub::app::SingleInstance::Role::Secondary) {
         qCInfo(lcMain) << "recalled the running instance; exiting";
         return 0;
+    }
+
+    if (mub::app::isNiriDesktop()) {
+        QMessageBox warning;
+        warning.setIcon(QMessageBox::Warning);
+        warning.setWindowTitle(QCoreApplication::translate("main", "未支持的桌面环境"));
+        warning.setText(QCoreApplication::translate(
+            "main", "检测到 niri。niri 当前不在支持范围内，角色自主移动等核心功能可能无法工作。"));
+        warning.setInformativeText(QCoreApplication::translate(
+            "main", "你可以退出，或以 best-effort 模式继续运行并提交 Issue / PR。"));
+        QPushButton *continueButton = warning.addButton(
+            QCoreApplication::translate("main", "继续运行"), QMessageBox::AcceptRole);
+        warning.addButton(QCoreApplication::translate("main", "退出"),
+                          QMessageBox::RejectRole);
+        warning.exec();
+        if (warning.clickedButton() != continueButton) {
+            qCInfo(lcMain) << "the user exited after the niri compatibility warning";
+            return 0;
+        }
+        qCWarning(lcMain) << "continuing on unsupported niri in best-effort mode";
     }
 
     // 应用图标同样取自作者头像素材（第 6 节）。
@@ -170,6 +238,40 @@ int main(int argc, char *argv[])
     mub::ui::DialogueController dialogue(presenter, window, timeSource, random,
                                          backend.get());
     presenter.setBubbleHost(&dialogue);
+
+    // 屏幕增删、面板尺寸变化或桌面 Shell 重启后重新取得可用区域，
+    // 并把角色夹回可见范围。多显示器路径保留自动覆盖，但标为未实测。
+    for (QScreen *screen : QGuiApplication::screens()) {
+        watchScreenGeometry(screen, &presenter);
+    }
+    QObject::connect(&application, &QGuiApplication::screenAdded, &presenter,
+                     [&presenter](QScreen *screen) {
+                         watchScreenGeometry(screen, &presenter);
+                         queueActivityAreaSync(&presenter);
+                     });
+    QObject::connect(&application, &QGuiApplication::screenRemoved, &presenter,
+                     [&presenter](QScreen *) {
+                         queueActivityAreaSync(&presenter);
+                     });
+    if (window.windowHandle() != nullptr) {
+        QObject::connect(window.windowHandle(), &QWindow::screenChanged, &presenter,
+                         [&presenter](QScreen *) {
+                             queueActivityAreaSync(&presenter);
+                         });
+    }
+
+    // 先连接全部消费者再启动监视器；start() 会同步发布初始锁定状态。
+    const std::unique_ptr<mub::platform::SessionMonitor> sessionMonitor =
+        mub::platform::createSessionMonitor();
+    QObject::connect(sessionMonitor.get(),
+                     &mub::platform::SessionMonitor::suspendedChanged,
+                     &presenter, &mub::ui::CharacterPresenter::setSessionSuspended);
+    QObject::connect(sessionMonitor.get(),
+                     &mub::platform::SessionMonitor::suspendedChanged,
+                     &dialogue, &mub::ui::DialogueController::setSessionSuspended);
+    if (!sessionMonitor->start(window.windowHandle())) {
+        qCWarning(lcMain) << "session lifecycle monitoring is unavailable";
+    }
 
     mub::ui::SettingsWindow settingsWindow;
 
@@ -304,6 +406,7 @@ int main(int argc, char *argv[])
     settingsWindow.setSettings(settings);
     refreshDesktopEntryState();
     presenter.start();
+    qCInfo(lcMain) << "startup ready elapsed_ms=" << startupTimer.elapsed();
 
     // 首次启动的简短提示。第 5.2 节：一页，不做多页欢迎向导。
     if (!settingsStore.firstRunNoticeShown()) {

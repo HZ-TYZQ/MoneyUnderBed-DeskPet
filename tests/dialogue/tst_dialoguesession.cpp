@@ -70,9 +70,66 @@ private slots:
     void restartingGoesBackToTheFirstPage();
     void stopClearsEverything();
     void clicksAreIgnoredWhenNotActive();
+    void suspensionFreezesTypingAndTimeouts();
+    void suspensionFreezesSinglePageAutoHide();
     void everyRegisteredDialogueCanBePlayedThrough_data();
     void everyRegisteredDialogueCanBePlayedThrough();
 };
+
+void TestDialogueSession::suspensionFreezesTypingAndTimeouts()
+{
+    ManualTimeSource clock;
+    DialogueSession session(clock, config());
+    session.start(multiPage());
+
+    clock.advance(kMsPerChar * 2);
+    QVERIFY(session.update());
+    const QString beforeSuspension = session.visibleText();
+
+    session.setSuspended(true);
+    QVERIFY(session.isSuspended());
+    clock.advance(config().idleTimeoutMs + 5000);
+    QVERIFY(!session.update());
+    QVERIFY(!session.click());
+    QCOMPARE(session.visibleText(), beforeSuspension);
+
+    session.setSuspended(false);
+    QVERIFY(!session.isSuspended());
+    clock.advance(kMsPerChar);
+    QVERIFY(session.update());
+    QCOMPARE(session.visibleText().size(), beforeSuspension.size() + 1);
+
+    session.click();
+    QCOMPARE(session.state(), DialogueState::PageComplete);
+    clock.advance(config().idleTimeoutMs - 1);
+    session.update();
+    QVERIFY(session.isActive());
+    clock.advance(1);
+    QVERIFY(session.update());
+    QCOMPARE(session.state(), DialogueState::Finished);
+}
+
+void TestDialogueSession::suspensionFreezesSinglePageAutoHide()
+{
+    ManualTimeSource clock;
+    DialogueSession session(clock, config());
+    session.start(singlePage());
+    session.click();
+    QCOMPARE(session.state(), DialogueState::PageComplete);
+
+    session.setSuspended(true);
+    clock.advance(config().singlePageAutoHideMs + 10000);
+    QVERIFY(!session.update());
+    QVERIFY(session.isActive());
+
+    session.setSuspended(false);
+    clock.advance(config().singlePageAutoHideMs - 1);
+    QVERIFY(!session.update());
+    QVERIFY(session.isActive());
+    clock.advance(1);
+    QVERIFY(session.update());
+    QCOMPARE(session.state(), DialogueState::Finished);
+}
 
 void TestDialogueSession::startsIdle()
 {

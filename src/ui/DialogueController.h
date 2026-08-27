@@ -50,6 +50,9 @@ public:
     void setScale(int scale);
     int scale() const;
 
+    // 系统会话不可交互时冻结打字、超时和自动隐藏计时。
+    void setSessionSuspended(bool suspended);
+
     // BubbleHost。
     bool consumeCharacterClick() override;
     bool showChatterBubble(core::EventKind kind) override;

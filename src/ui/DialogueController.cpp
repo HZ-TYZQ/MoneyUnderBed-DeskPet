@@ -82,6 +82,16 @@ int DialogueController::scale() const
     return bubble_->renderer().scale();
 }
 
+void DialogueController::setSessionSuspended(const bool suspended)
+{
+    session_.setSuspended(suspended);
+    if (suspended) {
+        timer_.stop();
+    } else if (session_.isActive()) {
+        timer_.start();
+    }
+}
+
 bool DialogueController::isShowing() const
 {
     return session_.isActive();
@@ -157,7 +167,9 @@ bool DialogueController::begin(const dialogue::Dialogue &entry,
     bubble_->show();
     // 第 4.8 节：角色绘制在气泡之上。
     character_->raise();
-    timer_.start();
+    if (!session_.isSuspended()) {
+        timer_.start();
+    }
 
     qCInfo(lcDialogue).noquote()
         << QStringLiteral("dialogue started id=%1 pages=%2 event=%3")

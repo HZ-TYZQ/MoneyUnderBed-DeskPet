@@ -18,3 +18,6 @@ target_link_libraries(tst_feedback PRIVATE MUB::Core)
 
 mub_add_test(tst_settings tst_settings.cpp)
 target_link_libraries(tst_settings PRIVATE MUB::Core)
+
+mub_add_test(tst_sessionsuspension tst_sessionsuspension.cpp)
+target_link_libraries(tst_sessionsuspension PRIVATE MUB::Core)

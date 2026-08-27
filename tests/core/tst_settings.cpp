@@ -1,6 +1,7 @@
 #include "core/Settings.h"
 #include "core/SettingsStore.h"
 
+#include <QFile>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
@@ -49,6 +50,7 @@ private slots:
     void emptyStoreYieldsDefaults();
     void savedSettingsSurviveAReload();
     void corruptedValuesFallBackWithoutLosingTheRest();
+    void malformedConfigurationFileDoesNotCrash();
     void restoreDefaultsClearsOnlyOurGroup();
     void firstRunNoticeFlagSurvivesRestoreDefaults();
 };
@@ -166,6 +168,23 @@ void TestSettings::corruptedValuesFallBackWithoutLosingTheRest()
     QCOMPARE(loaded.mode, Settings{}.mode);
     // 没被写坏的项照常保留。
     QCOMPARE(loaded.bubble, BubbleFrequency::Normal);
+}
+
+void TestSettings::malformedConfigurationFileDoesNotCrash()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString path = directory.filePath(QStringLiteral("broken.ini"));
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QVERIFY(file.write("[settings\nscale=not-a-number\nmode=???\n") > 0);
+    file.close();
+
+    QSettings backend(path, QSettings::IniFormat);
+    SettingsStore store(backend);
+    const Settings loaded = store.load();
+    QCOMPARE(loaded.scale, Settings{}.scale);
+    QCOMPARE(loaded.mode, Settings{}.mode);
 }
 
 void TestSettings::restoreDefaultsClearsOnlyOurGroup()

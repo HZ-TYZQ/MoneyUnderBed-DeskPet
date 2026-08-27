@@ -50,6 +50,11 @@ public:
     void setPaused(bool paused);
     bool isPaused() const;
 
+    // 系统会话暂停独立于用户菜单里的“暂停”。锁屏、睡眠或显示器关闭恢复时
+    // 不能清掉用户主动暂停，反之亦然。
+    void setSessionSuspended(bool suspended);
+    bool isSessionSuspended() const;
+
     void setBubbleFrequency(core::BubbleFrequency frequency);
     core::BubbleFrequency bubbleFrequency() const;
 
@@ -140,6 +145,7 @@ private:
     core::Settings settings_;
     core::FeedingOutcome feedingOutcome_ = core::FeedingOutcome::Eat;
     bool userPaused_ = false;
+    bool sessionSuspended_ = false;
     bool eventFreeze_ = false;
     bool dialogueFreeze_ = false;
     bool recallAvailable_ = false;

@@ -50,6 +50,11 @@ public:
     // 立即结束。用于隐藏与退出：不保留待恢复的对话页面。
     void stop();
 
+    // 会话锁定、睡眠或显示器关闭期间冻结所有对话计时。
+    // 恢复时平移各计时基准，避免补打文字、立即超时或自动消失。
+    void setSuspended(bool suspended);
+    bool isSuspended() const;
+
     // 按当前时间推进。返回 true 表示可见内容或状态发生了变化。
     bool update();
 
@@ -94,6 +99,8 @@ private:
     qint64 pageStartedMs_ = 0;
     qint64 pageCompletedMs_ = 0;
     qint64 lastInteractionMs_ = 0;
+    qint64 suspendedStartedMs_ = 0;
+    bool suspended_ = false;
 };
 
 } // namespace mub::dialogue

@@ -79,7 +79,31 @@ private slots:
     void continuousDialoguePausesAutonomousBehaviour();
     void singlePageBubbleDoesNotPauseAutonomousBehaviour();
     void singlePageBubbleReleasesItsEventWhenItAutoHides();
+    void sessionSuspensionFreezesTheDialogue();
 };
+
+void TestDialogueController::sessionSuspensionFreezesTheDialogue()
+{
+    Fixture f;
+    QVERIFY(f.beginDialogue());
+
+    f.controller.setSessionSuspended(true);
+    f.presenter.setSessionSuspended(true);
+    const QString visible = f.controller.session().visibleText();
+    f.clock.advance(mub::dialogue::DialogueSessionConfig{}.idleTimeoutMs + 1000);
+    QTest::qWait(30);
+
+    QVERIFY(f.controller.isShowing());
+    QCOMPARE(f.controller.session().visibleText(), visible);
+    QVERIFY(f.presenter.behavior().isPaused());
+
+    f.controller.setSessionSuspended(false);
+    f.presenter.setSessionSuspended(false);
+    f.clock.advance(mub::dialogue::DialogueSessionConfig{}.typingMsPerChar);
+    QTRY_VERIFY_WITH_TIMEOUT(f.controller.session().visibleText().size()
+                                 > visible.size(),
+                             1000);
+}
 
 void TestDialogueController::startingADialogueTakesOwnershipOfTheEvent()
 {

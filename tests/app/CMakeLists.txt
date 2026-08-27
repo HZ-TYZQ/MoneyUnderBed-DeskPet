@@ -18,3 +18,29 @@ mub_add_test(tst_desktopentry
 )
 target_include_directories(tst_desktopentry PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_desktopentry PRIVATE MUB::Core Qt6::Gui)
+
+mub_add_test(tst_desktopenvironment
+    tst_desktopenvironment.cpp
+    "${CMAKE_SOURCE_DIR}/src/app/DesktopEnvironment.cpp"
+)
+target_include_directories(tst_desktopenvironment PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_desktopenvironment PRIVATE Qt6::Core)
+
+mub_add_test(tst_rotatinglogwriter
+    tst_rotatinglogwriter.cpp
+    "${CMAKE_SOURCE_DIR}/src/app/DiagnosticPrivacy.cpp"
+    "${CMAKE_SOURCE_DIR}/src/app/RotatingLogWriter.cpp"
+)
+target_include_directories(tst_rotatinglogwriter PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_rotatinglogwriter PRIVATE Qt6::Core)
+
+mub_add_test(tst_selftest
+    tst_selftest.cpp
+    "${CMAKE_SOURCE_DIR}/src/app/SelfTest.cpp"
+)
+target_include_directories(tst_selftest PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_selftest PRIVATE
+    MUB::Core
+    MUB::Resources
+    Qt6::Widgets
+)

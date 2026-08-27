@@ -24,6 +24,8 @@ add_library(money-under-bed-core STATIC
     RandomSource.h
     ScreenPlacement.cpp
     ScreenPlacement.h
+    SessionSuspension.cpp
+    SessionSuspension.h
     Settings.cpp
     Settings.h
     SettingsStore.cpp

@@ -56,6 +56,7 @@ private slots:
     void replacingAnEventNotifiesItsOwner();
     void bubbleOffSuppressesAutonomousChatter();
     void clickChangesTheVisibleFrameWhenBubbleIsOff();
+    void sessionSuspensionDoesNotClearUserPause();
 };
 
 void TestCharacterPresenter::droppedIcecreamDoesNotAcquireAnUnownedDialogueEvent()
@@ -152,6 +153,32 @@ void TestCharacterPresenter::clickChangesTheVisibleFrameWhenBubbleIsOff()
 
     QVERIFY(window.frameIndex() != before);
     QCOMPARE(presenter.coordinator().current(), EventKind::None);
+    presenter.stop();
+}
+
+void TestCharacterPresenter::sessionSuspensionDoesNotClearUserPause()
+{
+    ManualTimeSource clock;
+    ScriptedRandomSource random(QList<int>{2000}, QList<double>{0.5});
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+    CharacterPresenter presenter(window, clock, random);
+
+    window.moveToCursorScreenBottom();
+    presenter.start();
+    presenter.setPaused(true);
+    presenter.setSessionSuspended(true);
+    QVERIFY(presenter.isPaused());
+    QVERIFY(presenter.isSessionSuspended());
+    QVERIFY(presenter.behavior().isPaused());
+
+    presenter.setSessionSuspended(false);
+    QVERIFY(!presenter.isSessionSuspended());
+    QVERIFY(presenter.isPaused());
+    QVERIFY(presenter.behavior().isPaused());
+
+    presenter.setPaused(false);
+    QVERIFY(!presenter.behavior().isPaused());
     presenter.stop();
 }
 

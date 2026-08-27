@@ -2,6 +2,7 @@
 
 #include "character/AnimationClip.h"
 #include "core/RandomSource.h"
+#include "core/ScreenPlacement.h"
 #include "core/TimeSource.h"
 #include "ui/BubbleHost.h"
 #include "ui/CharacterWindow.h"
@@ -89,6 +90,20 @@ void CharacterPresenter::setPaused(const bool paused)
 bool CharacterPresenter::isPaused() const
 {
     return userPaused_;
+}
+
+void CharacterPresenter::setSessionSuspended(const bool suspended)
+{
+    if (sessionSuspended_ == suspended) {
+        return;
+    }
+    sessionSuspended_ = suspended;
+    updateFreeze();
+}
+
+bool CharacterPresenter::isSessionSuspended() const
+{
+    return sessionSuspended_;
 }
 
 void CharacterPresenter::setBubbleFrequency(const core::BubbleFrequency frequency)
@@ -188,11 +203,13 @@ const core::EventCoordinator &CharacterPresenter::coordinator() const
 
 void CharacterPresenter::updateFreeze()
 {
-    const bool frozen = userPaused_ || eventFreeze_ || dialogueFreeze_;
+    const bool frozen =
+        userPaused_ || sessionSuspended_ || eventFreeze_ || dialogueFreeze_;
     behavior_.setPaused(frozen);
     // 事件动画期间时钟必须继续走，否则投喂动画不会推进；
-    // 只有用户主动暂停才冻结动画。
-    if (userPaused_) {
+    // 用户暂停与系统会话暂停冻结动画；事件与连续对话只冻结自主行为，
+    // 否则投喂动画无法推进、对话期间待机动画也会停住。
+    if (userPaused_ || sessionSuspended_) {
         animation_.pause();
     } else {
         animation_.resume();
@@ -201,12 +218,27 @@ void CharacterPresenter::updateFreeze()
 
 void CharacterPresenter::syncActivityArea()
 {
-    const QScreen *screen = window_->screen();
+    QScreen *screen = window_->screen();
+    if (screen == nullptr || !QGuiApplication::screens().contains(screen)) {
+        screen = QGuiApplication::screenAt(window_->frameGeometry().center());
+    }
+    if (screen == nullptr) {
+        screen = QGuiApplication::primaryScreen();
+    }
     if (screen == nullptr) {
         return;
     }
-    behavior_.setActivityArea(screen->availableGeometry());
+    const QRect available = screen->availableGeometry();
+    const QPoint visiblePosition =
+        core::clampToAvailable(available, window_->size(), window_->pos());
+    if (visiblePosition != window_->pos()) {
+        qCInfo(lcPresenter) << "screen geometry changed; clamping character from"
+                            << window_->pos() << "to" << visiblePosition;
+        window_->move(visiblePosition);
+    }
+    behavior_.setActivityArea(available);
     behavior_.setCharacterSize(window_->size());
+    behavior_.setPosition(window_->pos());
 }
 
 core::AutonomousBehavior &CharacterPresenter::behavior()

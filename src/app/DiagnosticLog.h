@@ -11,8 +11,7 @@ namespace mub::app {
 // 提前安装处理器至少能让这种情况留下可查记录
 // （docs/Decisions.md 第 8.2 节）。
 //
-// 当前实现是两文件轮转的最小版本。完整的轮转策略、字段与隐私检查
-// 在阶段 8 完成（docs/Decisions.md 第 11.2 节）。
+// 日志严格限制为两个各 1 MiB 的文件；运行期间达到上限立即轮转。
 void installDiagnosticLog();
 
 // 当前日志文件路径。日志不可写时返回空串。

@@ -34,6 +34,9 @@ void DialogueSession::start(const Dialogue &dialogue)
     }
     dialogue_ = &dialogue;
     lastInteractionMs_ = timeSource_->nowMs();
+    if (suspended_) {
+        suspendedStartedMs_ = lastInteractionMs_;
+    }
     beginPage(0);
 }
 
@@ -46,9 +49,37 @@ void DialogueSession::stop()
     visibleCharacters_ = 0;
 }
 
+void DialogueSession::setSuspended(const bool suspended)
+{
+    if (suspended_ == suspended) {
+        return;
+    }
+
+    const qint64 now = timeSource_->nowMs();
+    suspended_ = suspended;
+    if (suspended) {
+        suspendedStartedMs_ = now;
+        return;
+    }
+
+    if (dialogue_ == nullptr) {
+        return;
+    }
+
+    const qint64 pausedMs = std::max<qint64>(0, now - suspendedStartedMs_);
+    pageStartedMs_ += pausedMs;
+    pageCompletedMs_ += pausedMs;
+    lastInteractionMs_ += pausedMs;
+}
+
+bool DialogueSession::isSuspended() const
+{
+    return suspended_;
+}
+
 bool DialogueSession::update()
 {
-    if (dialogue_ == nullptr || state_ == DialogueState::Idle
+    if (suspended_ || dialogue_ == nullptr || state_ == DialogueState::Idle
         || state_ == DialogueState::Finished) {
         return false;
     }
@@ -86,7 +117,7 @@ bool DialogueSession::update()
 
 bool DialogueSession::click()
 {
-    if (dialogue_ == nullptr || state_ == DialogueState::Idle
+    if (suspended_ || dialogue_ == nullptr || state_ == DialogueState::Idle
         || state_ == DialogueState::Finished) {
         return false;
     }
