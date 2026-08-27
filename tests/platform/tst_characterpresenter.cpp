@@ -51,8 +51,10 @@ void TestCharacterPresenter::droppedIcecreamDoesNotAcquireAnUnownedDialogueEvent
     presenter.feed();
     QCOMPARE(presenter.coordinator().current(), EventKind::Feeding);
 
-    // 掉落动画共 17 帧、每帧 100 ms。推进后等待 Presenter 的 16 ms 节拍处理。
-    clock.advance(2000);
+    // 掉落动画共 17 帧、每帧 100 ms，需要 1700 ms。推进量必须同时低于
+    // AnimationPlayer::TimeJumpThresholdMs（2000 ms），否则会被当成锁屏恢复
+    // 而只推进一帧，动画永远走不完。推进后等待 Presenter 的 16 ms 节拍处理。
+    clock.advance(1900);
     QTRY_COMPARE_WITH_TIMEOUT(dialogueRequests.count(), 1, 250);
 
     QCOMPARE(dialogueRequests.constFirst().constFirst().toString(),
