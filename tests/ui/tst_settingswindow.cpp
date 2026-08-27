@@ -13,7 +13,6 @@
 using mub::core::ActivityMode;
 using mub::core::BubbleFrequency;
 using mub::core::Settings;
-using mub::core::WorkspaceVisibility;
 using mub::ui::diagnosticsText;
 using mub::ui::SettingsWindow;
 
@@ -36,8 +35,7 @@ class TestSettingsWindow final : public QObject
     Q_OBJECT
 
 private slots:
-    void workspaceRowIsHiddenWhenThePlatformCannotPin();
-    void workspaceRowIsShownWhenThePlatformCanPin();
+    void workspaceControlIsNotPartOfTheFirstRelease();
     void loadingValuesDoesNotReportAChange();
     void changingAControlReportsTheWholeSettings();
     void restoreDefaultsIsReportedSeparately();
@@ -45,41 +43,20 @@ private slots:
     void diagnosticsCarryNoUnrelatedPrivateData();
 };
 
-// 第 5.1 节：平台不适用的设置项直接隐藏，不以置灰形式保留。
-void TestSettingsWindow::workspaceRowIsHiddenWhenThePlatformCannotPin()
+void TestSettingsWindow::workspaceControlIsNotPartOfTheFirstRelease()
 {
-    SettingsWindow window(false);
+    SettingsWindow window;
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
 
     QComboBox *workspace = comboFor(window, QStringLiteral("工作区"));
-    QVERIFY(workspace == nullptr || !workspace->isVisible());
-
-    // 隐藏时该项不参与设置，保持默认值。
-    QCOMPARE(window.settings().workspace, Settings{}.workspace);
-}
-
-void TestSettingsWindow::workspaceRowIsShownWhenThePlatformCanPin()
-{
-    SettingsWindow window(true);
-    window.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&window));
-
-    bool found = false;
-    for (const QComboBox *box : window.findChildren<QComboBox *>()) {
-        if (box->count() == 2 && box->itemData(0).toInt()
-                == static_cast<int>(WorkspaceVisibility::AllWorkspaces)
-            && box->isVisible()) {
-            found = true;
-        }
-    }
-    QVERIFY(found);
+    QVERIFY(workspace == nullptr);
 }
 
 // 刷新控件不能反过来再上报一次，否则「套用 → 上报 → 再套用」会形成回环。
 void TestSettingsWindow::loadingValuesDoesNotReportAChange()
 {
-    SettingsWindow window(true);
+    SettingsWindow window;
     QSignalSpy changes(&window, &SettingsWindow::settingsChanged);
 
     Settings settings;
@@ -96,7 +73,7 @@ void TestSettingsWindow::loadingValuesDoesNotReportAChange()
 // 第 5.1 节：修改后立即生效，不设额外「应用」阶段。
 void TestSettingsWindow::changingAControlReportsTheWholeSettings()
 {
-    SettingsWindow window(true);
+    SettingsWindow window;
     window.setSettings(Settings{});
     QSignalSpy changes(&window, &SettingsWindow::settingsChanged);
 
@@ -111,7 +88,7 @@ void TestSettingsWindow::changingAControlReportsTheWholeSettings()
 
 void TestSettingsWindow::restoreDefaultsIsReportedSeparately()
 {
-    SettingsWindow window(true);
+    SettingsWindow window;
     QSignalSpy resets(&window, &SettingsWindow::restoreDefaultsRequested);
 
     for (QPushButton *button : window.findChildren<QPushButton *>()) {

@@ -18,8 +18,6 @@ private slots:
     void alwaysProducesABackend();
     void capabilitiesNameTheActualPlatform();
     void deskPetCapabilitiesAreAvailableOnEveryPlatform();
-    void workspacePinningIsNeverClaimedWithoutSupport();
-    void nullWindowsAreIgnoredInsteadOfCrashing();
 };
 
 void TestBackendFactory::alwaysProducesABackend()
@@ -55,24 +53,6 @@ void TestBackendFactory::deskPetCapabilitiesAreAvailableOnEveryPlatform()
     QVERIFY(caps.pixelHitMask);
     QVERIFY(caps.inputPassthrough);
     QVERIFY(caps.excludeFromWindowList);
-}
-
-// 第 3.4 节：Windows 不支持固定到全部虚拟桌面，且决策明确不使用未公开接口
-// 模拟。Linux 只有真的拿得到 X11 连接时才支持 —— 否则设置界面会显示一个
-// 点了没反应的选项。测试在 offscreen 下运行，因此这里必然为假。
-void TestBackendFactory::workspacePinningIsNeverClaimedWithoutSupport()
-{
-    const std::unique_ptr<DeskPetWindowBackend> backend = createWindowBackend();
-    QVERIFY(!backend->capabilities().workspacePinning);
-}
-
-// 设置界面按能力自述决定是否调用，但接口本身也不能因为拿到空窗口就崩。
-void TestBackendFactory::nullWindowsAreIgnoredInsteadOfCrashing()
-{
-    const std::unique_ptr<DeskPetWindowBackend> backend = createWindowBackend();
-    backend->setWorkspaceVisibility(nullptr, true);
-    backend->setWorkspaceVisibility(nullptr, false);
-    QVERIFY(true);
 }
 
 QTEST_MAIN(TestBackendFactory)

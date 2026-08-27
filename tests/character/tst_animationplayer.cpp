@@ -26,6 +26,7 @@ private slots:
     void holdLastStopsOnTheFinalFrame();
     void playIsIdempotentForTheSameClip();
     void restartAlwaysGoesBackToFrameZero();
+    void restartFromFrameContinuesFromTheRequestedFrame();
     void pauseFreezesTheFrame();
     void resumeDoesNotCatchUpOnMissedFrames();
     void largeTimeJumpAdvancesOnlyOneFrame();
@@ -135,6 +136,23 @@ void TestAnimationPlayer::restartAlwaysGoesBackToFrameZero()
     player.restart(kLoop);
     QCOMPARE(player.frameIndex(), 0);
     QCOMPARE(player.loopCount(), 0);
+}
+
+void TestAnimationPlayer::restartFromFrameContinuesFromTheRequestedFrame()
+{
+    ManualTimeSource clock;
+    AnimationPlayer player(clock);
+
+    player.restartFromFrame(kLoop, 2);
+    QCOMPARE(player.frameIndex(), 2);
+    QCOMPARE(player.loopCount(), 0);
+
+    clock.advance(100);
+    QVERIFY(player.update());
+    QCOMPARE(player.frameIndex(), 3);
+
+    player.restartFromFrame(kLoop, 99);
+    QCOMPARE(player.frameIndex(), 3);
 }
 
 void TestAnimationPlayer::pauseFreezesTheFrame()

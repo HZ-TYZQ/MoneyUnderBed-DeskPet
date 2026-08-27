@@ -21,6 +21,7 @@ BubbleWindow::BubbleWindow(platform::DeskPetWindowBackend *backend, QWidget *par
     // （docs/Decisions.md 第 3.4 节）。
     setAttribute(Qt::WA_ShowWithoutActivating, true);
     setAutoFillBackground(false);
+    configureNativeWindow();
 }
 
 BubbleWindow::~BubbleWindow() = default;
@@ -69,9 +70,16 @@ void BubbleWindow::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
 
+    // 构造阶段正常情况下已经完成；保留这里作为原生句柄创建失败时的兜底。
+    configureNativeWindow();
+}
+
+void BubbleWindow::configureNativeWindow()
+{
     if (configured_ || backend_ == nullptr) {
         return;
     }
+    static_cast<void>(winId());
     QWindow *handle = windowHandle();
     if (handle == nullptr) {
         return;

@@ -23,8 +23,6 @@ BackendCapabilities QtWindowBackend::capabilities() const
     caps.pixelHitMask = true;
     caps.systemDrag = true;
     caps.excludeFromWindowList = true;
-    // 固定到全部工作区需要平台专用调用，纯 Qt 路径不提供。
-    caps.workspacePinning = false;
     return caps;
 }
 
@@ -70,13 +68,6 @@ bool QtWindowBackend::startSystemDrag(QWindow *window)
         return false;
     }
     return window->startSystemMove();
-}
-
-void QtWindowBackend::setWorkspaceVisibility(QWindow *window, const bool allWorkspaces)
-{
-    Q_UNUSED(window)
-    Q_UNUSED(allWorkspaces)
-    // 纯 Qt 无法表达工作区归属。调用方按能力自述判断，不在这里报错。
 }
 
 } // namespace mub::platform

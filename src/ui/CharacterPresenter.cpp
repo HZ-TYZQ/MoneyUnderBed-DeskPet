@@ -13,6 +13,8 @@
 #include <QScreen>
 #include <QWindow>
 
+#include <algorithm>
+
 namespace mub::ui {
 
 namespace {
@@ -113,8 +115,6 @@ void CharacterPresenter::applySettings(const core::Settings &settings)
         behavior_.setPosition(window_->pos());
     }
 
-    // 工作区可见性由平台后端决定是否支持；不支持时设置界面不显示该项，
-    // 这里也就不会收到与默认值不同的取值。
 }
 
 const core::Settings &CharacterPresenter::settings() const
@@ -232,11 +232,15 @@ void CharacterPresenter::handleClick()
 
     // 即使气泡关闭或处于安静模式，也必须给出动作或表情反馈
     // （docs/Decisions.md 第 3.1 节）。当前可用素材没有专门的反应动画，
-    // 因此以重置当前待机循环作为可见反馈。
+    // 因此跳到当前循环的另一半再正常续播。与固定重置到第 0 帧不同，
+    // 这保证每次点击都立刻改变画面，不会因为恰好已在第 0 帧而看不见。
     if (feedback.hasReaction) {
         const character::AnimationClip *clip = character::findClip(currentClipId_);
         if (clip != nullptr) {
-            animation_.restart(*clip);
+            const int frameCount = std::max(1, clip->frameCount);
+            const int reactionFrame =
+                (window_->frameIndex() + std::max(1, frameCount / 2)) % frameCount;
+            animation_.restartFromFrame(*clip, reactionFrame);
             window_->setFrameIndex(animation_.frameIndex());
         }
     }
@@ -390,8 +394,10 @@ void CharacterPresenter::tick()
         window_->setFrameIndex(animation_.frameIndex());
     }
 
-    // 自主闲聊同样要经过协调器裁决，不能绕开优先级。
-    if (behavior_.consumeChatterRequest()
+    // 关闭气泡时仍要消费自主行为产生的请求，但不能申请事件或把它交给气泡；
+    // 否则活跃模式会绕过点击反馈里的频率判断继续说话。
+    const bool chatterRequested = behavior_.consumeChatterRequest();
+    if (chatterRequested && settings_.bubble != core::BubbleFrequency::Off
         && requestEvent(core::EventKind::AutonomousChatter)
             != core::EventDecision::Suppressed) {
         emit textFeedbackRequested(core::EventKind::AutonomousChatter);

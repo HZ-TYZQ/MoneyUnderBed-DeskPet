@@ -91,13 +91,18 @@ void AutonomousBehavior::setPaused(const bool paused)
     if (paused_ == paused) {
         return;
     }
-    paused_ = paused;
-    if (!paused_) {
-        // 恢复时丢弃暂停期间的时间，不补算离开期间的行为。
-        lastUpdateMs_ = timeSource_->nowMs();
-        const qint64 remaining = std::max<qint64>(0, stateDeadlineMs_ - lastUpdateMs_);
-        stateDeadlineMs_ = lastUpdateMs_ + remaining;
+    const qint64 now = timeSource_->nowMs();
+    if (paused) {
+        pauseStartedMs_ = now;
+    } else {
+        // 整体平移截止时间，保留暂停前的剩余等待时间。不能用「当前时刻减
+        // 原截止时间」重算，否则暂停时间超过剩余时间时恢复会立即切状态。
+        if (started_) {
+            stateDeadlineMs_ += std::max<qint64>(0, now - pauseStartedMs_);
+        }
+        lastUpdateMs_ = now;
     }
+    paused_ = paused;
     velocity_ = QPointF();
 }
 

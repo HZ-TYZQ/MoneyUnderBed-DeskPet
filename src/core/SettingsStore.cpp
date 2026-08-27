@@ -13,7 +13,8 @@ constexpr auto kMode = "mode";
 constexpr auto kBubble = "bubble";
 constexpr auto kAlwaysOnTop = "alwaysOnTop";
 constexpr auto kScale = "scale";
-constexpr auto kWorkspace = "workspace";
+// 第一版撤回过的工作区设置。保存时顺手清掉旧构建留下的死键。
+constexpr auto kLegacyWorkspace = "workspace";
 
 // 首次启动标记放在设置分组之外，因此不会被「恢复默认设置」清掉。
 constexpr auto kFirstRunNoticeShown = "state/firstRunNoticeShown";
@@ -38,8 +39,6 @@ Settings SettingsStore::load() const
     settings.alwaysOnTop =
         backend_->value(QLatin1StringView(kAlwaysOnTop), defaults.alwaysOnTop).toBool();
     settings.scale = backend_->value(QLatin1StringView(kScale), defaults.scale).toInt();
-    settings.workspace = workspaceVisibilityFromId(
-        backend_->value(QLatin1StringView(kWorkspace)).toString(), defaults.workspace);
     backend_->endGroup();
 
     return sanitized(settings);
@@ -54,8 +53,7 @@ void SettingsStore::save(const Settings &settings)
     backend_->setValue(QLatin1StringView(kBubble), bubbleFrequencyId(valid.bubble));
     backend_->setValue(QLatin1StringView(kAlwaysOnTop), valid.alwaysOnTop);
     backend_->setValue(QLatin1StringView(kScale), valid.scale);
-    backend_->setValue(QLatin1StringView(kWorkspace),
-                       workspaceVisibilityId(valid.workspace));
+    backend_->remove(QLatin1StringView(kLegacyWorkspace));
     backend_->endGroup();
     backend_->sync();
 }

@@ -4,6 +4,7 @@
 #include "core/EventCoordinator.h"
 #include "core/RandomSource.h"
 #include "core/TimeSource.h"
+#include "ui/BubbleHost.h"
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
 
@@ -26,6 +27,24 @@ SpriteSheet loadIdleSheet()
     return SpriteSheet::load(QStringLiteral(":/assets/character/idle-down-left.png"));
 }
 
+class RecordingBubbleHost final : public mub::ui::BubbleHost
+{
+public:
+    bool consumeCharacterClick() override { return false; }
+
+    bool showChatterBubble(const EventKind kind) override
+    {
+        ++chatterCount;
+        lastKind = kind;
+        return true;
+    }
+
+    bool startDialogue(const QString &) override { return false; }
+
+    int chatterCount = 0;
+    EventKind lastKind = EventKind::None;
+};
+
 } // namespace
 
 class TestCharacterPresenter final : public QObject
@@ -35,6 +54,8 @@ class TestCharacterPresenter final : public QObject
 private slots:
     void droppedIcecreamDoesNotAcquireAnUnownedDialogueEvent();
     void replacingAnEventNotifiesItsOwner();
+    void bubbleOffSuppressesAutonomousChatter();
+    void clickChangesTheVisibleFrameWhenBubbleIsOff();
 };
 
 void TestCharacterPresenter::droppedIcecreamDoesNotAcquireAnUnownedDialogueEvent()
@@ -87,6 +108,51 @@ void TestCharacterPresenter::replacingAnEventNotifiesItsOwner()
     QCOMPARE(presenter.coordinator().current(), EventKind::Feeding);
     presenter.finishEvent(EventKind::Feeding);
     QCOMPARE(presenter.coordinator().current(), EventKind::None);
+}
+
+void TestCharacterPresenter::bubbleOffSuppressesAutonomousChatter()
+{
+    ManualTimeSource clock;
+    // 待机 2000 ms；休息和接近鼠标判定均为假，因此到点后请求自主闲聊。
+    ScriptedRandomSource random(QList<int>{2000}, QList<double>{0.5, 0.5});
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+    CharacterPresenter presenter(window, clock, random);
+    RecordingBubbleHost bubbles;
+    presenter.setBubbleHost(&bubbles);
+    presenter.setMode(mub::core::ActivityMode::Active);
+    presenter.setBubbleFrequency(mub::core::BubbleFrequency::Off);
+
+    // 与产品启动路径一致，先把角色放到屏幕底部，避免测试先进入返回底部状态。
+    window.moveToCursorScreenBottom();
+    presenter.start();
+    presenter.behavior().update();
+    clock.advance(2000);
+    QTest::qWait(50);
+
+    QCOMPARE(bubbles.chatterCount, 0);
+    QCOMPARE(presenter.coordinator().current(), EventKind::None);
+    presenter.stop();
+}
+
+void TestCharacterPresenter::clickChangesTheVisibleFrameWhenBubbleIsOff()
+{
+    ManualTimeSource clock;
+    ScriptedRandomSource random(QList<int>{2000}, QList<double>{0.5});
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+    CharacterPresenter presenter(window, clock, random);
+    presenter.setBubbleFrequency(mub::core::BubbleFrequency::Off);
+
+    window.moveToCursorScreenBottom();
+    presenter.start();
+    const int before = window.frameIndex();
+
+    emit window.clicked();
+
+    QVERIFY(window.frameIndex() != before);
+    QCOMPARE(presenter.coordinator().current(), EventKind::None);
+    presenter.stop();
 }
 
 QTEST_MAIN(TestCharacterPresenter)

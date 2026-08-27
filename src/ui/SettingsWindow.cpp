@@ -21,9 +21,8 @@ int indexOfData(const QComboBox *box, const QVariant &value)
 
 } // namespace
 
-SettingsWindow::SettingsWindow(const bool workspaceSupported, QWidget *parent)
+SettingsWindow::SettingsWindow(QWidget *parent)
     : QDialog(parent)
-    , workspaceSupported_(workspaceSupported)
 {
     setObjectName(QStringLiteral("mub-settings-window"));
     setWindowTitle(tr("设置"));
@@ -56,18 +55,6 @@ SettingsWindow::SettingsWindow(const bool workspaceSupported, QWidget *parent)
         tr("只提供整数倍率。系统 DPI 缩放会再叠加一层，只有两者的乘积为整数时像素才完全清晰。"));
     form->addRow(tr("显示倍率"), scale_);
 
-    workspace_ = new QComboBox(this);
-    workspace_->addItem(tr("所有工作区"),
-                        static_cast<int>(core::WorkspaceVisibility::AllWorkspaces));
-    workspace_->addItem(tr("当前工作区"),
-                        static_cast<int>(core::WorkspaceVisibility::CurrentWorkspace));
-    // 平台不适用的设置项直接隐藏，不置灰。
-    if (workspaceSupported_) {
-        form->addRow(tr("Linux 工作区"), workspace_);
-    } else {
-        workspace_->hide();
-    }
-
     // 应用菜单入口。默认隐藏，只有以 AppImage 运行时由调用方打开。
     desktopEntryLabel_ = new QLabel(tr("应用菜单"), this);
     desktopEntryButton_ = new QPushButton(this);
@@ -99,8 +86,6 @@ SettingsWindow::SettingsWindow(const bool workspaceSupported, QWidget *parent)
             &SettingsWindow::emitIfNotUpdating);
     connect(scale_, &QComboBox::currentIndexChanged, this,
             &SettingsWindow::emitIfNotUpdating);
-    connect(workspace_, &QComboBox::currentIndexChanged, this,
-            &SettingsWindow::emitIfNotUpdating);
     connect(alwaysOnTop_, &QCheckBox::toggled, this, &SettingsWindow::emitIfNotUpdating);
 }
 
@@ -113,7 +98,6 @@ void SettingsWindow::setSettings(const core::Settings &settings)
     bubble_->setCurrentIndex(indexOfData(bubble_, static_cast<int>(valid.bubble)));
     alwaysOnTop_->setChecked(valid.alwaysOnTop);
     scale_->setCurrentIndex(indexOfData(scale_, valid.scale));
-    workspace_->setCurrentIndex(indexOfData(workspace_, static_cast<int>(valid.workspace)));
     updating_ = false;
 }
 
@@ -125,10 +109,6 @@ core::Settings SettingsWindow::settings() const
         static_cast<core::BubbleFrequency>(bubble_->currentData().toInt());
     settings.alwaysOnTop = alwaysOnTop_->isChecked();
     settings.scale = scale_->currentData().toInt();
-    // 平台不支持时该项不显示，也就不参与设置；保持默认值。
-    settings.workspace = workspaceSupported_
-        ? static_cast<core::WorkspaceVisibility>(workspace_->currentData().toInt())
-        : core::Settings{}.workspace;
     return core::sanitized(settings);
 }
 

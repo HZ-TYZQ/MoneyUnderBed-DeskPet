@@ -21,8 +21,14 @@ void AnimationPlayer::play(const AnimationClip &clip)
 
 void AnimationPlayer::restart(const AnimationClip &clip)
 {
+    restartFromFrame(clip, 0);
+}
+
+void AnimationPlayer::restartFromFrame(const AnimationClip &clip,
+                                       const int frameIndex)
+{
     clip_ = &clip;
-    frameIndex_ = 0;
+    frameIndex_ = std::clamp(frameIndex, 0, std::max(1, clip.frameCount) - 1);
     loopCount_ = 0;
     accumulatedMs_ = 0;
     finished_ = false;

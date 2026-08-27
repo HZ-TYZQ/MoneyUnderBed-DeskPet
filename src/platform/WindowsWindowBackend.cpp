@@ -47,9 +47,6 @@ BackendCapabilities WindowsWindowBackend::capabilities() const
     caps.name = strategy_ == PassthroughStrategy::NativeExtendedStyle
         ? QStringLiteral("windows/native-passthrough")
         : QStringLiteral("windows/qt-passthrough");
-    // Windows 没有公开稳定的「固定到所有虚拟桌面」接口，
-    // 决策也明确不使用未公开接口模拟（docs/Decisions.md 第 3.4 节）。
-    caps.workspacePinning = false;
     return caps;
 }
 

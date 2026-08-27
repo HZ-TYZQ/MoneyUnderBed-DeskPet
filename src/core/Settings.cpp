@@ -16,8 +16,6 @@ constexpr auto kActive = "active";
 constexpr auto kBubbleOff = "off";
 constexpr auto kBubbleLow = "low";
 constexpr auto kBubbleNormal = "normal";
-constexpr auto kAllWorkspaces = "all-workspaces";
-constexpr auto kCurrentWorkspace = "current-workspace";
 
 } // namespace
 
@@ -50,13 +48,6 @@ QString bubbleFrequencyId(const BubbleFrequency frequency)
     return QString::fromLatin1(kBubbleLow);
 }
 
-QString workspaceVisibilityId(const WorkspaceVisibility visibility)
-{
-    return QString::fromLatin1(visibility == WorkspaceVisibility::CurrentWorkspace
-                                   ? kCurrentWorkspace
-                                   : kAllWorkspaces);
-}
-
 ActivityMode activityModeFromId(const QStringView id, const ActivityMode fallback)
 {
     if (id == QLatin1StringView(kQuiet)) {
@@ -79,18 +70,6 @@ BubbleFrequency bubbleFrequencyFromId(const QStringView id,
     }
     if (id == QLatin1StringView(kBubbleNormal)) {
         return BubbleFrequency::Normal;
-    }
-    return fallback;
-}
-
-WorkspaceVisibility workspaceVisibilityFromId(const QStringView id,
-                                              const WorkspaceVisibility fallback)
-{
-    if (id == QLatin1StringView(kAllWorkspaces)) {
-        return WorkspaceVisibility::AllWorkspaces;
-    }
-    if (id == QLatin1StringView(kCurrentWorkspace)) {
-        return WorkspaceVisibility::CurrentWorkspace;
     }
     return fallback;
 }

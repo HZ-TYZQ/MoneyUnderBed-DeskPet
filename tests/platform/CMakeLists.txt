@@ -19,6 +19,7 @@ target_link_libraries(tst_characterwindow PRIVATE
 # 重点覆盖纯逻辑单测无法看到的事件申请、替换和完成边界。
 mub_add_test(tst_characterpresenter
     tst_characterpresenter.cpp
+    "${CMAKE_SOURCE_DIR}/src/ui/BubbleHost.cpp"
     "${CMAKE_SOURCE_DIR}/src/ui/CharacterPresenter.cpp"
     "${CMAKE_SOURCE_DIR}/src/ui/CharacterWindow.cpp"
 )

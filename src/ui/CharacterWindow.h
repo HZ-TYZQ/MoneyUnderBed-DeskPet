@@ -76,6 +76,7 @@ protected:
     void showEvent(QShowEvent *event) override;
 
 private:
+    void configureNativeWindow();
     void applyHitMask();
 
     character::SpriteSheet sheet_;

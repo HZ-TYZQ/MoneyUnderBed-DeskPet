@@ -45,6 +45,12 @@ CharacterWindow::CharacterWindow(character::SpriteSheet sheet,
     const QSize frameSize = sheet_.frameSize();
     setFixedSize(frameSize.width() * integerScale_,
                  frameSize.height() * integerScale_);
+
+    // Qt::Tool 与 WindowDoesNotAcceptFocus 是窗口首次映射时的属性。提前创建
+    // 原生句柄并配置，不能等 showEvent() 之后再补，否则窗口管理器可能已经
+    // 把它当作普通任务栏窗口并激活。
+    configureNativeWindow();
+    applyHitMask();
 }
 
 CharacterWindow::~CharacterWindow() = default;
@@ -236,12 +242,20 @@ void CharacterWindow::paintEvent(QPaintEvent *event)
 void CharacterWindow::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
+    // 构造阶段正常情况下已经完成；保留这里作为原生句柄创建失败时的兜底。
+    configureNativeWindow();
+    applyHitMask();
+}
 
+void CharacterWindow::configureNativeWindow()
+{
     if (configured_ || backend_ == nullptr) {
-        applyHitMask();
         return;
     }
 
+    // QWidget::winId() 会在尚无原生窗口时创建它，但不会显示窗口。
+    // 这样后端拿到 QWindow 时仍处于首次映射之前。
+    static_cast<void>(winId());
     QWindow *handle = windowHandle();
     if (handle == nullptr) {
         return;
@@ -253,14 +267,13 @@ void CharacterWindow::showEvent(QShowEvent *event)
 
     const platform::BackendCapabilities caps = backend_->capabilities();
     qCInfo(lcCharacterWindow).noquote()
-        << QStringLiteral("backend=%1 always_on_top=%2 hit_mask=%3 passthrough=%4 window_list_excluded=%5")
+        << QStringLiteral("backend=%1 always_on_top=%2 hit_mask=%3 passthrough=%4 window_list_excluded=%5 window_flags=0x%6")
                .arg(caps.name)
                .arg(caps.alwaysOnTop)
                .arg(caps.pixelHitMask)
                .arg(caps.inputPassthrough)
-               .arg(caps.excludeFromWindowList);
-
-    applyHitMask();
+               .arg(caps.excludeFromWindowList)
+               .arg(QString::number(handle->flags().toInt(), 16));
 }
 
 void CharacterWindow::applyHitMask()

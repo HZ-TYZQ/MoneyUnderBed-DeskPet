@@ -12,7 +12,6 @@ using mub::core::isAllowedScale;
 using mub::core::sanitized;
 using mub::core::Settings;
 using mub::core::SettingsStore;
-using mub::core::WorkspaceVisibility;
 
 namespace {
 
@@ -62,9 +61,8 @@ void TestSettings::defaultsFollowTheDecisionRecord()
     QCOMPARE(defaults.mode, ActivityMode::Quiet);
     // 第 4 节：气泡默认低频。
     QCOMPARE(defaults.bubble, BubbleFrequency::Low);
-    // 第 3.4 节：默认始终置顶，Linux 默认显示在所有工作区。
+    // 第 3.4 节：默认始终置顶。
     QVERIFY(defaults.alwaysOnTop);
-    QCOMPARE(defaults.workspace, WorkspaceVisibility::AllWorkspaces);
     QVERIFY(isAllowedScale(defaults.scale));
 }
 
@@ -101,8 +99,6 @@ void TestSettings::identifiersRoundTrip()
     using mub::core::activityModeId;
     using mub::core::bubbleFrequencyFromId;
     using mub::core::bubbleFrequencyId;
-    using mub::core::workspaceVisibilityFromId;
-    using mub::core::workspaceVisibilityId;
 
     for (const ActivityMode mode : {ActivityMode::Quiet, ActivityMode::Active}) {
         QCOMPARE(activityModeFromId(activityModeId(mode), ActivityMode::Active), mode);
@@ -111,12 +107,6 @@ void TestSettings::identifiersRoundTrip()
          {BubbleFrequency::Off, BubbleFrequency::Low, BubbleFrequency::Normal}) {
         QCOMPARE(bubbleFrequencyFromId(bubbleFrequencyId(bubble), BubbleFrequency::Off),
                  bubble);
-    }
-    for (const WorkspaceVisibility workspace :
-         {WorkspaceVisibility::AllWorkspaces, WorkspaceVisibility::CurrentWorkspace}) {
-        QCOMPARE(workspaceVisibilityFromId(workspaceVisibilityId(workspace),
-                                           WorkspaceVisibility::CurrentWorkspace),
-                 workspace);
     }
 }
 
@@ -142,15 +132,19 @@ void TestSettings::savedSettingsSurviveAReload()
 {
     TemporaryStore temporary;
 
+    // 旧开发构建写过该键；功能撤回后下一次保存应完成清理。
+    temporary.backend().setValue(QStringLiteral("settings/workspace"),
+                                 QStringLiteral("all-workspaces"));
+
     Settings settings;
     settings.mode = ActivityMode::Active;
     settings.bubble = BubbleFrequency::Normal;
     settings.alwaysOnTop = false;
     settings.scale = 1;
-    settings.workspace = WorkspaceVisibility::CurrentWorkspace;
     temporary.store().save(settings);
 
     QCOMPARE(temporary.store().load(), settings);
+    QVERIFY(!temporary.backend().contains(QStringLiteral("settings/workspace")));
 }
 
 void TestSettings::corruptedValuesFallBackWithoutLosingTheRest()

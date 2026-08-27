@@ -132,6 +132,7 @@ private:
     QPointF target_;
     qint64 lastUpdateMs_ = 0;
     qint64 stateDeadlineMs_ = 0;
+    qint64 pauseStartedMs_ = 0;
     bool started_ = false;
 };
 

@@ -31,6 +31,10 @@ public:
     // 强制从第一帧重新开始，即使是同一段动画。
     void restart(const AnimationClip &clip);
 
+    // 从指定帧重新开始。越界帧夹取到有效范围；用于需要立即产生可见变化、
+    // 随后仍由同一播放器正常续播的短反馈。
+    void restartFromFrame(const AnimationClip &clip, int frameIndex);
+
     // 按当前时间推进。返回 true 表示帧号发生了变化。
     bool update();
 

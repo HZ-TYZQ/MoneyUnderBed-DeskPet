@@ -33,7 +33,7 @@ private slots:
     void windowSizeIsTheFrameSizeTimesTheScale_data();
     void windowSizeIsTheFrameSizeTimesTheScale();
     void invalidScaleFallsBackToOne();
-    void configuresTheBackendOnFirstShowOnly();
+    void configuresTheBackendBeforeFirstShowAndOnlyOnce();
     void alwaysOnTopIsForwardedToTheBackend();
     void hitMaskIsAppliedAndMatchesTheFrameAlpha();
     void changingTheFrameReappliesTheHitMask();
@@ -43,6 +43,7 @@ private slots:
     void renderingUsesNearestNeighbour();
     void backendWithoutHitMaskSupportIsNotCalled();
     void realBackendReportsTheCapabilitiesTheProductNeeds();
+    void realBackendAppliesDeskPetFlagsBeforeShow();
 };
 
 void TestCharacterWindow::windowSizeIsTheFrameSizeTimesTheScale_data()
@@ -75,12 +76,13 @@ void TestCharacterWindow::invalidScaleFallsBackToOne()
     QCOMPARE(negative.integerScale(), 1);
 }
 
-void TestCharacterWindow::configuresTheBackendOnFirstShowOnly()
+void TestCharacterWindow::configuresTheBackendBeforeFirstShowAndOnlyOnce()
 {
     FakeWindowBackend backend;
     CharacterWindow window(loadIdleSheet(), 2, &backend);
 
-    QCOMPARE(backend.calls().configureAsDeskPet, 0);
+    // 窗口类型与焦点策略是映射时属性，必须在 show() 前交给后端配置。
+    QCOMPARE(backend.calls().configureAsDeskPet, 1);
 
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
@@ -238,6 +240,19 @@ void TestCharacterWindow::realBackendReportsTheCapabilitiesTheProductNeeds()
     QVERIFY(caps.inputPassthrough);
     QVERIFY(caps.pixelHitMask);
     QVERIFY(caps.excludeFromWindowList);
+}
+
+void TestCharacterWindow::realBackendAppliesDeskPetFlagsBeforeShow()
+{
+    const std::unique_ptr<mub::platform::DeskPetWindowBackend> backend =
+        mub::platform::createWindowBackend();
+    CharacterWindow window(loadIdleSheet(), 1, backend.get());
+
+    QWindow *handle = window.windowHandle();
+    QVERIFY(handle != nullptr);
+    QVERIFY(handle->flags().testFlag(Qt::Tool));
+    QVERIFY(handle->flags().testFlag(Qt::WindowDoesNotAcceptFocus));
+    QVERIFY(!window.isVisible());
 }
 
 QTEST_MAIN(TestCharacterWindow)

@@ -171,10 +171,7 @@ int main(int argc, char *argv[])
                                          backend.get());
     presenter.setBubbleHost(&dialogue);
 
-    // 平台是否支持固定到全部工作区由后端自述，界面据此决定是否显示该项，
-    // 而不是自己判断当前运行在哪个系统上（第 5.1、8.4 节）。
-    mub::ui::SettingsWindow settingsWindow(
-        backend->capabilities().workspacePinning);
+    mub::ui::SettingsWindow settingsWindow;
 
     mub::ui::TrayIcon *trayForSettings = nullptr;
     const auto applySettings = [&](const mub::core::Settings &next) {
@@ -183,14 +180,6 @@ int main(int argc, char *argv[])
         dialogue.setScale(settings.scale);
         if (trayForSettings != nullptr) {
             trayForSettings->setMode(settings.mode);
-        }
-        // 工作区归属只在后端自述支持时才下发；不支持时设置界面隐藏该项，
-        // 取值恒为默认（第 3.4、5.1 节）。
-        if (backend->capabilities().workspacePinning
-            && window.windowHandle() != nullptr) {
-            backend->setWorkspaceVisibility(
-                window.windowHandle(),
-                settings.workspace == mub::core::WorkspaceVisibility::AllWorkspaces);
         }
     };
 

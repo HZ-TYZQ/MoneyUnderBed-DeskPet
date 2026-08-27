@@ -52,6 +52,7 @@ private slots:
     void startsIdleAtTheBottom();
     void neverLeavesTheActivityArea();
     void pausedFreezesEverything();
+    void resumePreservesTheRemainingStateTime();
     void quietModeNeverApproachesTheCursorOrAsksForChatter();
     void activeModeCanApproachTheCursor();
     void approachStopsOutsideTheSafeDistance();
@@ -128,6 +129,35 @@ void TestAutonomousBehavior::pausedFreezesEverything()
 
     behavior.setPaused(false);
     QVERIFY(!behavior.isPaused());
+}
+
+void TestAutonomousBehavior::resumePreservesTheRemainingStateTime()
+{
+    ManualTimeSource clock;
+    // 休息判定恒为假，待机到点后必定进入行走。
+    ScriptedRandomSource random(QList<int>{1000}, QList<double>{0.9});
+    AutonomousBehavior behavior(clock, random, fastConfig());
+    behavior.setActivityArea(kArea);
+    behavior.setCharacterSize(kCharacter);
+    behavior.update();
+
+    clock.advance(400);
+    behavior.update();
+    QCOMPARE(behavior.state(), BehaviorState::Idle);
+
+    behavior.setPaused(true);
+    clock.advance(60000);
+    behavior.update();
+    behavior.setPaused(false);
+
+    // 暂停前还剩 600 ms；暂停的一分钟不能吃掉这段剩余时间。
+    clock.advance(599);
+    behavior.update();
+    QCOMPARE(behavior.state(), BehaviorState::Idle);
+
+    clock.advance(1);
+    behavior.update();
+    QCOMPARE(behavior.state(), BehaviorState::Walking);
 }
 
 void TestAutonomousBehavior::quietModeNeverApproachesTheCursorOrAsksForChatter()

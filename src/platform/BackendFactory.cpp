@@ -15,9 +15,7 @@ std::unique_ptr<DeskPetWindowBackend> createWindowBackend()
 #if defined(Q_OS_WIN) || defined(_WIN32)
     return std::make_unique<WindowsWindowBackend>();
 #elif defined(Q_OS_LINUX) || defined(__linux__)
-    // Linux 的其余能力都由纯 Qt XCB 路径实测通过
-    // （docs/FeasibilityResults.md）。LinuxWindowBackend 只补一项 Qt 表达不了的
-    // 工作区归属，其余全部继承 QtWindowBackend。
+    // Linux 的窗口能力由纯 Qt XCB 路径提供；专用类型只给诊断信息稳定命名。
     return std::make_unique<LinuxWindowBackend>();
 #else
     return std::make_unique<QtWindowBackend>();

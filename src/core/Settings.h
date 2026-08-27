@@ -11,16 +11,6 @@
 
 namespace mub::core {
 
-// Linux 工作区可见性。docs/Decisions.md 第 3.4 节：
-// Linux 默认显示在所有工作区，设置中允许改为当前工作区。
-// Windows 没有公开稳定的「固定到所有虚拟桌面」接口，因此该项在 Windows 上不适用，
-// 由平台能力自述决定是否显示，而不是在界面里判断当前系统。
-enum class WorkspaceVisibility
-{
-    AllWorkspaces,
-    CurrentWorkspace,
-};
-
 // 用户设置。
 //
 // 只包含第 5.1 节列出的设置项。**暂停与隐藏不在这里**：
@@ -36,9 +26,6 @@ struct Settings
     bool alwaysOnTop = true;
     // 第 5.1 节：整数倍率。
     int scale = 2;
-    // 第 3.4 节：Linux 默认显示在所有工作区。
-    WorkspaceVisibility workspace = WorkspaceVisibility::AllWorkspaces;
-
     friend bool operator==(const Settings &, const Settings &) = default;
 };
 
@@ -54,13 +41,10 @@ bool isAllowedScale(int scale);
 // 存字符串而不是枚举序号：枚举顺序将来若变化，序号会静默错位成另一档设置。
 QString activityModeId(ActivityMode mode);
 QString bubbleFrequencyId(BubbleFrequency frequency);
-QString workspaceVisibilityId(WorkspaceVisibility visibility);
 
 // 解析。无法识别时返回 `fallback`，不抛异常也不中断启动。
 ActivityMode activityModeFromId(QStringView id, ActivityMode fallback);
 BubbleFrequency bubbleFrequencyFromId(QStringView id, BubbleFrequency fallback);
-WorkspaceVisibility workspaceVisibilityFromId(QStringView id,
-                                              WorkspaceVisibility fallback);
 
 // 把越界或损坏的取值拉回合法范围。
 //

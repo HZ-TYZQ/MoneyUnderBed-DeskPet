@@ -47,6 +47,8 @@ protected:
     void showEvent(QShowEvent *event) override;
 
 private:
+    void configureNativeWindow();
+
     BubbleRenderer renderer_;
     platform::DeskPetWindowBackend *backend_ = nullptr;
     bool configured_ = false;

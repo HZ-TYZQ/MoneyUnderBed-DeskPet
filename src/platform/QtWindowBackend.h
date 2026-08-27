@@ -19,10 +19,6 @@ public:
     void setInputPassthrough(QWindow *window, bool enabled) override;
     void setHitMask(QWindow *window, const QRegion &region) override;
     bool startSystemDrag(QWindow *window) override;
-    // 纯 Qt 没有跨平台的工作区接口，因此默认什么都不做，
-    // 能力自述里 workspacePinning 也为假。
-    void setWorkspaceVisibility(QWindow *window, bool allWorkspaces) override;
-
 protected:
     // 桌宠窗口的基础标志。平台实现可以在此基础上增减。
     static Qt::WindowFlags deskPetFlags();
