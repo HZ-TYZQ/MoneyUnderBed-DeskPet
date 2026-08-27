@@ -681,7 +681,8 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 矩形四角是圆角，说明它是 DWM 画的窗口边框，而不是命中掩码失效后露出的位图。
 
 本轮只按 `docs/Decisions.md` 第 8.4 节走 Qt 路径，没有引入 `DwmSetWindowAttribute`
-之类的原生调用。若下一轮 Windows 复测边框仍在，再按第 8.4 节论证是否补原生兜底。
+之类的原生调用。项目所有者已在提交 `62ed468` 的候选包上复测，两个问题都不再出现，
+因此原生兜底不需要引入，第 8.4 节的 Qt 优先路径在 Windows 边框问题上成立。
 
 自动覆盖：`tst_characterwindow` 断言桌宠标志在配置原生窗口之前就已取用，
 `tst_characterpresenter` 断言隐藏期间协调器停在 `shutdown`、自主行为被冻结、
@@ -691,7 +692,6 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 - **发行许可阻断已缩小但尚未解除**：角色素材已经外置，Qt Base／Qt SVG 已有 GPL 文本、SPDX 元数据和固定对应源码；仍未覆盖实际 AppImage／Windows 候选中的全部平台运行库、AppImage runtime 静态依赖及 MSVC runtime 声明。AppImage 官方明确由制作者负责随包依赖的许可证、声明和必要源码。在实际候选依赖清单审计完成前，产物只能用于验收，不能以“全部许可已经合规”名义公开发布。
 - AppImage 生成器默认会从 `AppImage/type2-runtime` 的 `continuous` Release 临时下载 runtime。现已把 x86-64 runtime 固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`：工作流先下载并校验，再通过 `LDAI_RUNTIME_FILE` 显式传给 appimagetool；上游 `continuous` 内容变化时构建会失败而不会静默漂移。其 MIT 文本与上游列出的静态依赖声明也已随 AppImage 安装，但这些静态依赖的对应源码义务仍待最终审计。
-- 重新取得一批候选包，由项目所有者复测 Windows 边框与隐藏两项修复。
 - 由项目所有者下载并核对同一批 artifact 的 SHA-256，完成 KDE AppImage 与干净 Windows 11 ZIP 检查表及各三小时运行。
 - 根据候选实测冻结性能门槛；有合格社区测试者时补 GNOME 结果，否则保持实验性／未验证。
 - 人工验收通过后创建正式版本标签，检查草稿 Release，最后发布同一份候选产物。
