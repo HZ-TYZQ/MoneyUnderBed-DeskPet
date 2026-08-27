@@ -15,7 +15,7 @@ set(required_files
     "licenses/README.md"
     "licenses/qt-source.md"
     "licenses/qt-gpl-3.0-only.txt"
-    "licenses/qtbase-6.11.2.spdx"
+    "licenses/qt-modules-6.11.2.spdx"
     "BUILD_INFO.txt"
 )
 if(DEFINED PACKAGE_EXECUTABLE AND NOT PACKAGE_EXECUTABLE STREQUAL "")
@@ -36,10 +36,12 @@ foreach(relative IN LISTS required_files)
     endif()
 endforeach()
 
-file(READ "${root}/licenses/qtbase-6.11.2.spdx" qtbase_sbom)
-if(NOT qtbase_sbom MATCHES "DocumentName:[ \t]+qtbase-6\\.11\\.2")
-    message(FATAL_ERROR "Qt Base SBOM does not identify qtbase 6.11.2")
-endif()
+file(READ "${root}/licenses/qt-modules-6.11.2.spdx" qt_sbom)
+foreach(package_id IN ITEMS QtBase QtSvg)
+    if(NOT qt_sbom MATCHES "SPDXID:[ \t]+SPDXRef-Package-${package_id}")
+        message(FATAL_ERROR "Qt SBOM does not identify ${package_id} 6.11.2")
+    endif()
+endforeach()
 
 # 角色素材必须作为外部文件紧邻可执行文件。固定清单既能发现漏包，
 # 也让两种发行格式对单独授权素材采用完全相同的结构。

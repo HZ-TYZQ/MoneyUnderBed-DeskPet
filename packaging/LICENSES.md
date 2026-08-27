@@ -6,7 +6,7 @@
 
 对应 `docs/Decisions.md` 第 10.1 节与第 12 节。
 
-> 阶段 9 审计状态：Qt Base 已固定 GPLv3 路径、SBOM 和对应源码归档；
+> 阶段 9 审计状态：Qt Base／Qt SVG 已固定 GPLv3 路径、SBOM 和对应源码归档；
 > AppImage／MSVC 及打包工具收集的平台运行库仍需按实际候选产物完成审计。
 > 本文件还不是“全部第三方依赖已经合规”的证明；该审计结束前不得公开发行。
 
@@ -33,8 +33,8 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 | `licenses/assets.md` | `assets/LICENSE.md` | 角色素材授权条款 |
 | `licenses/assets-manifest.md` | `assets/MANIFEST.md` | 素材清单与哈希 |
 | `licenses/qt-source.md` | `packaging/licenses/qt-source.md` | Qt GPL 路径、对应源码地址与固定哈希 |
-| `licenses/qt-gpl-3.0-only.txt` | 构建所用 Qt 安装的 `LICENSES/GPL-3.0-only.txt` | Qt GPLv3 完整文本 |
-| `licenses/qtbase-6.11.2.spdx` | 构建所用 Qt 安装的 `sbom/qtbase-6.11.2.spdx` | Qt Base 与第三方组件 SBOM |
+| `licenses/qt-gpl-3.0-only.txt` | 仓库根 `LICENSE` 的 GPLv3 完整正文 | 本发行物选择的 Qt GPLv3 路径 |
+| `licenses/qt-modules-6.11.2.spdx` | `packaging/licenses/qt-modules-6.11.2.spdx` | Qt Base／Qt SVG、许可路径与对应源码哈希 |
 | `licenses/appimage-runtime.txt`（仅 Linux） | `packaging/licenses/appimage-runtime.txt` | AppImage runtime 及其静态依赖声明 |
 
 对话字体的 TTF 编译进 Qt 资源系统，发行目录不再单独放一份，
@@ -45,9 +45,9 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 放在可执行文件旁的 `assets/character/` 与 `assets/face/`，并继续遵循
 `licenses/assets.md` 中的单独授权；程序缺少这些文件时自检会失败。
 
-Qt Base 对应源码 `qtbase-everywhere-src-6.11.2.tar.xz` 与每批二进制候选
-一起作为 Actions artifact 保存，正式标签构建附到同一个草稿 Release，
-SHA-256 由工作流固定核对。项目使用动态链接，不禁止用户替换 Qt 动态库。
+Qt Base 与 Qt SVG 对应源码归档与每批二进制候选一起作为 Actions artifact
+保存，正式标签构建附到同一个草稿 Release，SHA-256 由工作流固定核对。
+项目使用动态链接，不禁止用户替换 Qt 动态库。
 
 ## Release 说明必须包含的声明
 

@@ -27,6 +27,8 @@ env:
   APPIMAGE_RUNTIME_SHA256: 1cc49bcf1e2ccd593c379adb17c9f85a36d619088296504de95b1d06215aebbf
   QTBASE_SOURCE_URL: https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtbase-everywhere-src-6.11.2.tar.xz
   QTBASE_SOURCE_SHA256: 5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22
+  QTSVG_SOURCE_URL: https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtsvg-everywhere-src-6.11.2.tar.xz
+  QTSVG_SOURCE_SHA256: d594337feca84c26fb67fe87b85e6a5c12fda404b611d905f9d138210c311876
 
 jobs:
   metadata:
@@ -71,7 +73,7 @@ jobs:
     outputs:
       artifact_name: ${{ steps.names.outputs.artifact_name }}
     steps:
-      - name: Download and verify Qt Base source
+      - name: Download and verify Qt corresponding sources
         id: names
         shell: bash
         run: |
@@ -81,7 +83,13 @@ jobs:
           printf '%s  %s\n' "$QTBASE_SOURCE_SHA256" "$file" > "$file.sha256"
           sha256sum -c "$file.sha256"
           test -s "$file"
-          echo "artifact_name=QtBase-source-${QT_VERSION}-${{ needs.metadata.outputs.label }}" >> "$GITHUB_OUTPUT"
+
+          svg="qtsvg-everywhere-src-${QT_VERSION}.tar.xz"
+          curl -fL --retry 3 -o "$svg" "$QTSVG_SOURCE_URL"
+          printf '%s  %s\n' "$QTSVG_SOURCE_SHA256" "$svg" > "$svg.sha256"
+          sha256sum -c "$svg.sha256"
+          test -s "$svg"
+          echo "artifact_name=Qt-source-${QT_VERSION}-${{ needs.metadata.outputs.label }}" >> "$GITHUB_OUTPUT"
 
       - name: Upload corresponding source
         uses: actions/upload-artifact@v7
@@ -90,6 +98,8 @@ jobs:
           path: |
             qtbase-everywhere-src-${{ env.QT_VERSION }}.tar.xz
             qtbase-everywhere-src-${{ env.QT_VERSION }}.tar.xz.sha256
+            qtsvg-everywhere-src-${{ env.QT_VERSION }}.tar.xz
+            qtsvg-everywhere-src-${{ env.QT_VERSION }}.tar.xz.sha256
           if-no-files-found: error
           retention-days: 30
 
@@ -159,12 +169,6 @@ jobs:
             "qt=${QT_VERSION}" \
             "platform=linux-x86_64" \
             "runner=ubuntu-22.04" > AppDir/BUILD_INFO.txt
-          test -s "$QT_ROOT_DIR/LICENSES/GPL-3.0-only.txt"
-          test -s "$QT_ROOT_DIR/sbom/qtbase-$QT_VERSION.spdx"
-          cp "$QT_ROOT_DIR/LICENSES/GPL-3.0-only.txt" \
-            AppDir/licenses/qt-gpl-3.0-only.txt
-          cp "$QT_ROOT_DIR/sbom/qtbase-$QT_VERSION.spdx" \
-            "AppDir/licenses/qtbase-$QT_VERSION.spdx"
           cmake \
             -DPACKAGE_ROOT="$PWD/AppDir" \
             -DPACKAGE_EXECUTABLE=usr/bin/money-under-bed-deskpet \
@@ -381,13 +385,6 @@ jobs:
             "platform=windows-x86_64"
             "runner=windows-2022"
           ) | Set-Content package\BUILD_INFO.txt -Encoding utf8
-
-          $qtGpl = Join-Path $env:QT_ROOT_DIR 'LICENSES\GPL-3.0-only.txt'
-          $qtSbom = Join-Path $env:QT_ROOT_DIR "sbom\qtbase-$env:QT_VERSION.spdx"
-          if (-not (Test-Path $qtGpl)) { throw "Qt GPL text not found: $qtGpl" }
-          if (-not (Test-Path $qtSbom)) { throw "Qt Base SBOM not found: $qtSbom" }
-          Copy-Item $qtGpl package\licenses\qt-gpl-3.0-only.txt
-          Copy-Item $qtSbom "package\licenses\qtbase-$env:QT_VERSION.spdx"
 
       - name: Verify GUI subsystem and packaged self-test
         shell: pwsh

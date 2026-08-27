@@ -647,7 +647,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 - 根 CMake 增加显式 `MUB_VERSION`，标签构建只接受 `vMAJOR.MINOR.PATCH`；普通 push／PR 使用带提交短哈希的开发版本，不改写源码。
 - `packaging/` 建立 Linux／Windows 共用的安装与许可清单；AppImage 使用 FHS `usr/bin` 布局，Windows EXE 位于 ZIP 根目录。两边都携带 GPL、OFL、字体来源、素材条款和素材哈希；Ark Pixel TTF 只嵌入可执行文件，不在发行目录重复放置。
 - 角色素材组合边界已经按项目所有者决定改为外置数据：程序登记表只保存文件名，统一从可执行文件旁 `assets/` 解析；构建目标自动暂存全部 22 个 PNG，安装清单原样复制，两平台不维护不同路径。`tst_resources` 逐文件核对外置副本哈希并确认 `:/assets/` 中没有角色图片，发行布局检查也拒绝漏包。
-- Qt `6.11.2` 正式候选采用 GPLv3 动态链接路径。两平台包复制 Qt 安装随附的 GPL 文本和 `qtbase-6.11.2.spdx`；独立 Actions 任务从 Qt 官方下载并校验固定 SHA-256 的 48 MiB Qt Base 对应源码，每批候选保存为 artifact，标签构建附到同一草稿 Release。
+- Qt `6.11.2` 正式候选采用 GPLv3 动态链接路径。两平台包携带 GPLv3 正文和项目维护的 `qt-modules-6.11.2.spdx`；独立 Actions 任务从 Qt 官方下载并校验固定 SHA-256 的 Qt Base 与 Qt SVG 对应源码，每批候选保存为 artifact，标签构建附到同一草稿 Release。之所以包含 Qt SVG，是首轮 Windows 日志证实 `windeployqt` 会为 SVG 图标插件部署 `Qt6Svg`，不能只按 CMake 直接链接模块推断源码范围。
 - 两平台 artifact 同时输出实际发行目录的逐文件 SHA-256 清单；Linux 额外枚举成品内每个 ELF 的 `DT_NEEDED`，Windows 额外枚举每个 EXE／DLL 的导入表。后续平台运行库许可审计直接使用成品证据，不从 runner 软件清单反推。
 - 新增发行包结构检查：关键文件必须存在且非空，不得泄漏日志、外置 TTF 或 `vc_redist` 安装器，并可对平台插件等发行专用文件追加断言。
 - `tst_resources` 现在不只检查素材路径已写入清单，还会解析 `assets/MANIFEST.md` 的全部 23 个 PNG 哈希，逐文件核对并拒绝重复条目、漏登文件或清单指向的缺失文件。
@@ -665,7 +665,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 ### 尚未完成
 
-- **发行许可阻断已缩小但尚未解除**：角色素材已经外置，Qt 已有 GPL 文本、构建 SBOM 和固定对应源码；仍未覆盖实际 AppImage／Windows 候选中的全部平台运行库、AppImage runtime 静态依赖及 MSVC runtime 声明。AppImage 官方明确由制作者负责随包依赖的许可证、声明和必要源码。在实际候选依赖清单审计完成前，产物只能用于验收，不能以“全部许可已经合规”名义公开发布。
+- **发行许可阻断已缩小但尚未解除**：角色素材已经外置，Qt Base／Qt SVG 已有 GPL 文本、SPDX 元数据和固定对应源码；仍未覆盖实际 AppImage／Windows 候选中的全部平台运行库、AppImage runtime 静态依赖及 MSVC runtime 声明。AppImage 官方明确由制作者负责随包依赖的许可证、声明和必要源码。在实际候选依赖清单审计完成前，产物只能用于验收，不能以“全部许可已经合规”名义公开发布。
 - AppImage 生成器默认会从 `AppImage/type2-runtime` 的 `continuous` Release 临时下载 runtime。现已把 x86-64 runtime 固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`：工作流先下载并校验，再通过 `LDAI_RUNTIME_FILE` 显式传给 appimagetool；上游 `continuous` 内容变化时构建会失败而不会静默漂移。其 MIT 文本与上游列出的静态依赖声明也已随 AppImage 安装，但这些静态依赖的对应源码义务仍待最终审计。
 - 提交、推送并取得 Package candidates 工作流的 Linux／Windows 双绿结果。
 - 由项目所有者下载并核对同一批 artifact 的 SHA-256，完成 KDE AppImage 与干净 Windows 11 ZIP 检查表及各三小时运行。

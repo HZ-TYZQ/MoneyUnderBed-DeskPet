@@ -29,6 +29,12 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/assets/face"
 install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
     DESTINATION "."
 )
+# Qt 使用 GPL-3.0-only 路径。项目根 LICENSE 与 Qt 随源码提供的 GPLv3
+# 正文仅 URL 协议不同，均是完整 GPLv3；单独安装一份可让清单路径稳定。
+install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
+    DESTINATION "licenses"
+    RENAME "qt-gpl-3.0-only.txt"
+)
 install(FILES "${CMAKE_SOURCE_DIR}/third_party/ark-pixel-font/OFL.txt"
     DESTINATION "licenses"
 )
@@ -49,6 +55,9 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES.md"
     RENAME "README.md"
 )
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/licenses/qt-source.md"
+    DESTINATION "licenses"
+)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/licenses/qt-modules-6.11.2.spdx"
     DESTINATION "licenses"
 )
 

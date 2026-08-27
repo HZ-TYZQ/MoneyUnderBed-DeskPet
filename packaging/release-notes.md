@@ -7,6 +7,7 @@
 - 本项目是《床下有罐钱》的非官方、非商业二次创作，与原作开发者没有隶属关系，也不由其发布或背书。
 - 角色素材来自作者 `_U5B_` 发布的[二创素材包](https://www.bilibili.com/video/BV1XwhV6TEXQ/)，仅供二次创作、不可商用、禁止 R18、禁止用于 AI 训练。
 - 程序代码采用 GPL-3.0-or-later；Ark Pixel 字体采用 OFL-1.1。各自完整文本和素材清单均包含在发行物中。
+- Qt 6.11.2 采用 GPLv3 动态链接路径；Qt Base／Qt SVG 对应源码归档及校验文件随本 Release 提供。
 - Windows 包未签名，可能触发 SmartScreen，也可能被 Smart App Control 或企业策略阻止。
 
 ## 支持与验证边界
