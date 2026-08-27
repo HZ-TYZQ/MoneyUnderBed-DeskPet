@@ -12,6 +12,7 @@
 #include "core/TimeSource.h"
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
+#include "ui/DialogueController.h"
 
 #include <QApplication>
 #include <QCommandLineOption>
@@ -123,8 +124,19 @@ int main(int argc, char *argv[])
     // 设置界面在阶段 7 接管这两个取值。
     presenter.setMode(mub::core::ActivityMode::Quiet);
     presenter.setBubbleFrequency(mub::core::BubbleFrequency::Low);
+
+    // 气泡与角色使用同一倍率（docs/Decisions.md 第 4.8 节）。
+    mub::ui::DialogueController dialogue(presenter, window, timeSource, random,
+                                         backend.get());
+    dialogue.setScale(integerScale);
+    presenter.setBubbleHost(&dialogue);
+
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::quitRequested,
-                     &application, &QCoreApplication::quit);
+                     &application, [&application, &dialogue] {
+                         // 退出不保留待恢复的对话页面（第 4.2 节）。
+                         dialogue.stop();
+                         application.quit();
+                     });
     presenter.start();
 
     return application.exec();

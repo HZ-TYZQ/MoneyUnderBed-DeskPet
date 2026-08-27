@@ -49,6 +49,8 @@ target_sources(money-under-bed-core PRIVATE
     ../dialogue/DialogueData.h
     ../dialogue/DialogueSession.cpp
     ../dialogue/DialogueSession.h
+    ../dialogue/LineSelection.cpp
+    ../dialogue/LineSelection.h
 )
 add_library(MUB::Core ALIAS money-under-bed-core)
 

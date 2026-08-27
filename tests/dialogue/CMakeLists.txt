@@ -3,3 +3,6 @@ target_link_libraries(tst_dialoguedata PRIVATE MUB::Core MUB::Resources Qt6::Gui
 
 mub_add_test(tst_dialoguesession tst_dialoguesession.cpp)
 target_link_libraries(tst_dialoguesession PRIVATE MUB::Core MUB::Resources)
+
+mub_add_test(tst_lineselection tst_lineselection.cpp)
+target_link_libraries(tst_lineselection PRIVATE MUB::Core MUB::Resources Qt6::Gui)

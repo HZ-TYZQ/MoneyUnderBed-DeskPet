@@ -22,6 +22,7 @@ class TimeSource;
 
 namespace mub::ui {
 
+class BubbleHost;
 class CharacterWindow;
 
 // 把自主行为、方向映射和动画播放接到角色窗口上。
@@ -51,6 +52,15 @@ public:
     void setBubbleFrequency(core::BubbleFrequency frequency);
     core::BubbleFrequency bubbleFrequency() const;
 
+    // 气泡宿主。不注入时所有事件都由本类即刻结束，产品退化为无气泡但可运行。
+    // 本类不拥有它。
+    void setBubbleHost(BubbleHost *host);
+
+    // 连续对话正在显示。第 4.1 节：此期间暂停自主移动和自主行为，
+    // 但继续播放当前朝向的待机动画。单页气泡不触发本状态。
+    void setDialogueActive(bool active);
+    bool isDialogueActive() const;
+
     // 用户主动投喂。公开为产品动作，右键菜单与后续设置／快捷入口共用，
     // 也让组件测试可以直接验证完整的事件生命周期。
     void feed();
@@ -72,11 +82,10 @@ public:
     core::AutonomousBehavior &behavior();
 
 signals:
-    // 阶段 6 的对话系统接管这两个信号。
-    void textFeedbackRequested();
-    // 这里只报告触发请求，不提前占用 EventKind::Dialogue。
-    // 接收者成功启动会话后再通过 requestEvent() 申请 Dialogue，结束时调用
-    // finishEvent()。这样没有接收者时不会遗留永不结束的事件。
+    // 以下两个信号只报告「发生了什么」，供日志、测试和后续功能观察。
+    // 真正的气泡显示走 BubbleHost，不通过信号，因为本类需要同步知道
+    // 气泡是否真的起来了，才能决定事件由谁结束。
+    void textFeedbackRequested(core::EventKind kind);
     void dialogueRequested(const QString &dialogueId);
     // 更高优先级事件替换了旧事件。旧事件的所有者必须立即清理其会话和 UI，
     // 但不再调用 finish(oldKind)，因为协调器已经切换到了新事件。
@@ -87,6 +96,9 @@ private:
     void tick();
     void handleClick();
     void showContextMenu(const QPoint &globalPosition);
+    // 申请到事件之后交给气泡宿主。宿主没接手时立即结束该事件，
+    // 保证任何一条路径都不会留下永不结束的事件。
+    void handOffToBubble(core::EventKind kind, const QString &dialogueId = {});
     void finishFeeding();
     void updateFreeze();
     bool advanceEventAnimation();
@@ -102,10 +114,12 @@ private:
     core::ClickFeedbackSelector clickFeedback_;
     core::FeedingSelector feeding_;
     core::RandomSource *random_;
+    BubbleHost *bubbles_ = nullptr;
     core::BubbleFrequency bubbleFrequency_ = core::BubbleFrequency::Low;
     core::FeedingOutcome feedingOutcome_ = core::FeedingOutcome::Eat;
     bool userPaused_ = false;
     bool eventFreeze_ = false;
+    bool dialogueFreeze_ = false;
     QHash<QString, character::SpriteSheet> sheets_;
     QString currentClipId_;
 };
