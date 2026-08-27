@@ -34,7 +34,7 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 | `licenses/assets-manifest.md` | `assets/MANIFEST.md` | 素材清单与哈希 |
 | `licenses/qt-source.md` | `packaging/licenses/qt-source.md` | Qt GPL 路径、对应源码地址与固定哈希 |
 | `licenses/qt-gpl-3.0-only.txt` | 仓库根 `LICENSE` 的 GPLv3 完整正文 | 本发行物选择的 Qt GPLv3 路径 |
-| `licenses/qt-modules-6.11.2.spdx` | `packaging/licenses/qt-modules-6.11.2.spdx` | Qt Base／Qt SVG、许可路径与对应源码哈希 |
+| `licenses/qt-modules-6.11.2.spdx` | `packaging/licenses/qt-modules-6.11.2.spdx` | Qt Base、许可路径与对应源码哈希 |
 | `licenses/appimage-runtime.txt`（仅 Linux） | `packaging/licenses/appimage-runtime.txt` | AppImage runtime 及其静态依赖声明 |
 | `licenses/appimage-tooling.txt`（仅 Linux） | `packaging/licenses/appimage-tooling.txt` | AppRun 与 Qt 环境 hook 生成工具的 MIT 声明 |
 | `licenses/icu.txt`（仅 Linux，构建时固定下载） | ICU 73.2 `icu4c/LICENSE` | Qt 官方 Linux 包携带的 ICU 完整声明 |
@@ -50,7 +50,7 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 放在可执行文件旁的 `assets/character/` 与 `assets/face/`，并继续遵循
 `licenses/assets.md` 中的单独授权；程序缺少这些文件时自检会失败。
 
-Qt Base、Qt SVG、ICU 73.2、固定 AppImage runtime、libfuse、squashfuse、
+Qt Base、ICU 73.2、固定 AppImage runtime、libfuse、squashfuse、
 linuxdeploy 与 linuxdeploy-plugin-qt 的源码归档与每批候选一起保存。Linux 候选
 还从实际 AppDir 反查 Ubuntu 二进制包，下载精确版本的 Debian 源码包作为独立
 artifact。正式标签构建把这些材料全部附到同一草稿 Release 并核对 SHA-256。

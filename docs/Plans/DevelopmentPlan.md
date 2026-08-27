@@ -491,20 +491,20 @@ core 不依赖 Widgets、Win32、XCB 或 D-Bus
 ### 14.1 正式打包
 
 - [x] 解决 GPL 程序与非商业角色素材的组合边界：角色 PNG 作为可执行文件旁的独立只读数据文件发行，不编入 Qt 资源系统；构建、测试和两平台发行统一使用该路径。
-- [ ] 完成 Qt、AppImage runtime 与实际随包运行库的许可证／版权／对应源码审计；固定 AppImage runtime 字节，不允许 `continuous` 资源在打包时漂移。
-- [ ] Linux 在 Ubuntu 22.04 runner 构建 x86-64 AppImage；验证 Qt `6.11.2` 的 glibc 兼容路径。
-- [ ] Windows 在 `windows-2022` 使用 `windeployqt` 生成 x86-64 免安装 ZIP，GUI 子系统不弹控制台。
-- [ ] 两个平台只包含一份 Ark Pixel TTF，并包含 GPL、OFL、素材条款、素材清单、署名和来源。
-- [ ] 对打包后的实际可执行文件运行 `--self-test`。
-- [ ] 为 AppImage 和 ZIP 生成 SHA-256。
+- [x] 完成 Qt、AppImage runtime 与实际随包运行库的许可证／版权／对应源码审计；固定 AppImage runtime 字节，不允许 `continuous` 资源在打包时漂移。run 33091220284 从实际 AppDir 收集 47 条运行库记录、25 个 Ubuntu 精确源包，并产出两类对应源码 artifact。
+- [x] Linux 在 Ubuntu 22.04 runner 构建 x86-64 AppImage；验证 Qt `6.11.2` 的 glibc 兼容路径。
+- [x] Windows 在 `windows-2022` 使用 `windeployqt` 生成 x86-64 免安装 ZIP，GUI 子系统不弹控制台。
+- [x] 两个平台只包含一份 Ark Pixel TTF，并包含 GPL、OFL、素材条款、素材清单、署名和来源。
+- [x] 对打包后的实际可执行文件运行 `--self-test`。
+- [x] 为 AppImage 和 ZIP 生成 SHA-256。
 - [ ] tag 构建创建草稿 Release；普通 push／PR 只上传 CI artifact，不冒充正式发布。
 
 ### 14.2 自动发布门
 
-- [ ] 两平台编译和全部 CTest 通过。
-- [ ] 打包产物自检通过。
-- [ ] 资源、字体和许可证清单通过。
-- [ ] 没有未处理的核心功能失败。
+- [x] 两平台编译和全部 CTest 通过。
+- [x] 打包产物自检通过。
+- [x] 资源、字体和许可证清单通过。
+- [x] 没有未处理的核心功能失败。
 
 ### 14.3 人工候选验收
 
@@ -518,9 +518,9 @@ core 不依赖 Widgets、Win32、XCB 或 D-Bus
 
 ### 14.4 发布
 
-- [ ] README 和发行说明区分支持目标、实际验证配置、实验性环境和未测试范围。
-- [ ] Windows 说明未签名及 SmartScreen／Smart App Control 风险。
-- [ ] 明确非官方、非商业二创，列出角色素材与字体许可。
+- [x] README 和发行说明区分支持目标、实际验证配置、实验性环境和未测试范围。
+- [x] Windows 说明未签名及 SmartScreen／Smart App Control 风险。
+- [x] 明确非官方、非商业二创，列出角色素材与字体许可。
 - [ ] 人工通过后直接发布同一份草稿产物，不重新构建。
 - [ ] Linux 与 Windows 同时达到正式门槛后发布 1.0。
 

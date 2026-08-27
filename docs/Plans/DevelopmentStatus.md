@@ -18,7 +18,7 @@
 | 阶段 | 名称 | 状态 | 最近更新 |
 | --- | --- | --- | --- |
 | 0 | 执行基线与历史计划整理 | 进行中 | 2026-08-27 |
-| 1 | Windows 窗口探针与 Actions 产物验收 | 进行中 | 2026-08-27 |
+| 1 | Windows 窗口探针与 Actions 产物验收 | 已通过 | 2026-08-28 |
 | 2 | 正式工程骨架与双平台持续集成 | 已通过 | 2026-08-27 |
 | 3 | 跨平台角色窗口最小纵切 | 进行中 | 2026-08-27 |
 | 4 | 动画、方向映射与自主行为 | 进行中 | 2026-08-27 |
@@ -138,7 +138,8 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 | 核心失败已定位到具体路径并验证解决方案，不以“预计 Win32 可行”通过 | 满足，本轮无核心失败 |
 | 任一核心能力仍失败则停止正式产品开发 | 不触发 |
 
-状态仍填 `进行中` 而非 `已通过`：本记录的规则是「需要项目所有者人工验收的阶段，未收到验收结论前不得填 `已通过`」。数据已齐备，等项目所有者给出验收结论后改。
+项目所有者在正式产品 Windows 候选复测通过后明确进入收尾阶段，阶段 1 据此填为
+`已通过`。其余缩放档位和生命周期项目继续留在正式候选验收表，不反向改写探针结论。
 
 未完成：
 
@@ -642,12 +643,12 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 状态：进行中
 
-### 已实现，待 Actions 首轮验证
+### 已实现并通过 Actions 候选验证
 
 - 根 CMake 增加显式 `MUB_VERSION`，标签构建只接受 `vMAJOR.MINOR.PATCH`；普通 push／PR 使用带提交短哈希的开发版本，不改写源码。
 - `packaging/` 建立 Linux／Windows 共用的安装与许可清单；AppImage 使用 FHS `usr/bin` 布局，Windows EXE 位于 ZIP 根目录。两边都携带 GPL、OFL、字体来源、素材条款和素材哈希；Ark Pixel TTF 只嵌入可执行文件，不在发行目录重复放置。
 - 角色素材组合边界已经按项目所有者决定改为外置数据：程序登记表只保存文件名，统一从可执行文件旁 `assets/` 解析；构建目标自动暂存全部 22 个 PNG，安装清单原样复制，两平台不维护不同路径。`tst_resources` 逐文件核对外置副本哈希并确认 `:/assets/` 中没有角色图片，发行布局检查也拒绝漏包。
-- Qt `6.11.2` 正式候选采用 GPLv3 动态链接路径。两平台包携带 GPLv3 正文和项目维护的 `qt-modules-6.11.2.spdx`；独立 Actions 任务从 Qt 官方下载并校验固定 SHA-256 的 Qt Base 与 Qt SVG 对应源码，每批候选保存为 artifact，标签构建附到同一草稿 Release。之所以包含 Qt SVG，是首轮 Windows 日志证实 `windeployqt` 会为 SVG 图标插件部署 `Qt6Svg`，不能只按 CMake 直接链接模块推断源码范围。
+- Qt `6.11.2` 正式候选采用 GPLv3 动态链接路径。首轮 `windeployqt` 曾因软插件带入 Qt SVG；收尾阶段确认产品只加载 PNG 后，两平台均排除 SVG 图标／图像插件，并用禁用路径断言和成品自检证明 Qt SVG 不再存在。最终 SBOM 与对应源码因此只记录实际使用的 Qt Base。
 - 两平台 artifact 同时输出实际发行目录的逐文件 SHA-256 清单；Linux 额外枚举成品内每个 ELF 的 `DT_NEEDED`，Windows 额外枚举每个 EXE／DLL 的导入表。后续平台运行库许可审计直接使用成品证据，不从 runner 软件清单反推。
 - 新增发行包结构检查：关键文件必须存在且非空，不得泄漏日志、外置 TTF 或 `vc_redist` 安装器，并可对平台插件等发行专用文件追加断言。
 - `tst_resources` 现在不只检查素材路径已写入清单，还会解析 `assets/MANIFEST.md` 的全部 23 个 PNG 哈希，逐文件核对并拒绝重复条目、漏登文件或清单指向的缺失文件。
@@ -661,7 +662,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 - `dev-fedora` 已完成 Release 配置、编译、统一目录安装和发行布局检查；本地 AppImage 能成功生成，约 40 MiB，解包后的许可、可执行文件和 offscreen 插件结构检查通过。
 - Fedora 44 本地生成的 AppImage 不能作为兼容性结论：锁定版 linuxdeploy 内置 patchelf 0.15，在处理 Fedora 44 带 `.relr.dyn` 的 `libudev.so.1` 时移动了 `.init` 节却没有更新 `DT_INIT`，动态加载阶段崩溃。该问题发生在进入 `main()` 之前，GDB 指向被改写的 `libudev` 初始化入口；目标 Ubuntu 22.04 runner 不以这份 Fedora 本地包代替验证。
-- 本轮阶段 9 实现尚未取得 Actions 结果。因此计划第 14.1／14.2 节仍不勾选；只有两平台 Actions 发行物全部通过后才能补齐自动发布门。
+- 收尾候选 run 33091220284（commit `36661ce`）已通过 Linux AppImage、Windows ZIP、框架/runtime 对应源码和 Linux 系统对应源码四类 artifact 的生成与上传；同提交的 `Build and test` run 33091220297 和 Windows probe run 33091220328 也全部通过。
 
 ### 候选包首轮实测（2026-08-27）
 
@@ -690,8 +691,8 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 ### 尚未完成
 
-- **发行许可阻断正在收尾验证**：角色素材边界与 Qt GPL 路径已经完成；收尾实现会从实际 AppImage 逐库反查 Ubuntu 二进制包、copyright 和精确源包，并附同批 Debian 源码 artifact。ICU、AppImage runtime、libfuse、打包工具与 MSVC CRT 也已加入固定来源和许可材料。只有新一批 Actions 候选实际产出、清单和源码校验全部通过后才解除阻断。
-- AppImage 生成器默认会从 `AppImage/type2-runtime` 的 `continuous` Release 临时下载 runtime。现已把 x86-64 runtime 固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`：工作流先下载并校验，再通过 `LDAI_RUNTIME_FILE` 显式传给 appimagetool；上游 `continuous` 内容变化时构建会失败而不会静默漂移。其 MIT 文本与上游列出的静态依赖声明也已随 AppImage 安装，但这些静态依赖的对应源码义务仍待最终审计。
+- **开发候选的发行许可自动门已经解除**：run 33091220284 从最终 AppDir 收集 47 条运行库记录并全部找到许可来源，其中 25 个 Ubuntu 源包以精确版本下载，共 82 个源文件进入独立 artifact；Qt／ICU／AppImage runtime／libfuse／squashfuse／打包工具进入另一固定源码 artifact。Windows 包只保留 Qt、系统 DLL 与 `VC\Redist` 的未修改 CRT，禁用组件断言与成品自检通过。正式标签仍须再次生成并核对同类材料，不能拿开发版结果替代。
+- AppImage runtime 字节固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`，上游 `continuous` 内容变化时构建会失败而不会静默漂移。runtime、其构建脚本、精确 libfuse 3.15.0／squashfuse 0.5.2 源码和全部静态依赖许可都已进入同批材料；上游未列出的 mimalloc MIT 声明也由项目主动补齐。
 - 由项目所有者下载并核对同一批 artifact 的 SHA-256，完成 KDE AppImage 与干净 Windows 11 ZIP 检查表及各三小时运行。
 - 根据候选实测冻结性能门槛；有合格社区测试者时补 GNOME 结果，否则保持实验性／未验证。
 - 收尾工程与许可自动门全绿后创建正式版本标签；Actions 生成草稿 Release，再对草稿中的原文件完成双平台最终验收，最后直接发布而不重新构建。

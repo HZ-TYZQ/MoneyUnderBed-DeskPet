@@ -45,7 +45,7 @@ if(DEFINED PACKAGE_FORBIDDEN_PATHS AND NOT PACKAGE_FORBIDDEN_PATHS STREQUAL "")
 endif()
 
 file(READ "${root}/licenses/qt-modules-6.11.2.spdx" qt_sbom)
-foreach(package_id IN ITEMS QtBase QtSvg)
+foreach(package_id IN ITEMS QtBase)
     if(NOT qt_sbom MATCHES "SPDXID:[ \t]+SPDXRef-Package-${package_id}")
         message(FATAL_ERROR "Qt SBOM does not identify ${package_id} 6.11.2")
     endif()

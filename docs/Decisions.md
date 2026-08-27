@@ -550,9 +550,9 @@ README 和发行说明必须同时展示正式支持目标、实际验证配置�
 ### 12.2.1 Qt
 
 - 正式候选精确使用 Qt `6.11.2`，选择 `GPL-3.0-only` 开源许可路径并动态链接，不禁止用户替换 Qt 动态库。
-- 每个发行包携带 GPLv3 完整文本与项目生成的 SPDX 2.3 元数据，明确记录实际使用的 Qt Base／Qt SVG、许可路径和对应源码哈希。
-- 每批 Actions 候选同时保存 Qt 官方 `qtbase-everywhere-src-6.11.2.tar.xz` 与 `qtsvg-everywhere-src-6.11.2.tar.xz`；正式标签构建把同一组归档附到草稿 Release。固定 SHA-256 分别为 `5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22`、`d594337feca84c26fb67fe87b85e6a5c12fda404b611d905f9d138210c311876`。
-- Qt 以外的 AppImage runtime、平台运行库及其实际随包依赖仍须逐项审计；完成前不得公开发布。
+- 每个发行包携带 GPLv3 完整文本与项目生成的 SPDX 2.3 元数据，明确记录实际使用的 Qt Base、许可路径和对应源码哈希。SVG 图标／图像插件已从两平台候选中明确排除，成品不含 Qt SVG。
+- 每批 Actions 候选保存 Qt 官方 `qtbase-everywhere-src-6.11.2.tar.xz`；正式标签构建把同一归档附到草稿 Release。固定 SHA-256 为 `5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22`。
+- Qt 以外的 ICU、AppImage runtime、平台运行库和打包工具同样按实际成品收集许可与对应源码；正式标签必须重新产出并核对这些材料，不能沿用开发候选的清单。
 
 ### 12.3 角色素材来源
 
@@ -660,4 +660,4 @@ README 和发行说明必须同时展示正式支持目标、实际验证配置�
 - Linux 会话状态检测在 GNOME 上的实际可用性。KDE 已确定同时使用并实测通过 `logind` 的 `PrepareForSleep`、会话 `LockedHint`／`Active` 与 `org.freedesktop.ScreenSaver.ActiveChanged`；多个来源按原因聚合，最后一个原因解除后才恢复。
 - 正式发布时 KDE、GNOME、XWayland、GPU 和驱动的具体验证版本矩阵。
 - 首个测试版、候选版和正式版的完整版本编号方案。
-- AppImage runtime／MSVC runtime／随包系统库的最终许可证、版权、对应源码清单和长期托管方式。Qt 已确定采用 GPLv3 路径并随候选提供 SBOM 与 Qt Base／Qt SVG 对应源码。
+- AppImage runtime／MSVC runtime／随包系统库在首个正式标签上的最终文件哈希与版本清单。收集和长期托管方式已经确定：与同次二进制候选一起附到草稿 Release；Qt 采用 GPLv3 路径并提供 Qt Base SBOM 与对应源码。

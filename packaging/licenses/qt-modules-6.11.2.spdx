@@ -18,17 +18,4 @@ PackageLicenseConcluded: GPL-3.0-only
 PackageLicenseDeclared: (GPL-3.0-only OR LGPL-3.0-only)
 PackageCopyrightText: NOASSERTION
 
-##### Package: Qt SVG
-
-PackageName: Qt SVG
-SPDXID: SPDXRef-Package-QtSvg
-PackageVersion: 6.11.2
-PackageDownloadLocation: https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtsvg-everywhere-src-6.11.2.tar.xz
-FilesAnalyzed: false
-PackageChecksum: SHA256: d594337feca84c26fb67fe87b85e6a5c12fda404b611d905f9d138210c311876
-PackageLicenseConcluded: GPL-3.0-only
-PackageLicenseDeclared: (GPL-3.0-only OR LGPL-3.0-only)
-PackageCopyrightText: NOASSERTION
-
 Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-QtBase
-Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-QtSvg

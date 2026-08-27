@@ -27,8 +27,6 @@ env:
   APPIMAGE_RUNTIME_SHA256: 1cc49bcf1e2ccd593c379adb17c9f85a36d619088296504de95b1d06215aebbf
   QTBASE_SOURCE_URL: https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtbase-everywhere-src-6.11.2.tar.xz
   QTBASE_SOURCE_SHA256: 5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22
-  QTSVG_SOURCE_URL: https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtsvg-everywhere-src-6.11.2.tar.xz
-  QTSVG_SOURCE_SHA256: d594337feca84c26fb67fe87b85e6a5c12fda404b611d905f9d138210c311876
   ICU_SOURCE_URL: https://github.com/unicode-org/icu/releases/download/release-73-2/icu4c-73_2-src.tgz
   ICU_SOURCE_SHA256: 818a80712ed3caacd9b652305e01afc7fa167e6f2e94996da44b90c2ab604ce1
   ICU_LICENSE_URL: https://raw.githubusercontent.com/unicode-org/icu/release-73-2/icu4c/LICENSE
@@ -105,12 +103,6 @@ jobs:
           sha256sum -c "$file.sha256"
           test -s "$file"
 
-          svg="qtsvg-everywhere-src-${QT_VERSION}.tar.xz"
-          curl -fL --retry 3 -o "$svg" "$QTSVG_SOURCE_URL"
-          printf '%s  %s\n' "$QTSVG_SOURCE_SHA256" "$svg" > "$svg.sha256"
-          sha256sum -c "$svg.sha256"
-          test -s "$svg"
-
           icu="icu4c-73_2-src.tgz"
           curl -fL --retry 3 -o "$icu" "$ICU_SOURCE_URL"
           printf '%s  %s\n' "$ICU_SOURCE_SHA256" "$icu" > "$icu.sha256"
@@ -158,8 +150,6 @@ jobs:
           path: |
             qtbase-everywhere-src-${{ env.QT_VERSION }}.tar.xz
             qtbase-everywhere-src-${{ env.QT_VERSION }}.tar.xz.sha256
-            qtsvg-everywhere-src-${{ env.QT_VERSION }}.tar.xz
-            qtsvg-everywhere-src-${{ env.QT_VERSION }}.tar.xz.sha256
             icu4c-73_2-src.tgz
             icu4c-73_2-src.tgz.sha256
             type2-runtime-${{ env.APPIMAGE_RUNTIME_COMMIT }}.tar.gz
