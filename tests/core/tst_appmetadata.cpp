@@ -1,6 +1,7 @@
 #include "core/AppMetadata.h"
 
 #include <QCoreApplication>
+#include <QRegularExpression>
 #include <QTest>
 
 // 应用身份的取值由 docs/Decisions.md 第 1.2 节冻结。
@@ -11,7 +12,7 @@ class TestAppMetadata final : public QObject
 
 private slots:
     void frozenIdentityValues();
-    void versionStringIsNotEmpty();
+    void versionStringHasSemanticShape();
     void applySetsQtGlobals();
     void userFacingTextIsTranslatable();
 };
@@ -32,11 +33,16 @@ void TestAppMetadata::frozenIdentityValues()
     QVERIFY(!mub::metadata::applicationId().contains(QLatin1Char('-')));
 }
 
-void TestAppMetadata::versionStringIsNotEmpty()
+void TestAppMetadata::versionStringHasSemanticShape()
 {
     const QString version = mub::metadata::versionString();
     QVERIFY(!version.isEmpty());
-    QVERIFY(version.startsWith(QStringLiteral("0.")));
+    // 同一测试必须覆盖 `0.0.0-dev.<commit>` 开发构建和 `1.0.0` 标签构建；
+    // 固定要求以 `0.` 开头会让正式标签在 CTest 阶段必然失败。
+    const QRegularExpression semanticVersion(
+        QStringLiteral("^[0-9]+\\.[0-9]+\\.[0-9]+"
+                       "(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$"));
+    QVERIFY2(semanticVersion.match(version).hasMatch(), qPrintable(version));
 }
 
 void TestAppMetadata::applySetsQtGlobals()

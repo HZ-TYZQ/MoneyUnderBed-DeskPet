@@ -1,7 +1,7 @@
 #pragma once
 
 // 由 CMake 生成，不要手工编辑。源文件为 src/core/Version.h.in。
-// 版本编号方案尚未冻结，见 docs/Decisions.md 第 13 节。
+// 正式标签使用 MAJOR.MINOR.PATCH；普通提交追加 dev.<commit> 后缀。
 
 #define MUB_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
 #define MUB_VERSION_MINOR @PROJECT_VERSION_MINOR@

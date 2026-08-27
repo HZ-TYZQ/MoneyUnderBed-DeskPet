@@ -21,7 +21,8 @@ QString organizationName();
 QString organizationDomain();
 QString homepageUrl();
 
-// 完整版本串，形如 `0.0.0-dev`。用于关于窗口、日志和诊断信息。
+// 完整版本串，形如 `1.0.0` 或 `0.0.0-dev.<commit>`。
+// 用于关于窗口、日志和诊断信息。
 QString versionString();
 
 // 面向用户的显示名称。走翻译，第一版只提供简体中文。
