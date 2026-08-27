@@ -17,3 +17,7 @@ compile_commands.json
 *.user
 .DS_Store
 Thumbs.db
+
+# 本机专用Coding Agent指令
+CLAUDE.md
+AGENTS.md
