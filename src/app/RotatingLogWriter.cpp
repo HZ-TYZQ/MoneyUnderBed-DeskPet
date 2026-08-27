@@ -23,7 +23,9 @@ bool RotatingLogWriter::open()
         return false;
     }
     file_.setFileName(path_);
-    return file_.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
+    // 内容已经显式编码为 UTF-8 并添加 LF。不能使用 Text：Windows 会把
+    // LF 扩成 CRLF，使磁盘字节数突破这里承诺的严格上限。
+    return file_.open(QIODevice::WriteOnly | QIODevice::Append);
 }
 
 bool RotatingLogWriter::writeLine(const QByteArray &line)
