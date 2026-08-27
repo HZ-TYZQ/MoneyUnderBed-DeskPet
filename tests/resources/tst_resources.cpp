@@ -1,8 +1,12 @@
+#include "core/AssetPaths.h"
+
 #include <QCryptographicHash>
 #include <QDirIterator>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
+#include <QRegularExpression>
 #include <QStringList>
 #include <QTest>
 
@@ -132,13 +136,22 @@ void TestResources::characterAssetsExist()
     QFETCH(QString, fileName);
     QFETCH(int, frameCount);
 
-    const QString path =
+    const QString sourcePath =
         QDir(sourceRoot()).filePath(QStringLiteral("assets/character/") + fileName);
-    QVERIFY2(QFileInfo::exists(path),
+    QVERIFY2(QFileInfo::exists(sourcePath),
              qPrintable(QStringLiteral("Missing character asset: %1").arg(fileName)));
 
+    const QString runtimePath = mub::core::assetFilePath(
+        QStringLiteral("character/") + fileName);
+    QVERIFY2(QFileInfo::exists(runtimePath),
+             qPrintable(QStringLiteral("Asset was not staged beside the executable: %1")
+                            .arg(runtimePath)));
+    QCOMPARE(sha256Of(runtimePath), sha256Of(sourcePath));
+    QVERIFY2(!QFile::exists(QStringLiteral(":/assets/character/") + fileName),
+             "Character assets must not be embedded in the GPL executable");
+
     // 只读 PNG 头，不引入 QImage，保持本测试脱离 Qt Gui。
-    QFile file(path);
+    QFile file(runtimePath);
     QVERIFY(file.open(QIODevice::ReadOnly));
     const QByteArray header = file.read(24);
     QCOMPARE(header.size(), 24);
@@ -184,19 +197,52 @@ void TestResources::faceAssetsExist()
 {
     QFETCH(QString, fileName);
 
-    const QString path =
+    const QString sourcePath =
         QDir(sourceRoot()).filePath(QStringLiteral("assets/face/") + fileName);
-    QVERIFY2(QFileInfo::exists(path),
+    QVERIFY2(QFileInfo::exists(sourcePath),
              qPrintable(QStringLiteral("Missing face asset: %1").arg(fileName)));
+
+    const QString runtimePath = mub::core::assetFilePath(
+        QStringLiteral("face/") + fileName);
+    QVERIFY2(QFileInfo::exists(runtimePath),
+             qPrintable(QStringLiteral("Asset was not staged beside the executable: %1")
+                            .arg(runtimePath)));
+    QCOMPARE(sha256Of(runtimePath), sha256Of(sourcePath));
+    QVERIFY2(!QFile::exists(QStringLiteral(":/assets/face/") + fileName),
+             "Face assets must not be embedded in the GPL executable");
 }
 
 void TestResources::assetManifestCoversEveryAsset()
 {
     // docs/Decisions.md 第 12.6 节：assets/ 内文件都要登记在 MANIFEST 中。
-    // 未登记的素材不能随仓库分发。
+    // 未登记或哈希不一致的素材不能随仓库分发。衍生素材行同时包含来源
+    // 和产物路径，最后一个 assets/*.png 才是该行哈希对应的文件。
     QFile manifest(QDir(sourceRoot()).filePath(QStringLiteral("assets/MANIFEST.md")));
     QVERIFY(manifest.open(QIODevice::ReadOnly | QIODevice::Text));
     const QString text = QString::fromUtf8(manifest.readAll());
+
+    const QRegularExpression pathPattern(
+        QStringLiteral("`(assets/[^`]+\\.png)`"));
+    const QRegularExpression hashPattern(
+        QStringLiteral("`([0-9a-f]{64})`"));
+    QHash<QString, QByteArray> expectedHashes;
+    for (const QString &line : text.split(QLatin1Char('\n'))) {
+        QString manifestPath;
+        auto pathMatches = pathPattern.globalMatch(line);
+        while (pathMatches.hasNext()) {
+            manifestPath = pathMatches.next().captured(1);
+        }
+        const QRegularExpressionMatch hashMatch = hashPattern.match(line);
+        if (manifestPath.isEmpty() || !hashMatch.hasMatch()) {
+            continue;
+        }
+        QVERIFY2(!expectedHashes.contains(manifestPath),
+                 qPrintable(QStringLiteral("Duplicate asset manifest row: %1")
+                                .arg(manifestPath)));
+        expectedHashes.insert(manifestPath, hashMatch.captured(1).toLatin1());
+    }
+    QVERIFY2(!expectedHashes.isEmpty(),
+             "No asset hashes were parsed from MANIFEST.md");
 
     const QDir assetsDir(QDir(sourceRoot()).filePath(QStringLiteral("assets")));
     QDirIterator iterator(assetsDir.absolutePath(),
@@ -207,12 +253,17 @@ void TestResources::assetManifestCoversEveryAsset()
         const QString path = iterator.next();
         const QString relative =
             QStringLiteral("assets/") + assetsDir.relativeFilePath(path);
-        QVERIFY2(text.contains(relative),
+        QVERIFY2(expectedHashes.contains(relative),
                  qPrintable(QStringLiteral("Asset not listed in MANIFEST.md: %1")
                                 .arg(relative)));
+        const QByteArray actualHash = sha256Of(path);
+        QCOMPARE(actualHash, expectedHashes.take(relative));
         ++checked;
     }
     QVERIFY2(checked > 0, "No assets were checked; the asset directory looks empty");
+    QVERIFY2(expectedHashes.isEmpty(),
+             qPrintable(QStringLiteral("MANIFEST.md lists missing assets: %1")
+                            .arg(expectedHashes.keys().join(QStringLiteral(", ")))));
 }
 
 QTEST_MAIN(TestResources)

@@ -1,5 +1,7 @@
 #include "dialogue/DialogueData.h"
 
+#include "core/AssetPaths.h"
+
 #include <QLatin1String>
 
 #include <array>
@@ -206,10 +208,10 @@ bool isRegularFace(const QStringView faceId)
     return false;
 }
 
-QString faceResourcePath(const QStringView faceId)
+QString faceAssetPath(const QStringView faceId)
 {
-    return QStringLiteral(":/assets/face/") + faceId.toString()
-        + QStringLiteral(".png");
+    return core::assetFilePath(QStringLiteral("face/") + faceId.toString()
+                               + QStringLiteral(".png"));
 }
 
 int totalSourceLineCount()

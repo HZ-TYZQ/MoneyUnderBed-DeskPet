@@ -8,6 +8,8 @@ configure_file(Version.h.in "${CMAKE_CURRENT_BINARY_DIR}/generated/mub/Version.h
 add_library(money-under-bed-core STATIC
     AppMetadata.cpp
     AppMetadata.h
+    AssetPaths.cpp
+    AssetPaths.h
     ActivityMode.h
     AutonomousBehavior.cpp
     AutonomousBehavior.h
@@ -34,6 +36,10 @@ add_library(money-under-bed-core STATIC
     TimeSource.h
     "${CMAKE_CURRENT_BINARY_DIR}/generated/mub/Version.h"
 )
+
+# 角色 PNG 不编入 GPL 可执行文件，而是作为独立数据文件放在 bin/assets。
+# 任何链接 core 的产品或测试目标都会先得到同一份运行时目录结构。
+add_dependencies(money-under-bed-core money-under-bed-assets)
 
 # character/ 的内容编入 core，不单独成库。
 target_sources(money-under-bed-core PRIVATE

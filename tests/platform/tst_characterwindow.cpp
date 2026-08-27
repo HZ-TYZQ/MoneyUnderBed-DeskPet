@@ -1,5 +1,6 @@
 #include "FakeWindowBackend.h"
 
+#include "character/AnimationClip.h"
 #include "character/HitMask.h"
 #include "character/SpriteSheet.h"
 #include "platform/BackendFactory.h"
@@ -20,7 +21,8 @@ namespace {
 
 SpriteSheet loadIdleSheet()
 {
-    return SpriteSheet::load(QStringLiteral(":/assets/character/idle-down-left.png"));
+    return SpriteSheet::load(mub::character::clipAssetPath(
+        QStringLiteral("idle-down-left")));
 }
 
 } // namespace

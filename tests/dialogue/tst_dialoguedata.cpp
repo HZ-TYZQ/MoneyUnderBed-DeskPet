@@ -188,8 +188,8 @@ void TestDialogueData::everyPageHasAFaceAndTheAssetExists()
     QVERIFY(!faceId.isEmpty());
     QVERIFY2(isRegularFace(faceId),
              qPrintable(QStringLiteral("%1 is not in the regular face pool").arg(faceId)));
-    QVERIFY2(QFile::exists(faceResourcePath(faceId)),
-             qPrintable(QStringLiteral("missing asset: %1").arg(faceResourcePath(faceId))));
+    QVERIFY2(QFile::exists(faceAssetPath(faceId)),
+             qPrintable(QStringLiteral("missing asset: %1").arg(faceAssetPath(faceId))));
 }
 
 void TestDialogueData::shadowIsNotInTheRegularFacePool()
@@ -198,7 +198,7 @@ void TestDialogueData::shadowIsNotInTheRegularFacePool()
     // 也不参与任何随机表情选择。素材存在不代表可以自动注册为常规表情。
     QVERIFY(!isRegularFace(QStringLiteral("shadow")));
     // 素材本身仍随包分发，只是不参与选择。
-    QVERIFY(QFile::exists(faceResourcePath(QStringLiteral("shadow"))));
+    QVERIFY(QFile::exists(faceAssetPath(QStringLiteral("shadow"))));
 
     for (const Dialogue &dialogue : registeredDialogues()) {
         for (const DialoguePage &page : dialogue.pages) {

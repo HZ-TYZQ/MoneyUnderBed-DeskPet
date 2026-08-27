@@ -1,0 +1,548 @@
+name: Package candidates
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_VERSION: 6.11.2
+  AQT_SOURCE: git+https://github.com/miurahr/aqtinstall.git@16db45a70b5905ad596941b223469bc86a56901e
+  LINUXDEPLOY_URL: https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+  LINUXDEPLOY_SHA256: c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d
+  LINUXDEPLOY_QT_URL: https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-x86_64.AppImage
+  LINUXDEPLOY_QT_SHA256: 15106be885c1c48a021198e7e1e9a48ce9d02a86dd0a1848f00bdbf3c1c92724
+  APPIMAGE_RUNTIME_URL: https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
+  APPIMAGE_RUNTIME_SHA256: 1cc49bcf1e2ccd593c379adb17c9f85a36d619088296504de95b1d06215aebbf
+  QTBASE_SOURCE_URL: https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtbase-everywhere-src-6.11.2.tar.xz
+  QTBASE_SOURCE_SHA256: 5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22
+
+jobs:
+  metadata:
+    name: Resolve package metadata
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      suffix: ${{ steps.version.outputs.suffix }}
+      label: ${{ steps.version.outputs.label }}
+      display_version: ${{ steps.version.outputs.display_version }}
+    steps:
+      - name: Resolve version from ref
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Release tags must be vMAJOR.MINOR.PATCH"
+              exit 1
+            fi
+            suffix=""
+            label="$version"
+          else
+            short="${GITHUB_SHA:0:12}"
+            version="0.0.0"
+            suffix="dev.$short"
+            label="dev-$short"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "suffix=$suffix" >> "$GITHUB_OUTPUT"
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+          display_version="$version${suffix:+-$suffix}"
+          echo "display_version=$display_version" >> "$GITHUB_OUTPUT"
+          echo "Package version: $display_version"
+
+  qt_source:
+    name: Qt corresponding source
+    needs: metadata
+    runs-on: ubuntu-22.04
+    outputs:
+      artifact_name: ${{ steps.names.outputs.artifact_name }}
+    steps:
+      - name: Download and verify Qt Base source
+        id: names
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="qtbase-everywhere-src-${QT_VERSION}.tar.xz"
+          curl -fL --retry 3 -o "$file" "$QTBASE_SOURCE_URL"
+          printf '%s  %s\n' "$QTBASE_SOURCE_SHA256" "$file" > "$file.sha256"
+          sha256sum -c "$file.sha256"
+          test -s "$file"
+          echo "artifact_name=QtBase-source-${QT_VERSION}-${{ needs.metadata.outputs.label }}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload corresponding source
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.names.outputs.artifact_name }}
+          path: |
+            qtbase-everywhere-src-${{ env.QT_VERSION }}.tar.xz
+            qtbase-everywhere-src-${{ env.QT_VERSION }}.tar.xz.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  linux:
+    name: Linux AppImage (Ubuntu 22.04)
+    needs: metadata
+    runs-on: ubuntu-22.04
+    outputs:
+      artifact_name: ${{ steps.names.outputs.artifact_name }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Install build and XCB dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            curl file ninja-build patchelf \
+            libgl1-mesa-dev \
+            libxkbcommon-dev libxkbcommon-x11-0 libx11-xcb1 \
+            libxcb1-dev libxcb-cursor0 libxcb-glx0 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-shm0 libxcb-sync1 \
+            libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          aqtsource: ${{ env.AQT_SOURCE }}
+          cache: true
+
+      - name: Assert Qt version
+        shell: bash
+        run: |
+          set -euo pipefail
+          qt_tool="$(command -v qmake || command -v qmake6)"
+          actual="$($qt_tool -query QT_VERSION | tr -d '[:space:]')"
+          echo "Qt reported: $actual (via $qt_tool)"
+          test "$actual" = "$QT_VERSION"
+
+      - name: Configure and build Release
+        shell: bash
+        run: |
+          cmake --preset release \
+            -DBUILD_TESTING=ON \
+            -DMUB_VERSION="${{ needs.metadata.outputs.version }}" \
+            -DPROJECT_VERSION_SUFFIX="${{ needs.metadata.outputs.suffix }}"
+          cmake --build --preset release
+
+      - name: Test Release build
+        shell: bash
+        run: ctest --test-dir build/release --output-on-failure
+
+      - name: Install unified AppDir layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --install build/release --prefix "$PWD/AppDir"
+          printf '%s\n' \
+            "commit=${GITHUB_SHA}" \
+            "version=${{ needs.metadata.outputs.display_version }}" \
+            "qt=${QT_VERSION}" \
+            "platform=linux-x86_64" \
+            "runner=ubuntu-22.04" > AppDir/BUILD_INFO.txt
+          test -s "$QT_ROOT_DIR/LICENSES/GPL-3.0-only.txt"
+          test -s "$QT_ROOT_DIR/sbom/qtbase-$QT_VERSION.spdx"
+          cp "$QT_ROOT_DIR/LICENSES/GPL-3.0-only.txt" \
+            AppDir/licenses/qt-gpl-3.0-only.txt
+          cp "$QT_ROOT_DIR/sbom/qtbase-$QT_VERSION.spdx" \
+            "AppDir/licenses/qtbase-$QT_VERSION.spdx"
+          cmake \
+            -DPACKAGE_ROOT="$PWD/AppDir" \
+            -DPACKAGE_EXECUTABLE=usr/bin/money-under-bed-deskpet \
+            -DPACKAGE_REQUIRED_FILES=licenses/appimage-runtime.txt \
+            -P packaging/VerifyPackage.cmake
+
+      - name: Download pinned AppImage tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tools
+          curl -fL --retry 3 -o tools/linuxdeploy-x86_64.AppImage "$LINUXDEPLOY_URL"
+          curl -fL --retry 3 -o tools/linuxdeploy-plugin-qt-x86_64.AppImage "$LINUXDEPLOY_QT_URL"
+          curl -fL --retry 3 -o tools/runtime-x86_64 "$APPIMAGE_RUNTIME_URL"
+          echo "$LINUXDEPLOY_SHA256  tools/linuxdeploy-x86_64.AppImage" | sha256sum -c -
+          echo "$LINUXDEPLOY_QT_SHA256  tools/linuxdeploy-plugin-qt-x86_64.AppImage" | sha256sum -c -
+          echo "$APPIMAGE_RUNTIME_SHA256  tools/runtime-x86_64" | sha256sum -c -
+          chmod +x tools/*.AppImage
+
+      - name: Build AppImage
+        id: names
+        shell: bash
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          # 发行物自检在没有真实显示服务的 runner 上运行；把自检所需的平台
+          # 插件也当作发行物的一部分验证，而不是借用 runner 的 Qt 安装。
+          EXTRA_PLATFORM_PLUGINS: libqoffscreen.so
+          # linuxdeploy 自带的旧 strip 不认识现代 Qt ELF 的 .relr.dyn。
+          # 官方支持 NO_STRIP；Release 体积以可靠可运行为先，后续再单独评估剥离。
+          NO_STRIP: "1"
+        run: |
+          set -euo pipefail
+          base="MoneyUnderBed-DeskPet-linux-x86_64-${{ needs.metadata.outputs.label }}"
+          output="$base.AppImage"
+          qmake_path="$(command -v qmake || command -v qmake6)"
+          QMAKE="$qmake_path" \
+          LDAI_OUTPUT="$output" \
+          LDAI_RUNTIME_FILE="$PWD/tools/runtime-x86_64" \
+            tools/linuxdeploy-x86_64.AppImage \
+              --appdir AppDir \
+              --executable AppDir/usr/bin/money-under-bed-deskpet \
+              --desktop-file AppDir/usr/share/applications/io.github.hz_tyzq.MoneyUnderBedDeskPet.desktop \
+              --icon-file AppDir/usr/share/icons/hicolor/160x160/apps/io.github.hz_tyzq.MoneyUnderBedDeskPet.png \
+              --plugin qt \
+              --output appimage
+          test -s "$output"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the actual AppImage
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          set -euo pipefail
+          image="${{ steps.names.outputs.base }}.AppImage"
+          "./$image" --self-test
+
+          extract_dir="$(mktemp -d)"
+          cleanup() { rm -rf "$extract_dir"; }
+          trap cleanup EXIT
+          (
+            cd "$extract_dir"
+            env -u APPIMAGE_EXTRACT_AND_RUN \
+              "$GITHUB_WORKSPACE/$image" --appimage-extract >/dev/null
+          )
+          cmake \
+            -DPACKAGE_ROOT="$extract_dir/squashfs-root" \
+            -DPACKAGE_EXECUTABLE=usr/bin/money-under-bed-deskpet \
+            "-DPACKAGE_REQUIRED_FILES=usr/plugins/platforms/libqoffscreen.so;licenses/appimage-runtime.txt" \
+            -P packaging/VerifyPackage.cmake
+
+          base="${image%.AppImage}"
+          (
+            cd "$extract_dir/squashfs-root"
+            find . -type f -print0 | sort -z | xargs -0 sha256sum
+            find . -type l -printf 'SYMLINK  %p -> %l\n' | sort
+          ) > "$GITHUB_WORKSPACE/$base.contents.txt"
+
+          : > "$GITHUB_WORKSPACE/$base.elf-needed.txt"
+          while IFS= read -r -d '' candidate; do
+            if readelf -h "$candidate" >/dev/null 2>&1; then
+              relative="${candidate#"$extract_dir/squashfs-root/"}"
+              printf '[%s]\n' "$relative" >> "$GITHUB_WORKSPACE/$base.elf-needed.txt"
+              readelf -d "$candidate" 2>/dev/null \
+                | sed -n 's/.*Shared library: \[\(.*\)\]/  \1/p' \
+                >> "$GITHUB_WORKSPACE/$base.elf-needed.txt"
+            fi
+          done < <(find "$extract_dir/squashfs-root" -type f -print0 | sort -z)
+          test -s "$GITHUB_WORKSPACE/$base.contents.txt"
+          test -s "$GITHUB_WORKSPACE/$base.elf-needed.txt"
+
+      - name: Create AppImage checksum
+        id: checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="${{ steps.names.outputs.base }}.AppImage"
+          sha256sum "$image" > "$image.sha256"
+          hash="$(cut -d ' ' -f 1 "$image.sha256")"
+          echo "sha256=$hash" >> "$GITHUB_OUTPUT"
+          echo "SHA-256: $hash"
+
+      - name: Job summary
+        shell: bash
+        run: |
+          {
+            echo "## Linux candidate"
+            echo "- AppImage: \`${{ steps.names.outputs.base }}.AppImage\`"
+            echo "- Qt: \`${QT_VERSION}\`"
+            echo "- SHA-256: \`${{ steps.checksum.outputs.sha256 }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Linux candidate
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.names.outputs.artifact_name }}
+          path: |
+            ${{ steps.names.outputs.base }}.AppImage
+            ${{ steps.names.outputs.base }}.AppImage.sha256
+            ${{ steps.names.outputs.base }}.contents.txt
+            ${{ steps.names.outputs.base }}.elf-needed.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows portable ZIP (MSVC 2022)
+    needs: metadata
+    runs-on: windows-2022
+    outputs:
+      artifact_name: ${{ steps.names.outputs.artifact_name }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          aqtsource: ${{ env.AQT_SOURCE }}
+          cache: true
+
+      - name: Set up MSVC 2022 x64
+        uses: ilammy/msvc-dev-cmd@c1ed231f339aec74961130db0459823a08f1b215 # v1.9.0
+        with:
+          arch: x64
+
+      - name: Assert Qt version
+        shell: bash
+        run: |
+          qt_tool="$(command -v qmake || command -v qmake6)"
+          actual="$($qt_tool -query QT_VERSION | tr -d '[:space:]')"
+          echo "Qt reported: $actual (via $qt_tool)"
+          test "$actual" = "$QT_VERSION"
+
+      - name: Configure and build Release
+        shell: pwsh
+        run: |
+          cmake --preset release `
+            -DBUILD_TESTING=ON `
+            "-DMUB_VERSION=${{ needs.metadata.outputs.version }}" `
+            "-DPROJECT_VERSION_SUFFIX=${{ needs.metadata.outputs.suffix }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build --preset release
+          exit $LASTEXITCODE
+
+      - name: Test Release build
+        shell: pwsh
+        run: |
+          ctest --test-dir build/release --output-on-failure
+          exit $LASTEXITCODE
+
+      - name: Install and deploy portable directory
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cmake --install build/release --prefix package
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          windeployqt --release --no-translations --no-compiler-runtime `
+            package\money-under-bed-deskpet.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # windeployqt 只按桌面运行路径收集 qwindows；CI 的实际发行包自检
+          # 还需要 offscreen，必须显式放入包内，不能从 runner 的 Qt 目录借用。
+          $qtPlugins = (& qmake -query QT_INSTALL_PLUGINS).Trim()
+          $offscreen = Join-Path $qtPlugins 'platforms\qoffscreen.dll'
+          if (-not (Test-Path $offscreen)) {
+            throw "Qt offscreen platform plugin not found: $offscreen"
+          }
+          New-Item -ItemType Directory -Force package\platforms | Out-Null
+          Copy-Item $offscreen package\platforms\qoffscreen.dll
+
+          # 真正免安装：直接部署 app-local CRT DLL，不附带运行库安装器。
+          $crt = Get-ChildItem -Path (Join-Path $env:VCToolsRedistDir 'x64') `
+            -Filter 'Microsoft.VC*.CRT' -Directory | Select-Object -First 1
+          if (-not $crt) { throw "MSVC runtime folder not found under $env:VCToolsRedistDir" }
+          Copy-Item (Join-Path $crt.FullName 'msvcp140*.dll') package
+          Copy-Item (Join-Path $crt.FullName 'vcruntime140*.dll') package
+          foreach ($required in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+            if (-not (Test-Path (Join-Path package $required))) {
+              throw "Missing app-local MSVC runtime: $required"
+            }
+          }
+
+          @(
+            "commit=${{ github.sha }}"
+            "version=${{ needs.metadata.outputs.display_version }}"
+            "qt=${{ env.QT_VERSION }}"
+            "platform=windows-x86_64"
+            "runner=windows-2022"
+          ) | Set-Content package\BUILD_INFO.txt -Encoding utf8
+
+          $qtGpl = Join-Path $env:QT_ROOT_DIR 'LICENSES\GPL-3.0-only.txt'
+          $qtSbom = Join-Path $env:QT_ROOT_DIR "sbom\qtbase-$env:QT_VERSION.spdx"
+          if (-not (Test-Path $qtGpl)) { throw "Qt GPL text not found: $qtGpl" }
+          if (-not (Test-Path $qtSbom)) { throw "Qt Base SBOM not found: $qtSbom" }
+          Copy-Item $qtGpl package\licenses\qt-gpl-3.0-only.txt
+          Copy-Item $qtSbom "package\licenses\qtbase-$env:QT_VERSION.spdx"
+
+      - name: Verify GUI subsystem and packaged self-test
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $PWD 'package\money-under-bed-deskpet.exe'
+          $headers = (dumpbin /headers $exe | Out-String)
+          if ($headers -notmatch 'Windows GUI') {
+            throw 'Packaged executable is not using the Windows GUI subsystem.'
+          }
+
+          cmake "-DPACKAGE_ROOT=$PWD\package" `
+            "-DPACKAGE_EXECUTABLE=money-under-bed-deskpet.exe" `
+            "-DPACKAGE_REQUIRED_FILES=platforms/qoffscreen.dll" `
+            -P packaging/VerifyPackage.cmake
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $process = Start-Process -FilePath $exe -ArgumentList '--self-test' `
+            -WorkingDirectory (Join-Path $PWD 'package') -Wait -PassThru -NoNewWindow
+          Write-Host "packaged self-test exit=$($process.ExitCode)"
+          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
+
+          cmake "-DPACKAGE_ROOT=$PWD\package" `
+            "-DPACKAGE_EXECUTABLE=money-under-bed-deskpet.exe" `
+            -P packaging/VerifyPackage.cmake
+          exit $LASTEXITCODE
+
+      - name: Create ZIP and checksum
+        id: names
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = 'MoneyUnderBed-DeskPet-windows-x86_64-${{ needs.metadata.outputs.label }}'
+          Compress-Archive -Path package\* -DestinationPath "$base.zip"
+          $hash = (Get-FileHash "$base.zip" -Algorithm SHA256).Hash.ToLower()
+          [IO.File]::WriteAllText("$PWD\$base.zip.sha256", "$hash  $base.zip`n", [Text.Encoding]::ASCII)
+
+          $packageRoot = (Resolve-Path package).Path
+          $contents = Get-ChildItem package -Recurse -File | Sort-Object FullName | ForEach-Object {
+            $relative = $_.FullName.Substring($packageRoot.Length + 1).Replace('\', '/')
+            $fileHash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$fileHash  $relative"
+          }
+          [IO.File]::WriteAllLines("$PWD\$base.contents.txt", $contents, [Text.Encoding]::UTF8)
+
+          $imports = [Collections.Generic.List[string]]::new()
+          Get-ChildItem package -Recurse -File | Where-Object {
+            $_.Extension -in '.exe', '.dll'
+          } | Sort-Object FullName | ForEach-Object {
+            $relative = $_.FullName.Substring($packageRoot.Length + 1).Replace('\', '/')
+            $imports.Add("[$relative]")
+            $dump = (dumpbin /dependents $_.FullName | Out-String)
+            foreach ($line in $dump -split "`r?`n") {
+              if ($line -match '^\s+([A-Za-z0-9_.+-]+\.dll)\s*$') {
+                $imports.Add("  $($Matches[1])")
+              }
+            }
+          }
+          [IO.File]::WriteAllLines("$PWD\$base.dll-dependencies.txt", $imports, [Text.Encoding]::UTF8)
+          if ((Get-Item "$base.contents.txt").Length -eq 0) { throw 'Empty package contents manifest' }
+          if ((Get-Item "$base.dll-dependencies.txt").Length -eq 0) { throw 'Empty DLL dependency manifest' }
+
+          "base=$base" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "artifact_name=$base" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "SHA-256: $hash"
+
+      - name: Job summary
+        shell: pwsh
+        run: |
+          @(
+            '## Windows candidate'
+            '- ZIP: ``${{ steps.names.outputs.base }}.zip``'
+            '- Qt: ``${{ env.QT_VERSION }}``'
+            '- SHA-256: ``${{ steps.names.outputs.sha256 }}``'
+          ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Upload Windows candidate
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.names.outputs.artifact_name }}
+          path: |
+            ${{ steps.names.outputs.base }}.zip
+            ${{ steps.names.outputs.base }}.zip.sha256
+            ${{ steps.names.outputs.base }}.contents.txt
+            ${{ steps.names.outputs.base }}.dll-dependencies.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  draft-release:
+    name: Create draft GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - metadata
+      - qt_source
+      - linux
+      - windows
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Download Linux candidate
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.linux.outputs.artifact_name }}
+          path: dist/linux
+
+      - name: Download Windows candidate
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.windows.outputs.artifact_name }}
+          path: dist/windows
+
+      - name: Download Qt corresponding source
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.qt_source.outputs.artifact_name }}
+          path: dist/source
+
+      - name: Verify downloaded checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist/linux && sha256sum -c ./*.sha256)
+          (cd dist/windows && sha256sum -c ./*.sha256)
+          (cd dist/source && sha256sum -c ./*.sha256)
+
+      - name: Create or refresh draft release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find dist -type f -print | sort)
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)"
+            if [[ "$is_draft" != true ]]; then
+              echo "::error::Refusing to replace assets of an already published release"
+              exit 1
+            fi
+            gh release edit "$GITHUB_REF_NAME" \
+              --draft \
+              --title "MoneyUnderBed DeskPet ${{ needs.metadata.outputs.version }}" \
+              --notes-file packaging/release-notes.md
+            gh release upload "$GITHUB_REF_NAME" --clobber "${files[@]}"
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --draft \
+              --title "MoneyUnderBed DeskPet ${{ needs.metadata.outputs.version }}" \
+              --notes-file packaging/release-notes.md \
+              "${files[@]}"
+          fi

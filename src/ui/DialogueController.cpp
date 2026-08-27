@@ -245,7 +245,7 @@ void DialogueController::refreshContent()
     const bool faceChanged = faceId != faceId_;
     if (faceChanged) {
         faceId_ = faceId;
-        face_ = QImage(dialogue::faceResourcePath(faceId));
+        face_ = QImage(dialogue::faceAssetPath(faceId));
         if (face_.isNull() && !faceId.isEmpty()) {
             qCWarning(lcDialogue).noquote()
                 << QStringLiteral("missing face asset: %1").arg(faceId);

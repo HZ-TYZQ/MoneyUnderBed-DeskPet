@@ -1,6 +1,7 @@
 #include "ui/TrayIcon.h"
 
 #include "core/AppMetadata.h"
+#include "dialogue/DialogueData.h"
 
 #include <QAction>
 #include <QIcon>
@@ -18,8 +19,6 @@ Q_LOGGING_CATEGORY(lcTray, "mub.ui.tray")
 // 由项目所有者于 2026-08-27 选定。第 6 节要求图标取自现有角色素材，
 // 不自行绘制新形象；这里直接使用已登记的原件副本，未生成衍生文件，
 // 因此不需要在 assets/MANIFEST.md 增加衍生素材条目。
-constexpr auto kIconResource = ":/assets/face/natural.png";
-
 } // namespace
 
 bool TrayIcon::isAvailable()
@@ -53,7 +52,7 @@ TrayIcon::TrayIcon(QObject *parent)
     connect(quit, &QAction::triggered, this, &TrayIcon::quitRequested);
 
     tray_ = new QSystemTrayIcon(this);
-    tray_->setIcon(QIcon(QString::fromLatin1(kIconResource)));
+    tray_->setIcon(QIcon(dialogue::faceAssetPath(QStringLiteral("natural"))));
     tray_->setToolTip(metadata::displayName());
     tray_->setContextMenu(menu);
 

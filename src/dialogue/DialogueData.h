@@ -49,7 +49,7 @@ const Dialogue *findDialogue(QStringView id);
 std::span<const char *const> regularFaceIds();
 bool isRegularFace(QStringView faceId);
 
-QString faceResourcePath(QStringView faceId);
+QString faceAssetPath(QStringView faceId);
 
 // 全部来源台词条数与显示页面数。决策文档第 4.5 节声明为 29 与 36。
 int totalSourceLineCount();

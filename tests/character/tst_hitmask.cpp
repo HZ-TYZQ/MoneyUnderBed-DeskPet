@@ -1,3 +1,4 @@
+#include "character/AnimationClip.h"
 #include "character/HitMask.h"
 #include "character/SpriteSheet.h"
 
@@ -112,7 +113,7 @@ void TestHitMask::invalidInputProducesEmptyRegion()
 void TestHitMask::realCharacterFrameHasTransparentCorners()
 {
     const auto sheet = mub::character::SpriteSheet::load(
-        QStringLiteral(":/assets/character/idle-down-left.png"));
+        mub::character::clipAssetPath(QStringLiteral("idle-down-left")));
     QVERIFY(sheet.isValid());
 
     const QRegion region = opaqueRegion(sheet.frame(0), 1);

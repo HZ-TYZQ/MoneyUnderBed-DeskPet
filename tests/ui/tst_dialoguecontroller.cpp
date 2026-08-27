@@ -1,5 +1,6 @@
 #include "FakeWindowBackend.h"
 
+#include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
 #include "core/EventCoordinator.h"
 #include "core/RandomSource.h"
@@ -29,7 +30,8 @@ constexpr auto kDropDialogue = "icecream-drop";
 
 SpriteSheet loadIdleSheet()
 {
-    return SpriteSheet::load(QStringLiteral(":/assets/character/idle-down-left.png"));
+    return SpriteSheet::load(mub::character::clipAssetPath(
+        QStringLiteral("idle-down-left")));
 }
 
 // 一整套产品对象。测试用假后端，窗口不会真的出现在桌面上。

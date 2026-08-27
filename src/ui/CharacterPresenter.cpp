@@ -466,7 +466,7 @@ const character::SpriteSheet *CharacterPresenter::sheetFor(const QString &clipId
         return &cached.value();
     }
 
-    const QString path = character::clipResourcePath(clipId);
+    const QString path = character::clipAssetPath(clipId);
     if (path.isEmpty()) {
         return nullptr;
     }

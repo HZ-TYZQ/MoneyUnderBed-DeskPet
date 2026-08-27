@@ -1,11 +1,14 @@
-# 发行物许可清单模板
+# 发行物许可清单
 
-本文是模板。每个发行包（Linux AppImage 与 Windows 免安装 ZIP）都必须携带
-本清单所列的全部文件，并在 Release 说明中重复其要点。
+每个发行包（Linux AppImage 与 Windows 免安装 ZIP）都必须携带本清单所列的
+全部文件，并在 Release 说明中重复其要点。本文件以
+`licenses/README.md` 路径随包分发。
 
 对应 `docs/Decisions.md` 第 10.1 节与第 12 节。
 
-打包脚本在阶段 9 加入。在那之前，本文的作用是让许可要求先于打包实现固定下来。
+> 阶段 9 审计状态：Qt Base 已固定 GPLv3 路径、SBOM 和对应源码归档；
+> AppImage／MSVC 及打包工具收集的平台运行库仍需按实际候选产物完成审计。
+> 本文件还不是“全部第三方依赖已经合规”的证明；该审计结束前不得公开发行。
 
 ## 仓库全部内容不是同一个许可证
 
@@ -29,10 +32,22 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 | `licenses/ark-pixel-font.md` | `third_party/ark-pixel-font/README.md` | 字体来源、版本、SHA-256 与版权声明 |
 | `licenses/assets.md` | `assets/LICENSE.md` | 角色素材授权条款 |
 | `licenses/assets-manifest.md` | `assets/MANIFEST.md` | 素材清单与哈希 |
+| `licenses/qt-source.md` | `packaging/licenses/qt-source.md` | Qt GPL 路径、对应源码地址与固定哈希 |
+| `licenses/qt-gpl-3.0-only.txt` | 构建所用 Qt 安装的 `LICENSES/GPL-3.0-only.txt` | Qt GPLv3 完整文本 |
+| `licenses/qtbase-6.11.2.spdx` | 构建所用 Qt 安装的 `sbom/qtbase-6.11.2.spdx` | Qt Base 与第三方组件 SBOM |
+| `licenses/appimage-runtime.txt`（仅 Linux） | `packaging/licenses/appimage-runtime.txt` | AppImage runtime 及其静态依赖声明 |
 
 对话字体的 TTF 编译进 Qt 资源系统，发行目录不再单独放一份，
 以免出现同一字体的两个副本（`docs/Decisions.md` 第 4.7 节）。
 但 OFL 要求的版权声明和完整许可文本仍必须随包分发。
+
+角色 PNG 不编入 Qt 资源系统或 GPL 可执行文件。它们以原始只读数据文件
+放在可执行文件旁的 `assets/character/` 与 `assets/face/`，并继续遵循
+`licenses/assets.md` 中的单独授权；程序缺少这些文件时自检会失败。
+
+Qt Base 对应源码 `qtbase-everywhere-src-6.11.2.tar.xz` 与每批二进制候选
+一起作为 Actions artifact 保存，正式标签构建附到同一个草稿 Release，
+SHA-256 由工作流固定核对。项目使用动态链接，不禁止用户替换 Qt 动态库。
 
 ## Release 说明必须包含的声明
 
@@ -45,7 +60,12 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 
 ## 打包时的检查项
 
-- [ ] 上表五个文件全部存在且非空。
+- [ ] 上表各平台适用的文件全部存在且非空。
 - [ ] 包内不存在第二份 Ark Pixel TTF。
 - [ ] 包内素材与 `assets/MANIFEST.md` 一致。
+- [ ] Qt GPL 文本与构建所用 Qt Base SBOM 存在，Qt 对应源码归档哈希通过。
 - [ ] Release 说明包含上一节全部声明。
+
+每个 Actions 候选 artifact 还附带实际成品的逐文件 SHA-256 清单；Linux
+另附全部 ELF 的 `DT_NEEDED` 清单，Windows 另附 EXE／DLL 导入清单。
+平台运行库许可审计必须以这些成品清单为输入，不能只查看 runner 已安装包。

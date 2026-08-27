@@ -107,22 +107,23 @@ void TestSpriteSheet::frameExtractionIsInBounds()
 
 void TestSpriteSheet::everyRegisteredSheetLoadsWithTheExpectedFrameCount_data()
 {
-    QTest::addColumn<QString>("resourcePath");
+    QTest::addColumn<QString>("assetPath");
     QTest::addColumn<int>("expectedFrames");
 
     for (const auto &entry : mub::character::registeredClips()) {
         QTest::newRow(entry.id)
-            << QString::fromLatin1(entry.resourcePath) << entry.frameCount;
+            << mub::character::clipAssetPath(QString::fromLatin1(entry.id))
+            << entry.frameCount;
     }
 }
 
 void TestSpriteSheet::everyRegisteredSheetLoadsWithTheExpectedFrameCount()
 {
-    QFETCH(QString, resourcePath);
+    QFETCH(QString, assetPath);
     QFETCH(int, expectedFrames);
 
     SpriteSheetError error = SpriteSheetError::None;
-    const SpriteSheet sheet = SpriteSheet::load(resourcePath, &error);
+    const SpriteSheet sheet = SpriteSheet::load(assetPath, &error);
 
     QVERIFY2(sheet.isValid(),
              qPrintable(mub::character::describeSpriteSheetError(error)));

@@ -27,7 +27,8 @@ bool checkSpriteSheets(QStringList &failures)
 {
     bool ok = true;
     for (const character::AnimationClip &entry : character::registeredClips()) {
-        const QString path = QString::fromLatin1(entry.resourcePath);
+        const QString path = character::clipAssetPath(
+            QString::fromLatin1(entry.id));
         character::SpriteSheetError error = character::SpriteSheetError::None;
         const character::SpriteSheet sheet =
             character::SpriteSheet::load(path, &error);
@@ -64,14 +65,14 @@ bool checkFaceResources(QStringList &failures)
 {
     bool ok = true;
     for (const char *faceId : dialogue::regularFaceIds()) {
-        const QString path = dialogue::faceResourcePath(QString::fromLatin1(faceId));
+        const QString path = dialogue::faceAssetPath(QString::fromLatin1(faceId));
         if (!QFile::exists(path)) {
             failures.append(QStringLiteral("%1: missing face resource").arg(path));
             ok = false;
         }
     }
     // shadow 不进入常规表情池，但按决策保留完整图标库，自检仍要防止漏包。
-    const QString shadow = dialogue::faceResourcePath(QStringLiteral("shadow"));
+    const QString shadow = dialogue::faceAssetPath(QStringLiteral("shadow"));
     if (!QFile::exists(shadow)) {
         failures.append(QStringLiteral("%1: missing preserved face resource").arg(shadow));
         ok = false;
@@ -125,7 +126,7 @@ bool checkDialogues(QStringList &failures)
                 reinterpret_cast<const char *>(page.text));
             const QString face = QString::fromLatin1(page.faceId);
             if (text.isEmpty() || !dialogue::isRegularFace(face)
-                || !QFile::exists(dialogue::faceResourcePath(face))) {
+                || !QFile::exists(dialogue::faceAssetPath(face))) {
                 failures.append(QStringLiteral("dialogue %1 has invalid text or face %2")
                                     .arg(id, face));
                 ok = false;

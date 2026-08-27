@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.21)
 
+# 正式标签构建由 Actions 从 vMAJOR.MINOR.PATCH 标签传入；普通开发构建
+# 保持 0.0.0-dev。把版本做成显式缓存变量，避免打包脚本改写源码。
+set(MUB_VERSION "0.0.0" CACHE STRING "Semantic version without a leading v")
+if(NOT MUB_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    message(FATAL_ERROR "MUB_VERSION must be MAJOR.MINOR.PATCH, got: ${MUB_VERSION}")
+endif()
+
 project(MoneyUnderBedDeskPet
-    VERSION 0.0.0
+    VERSION "${MUB_VERSION}"
     DESCRIPTION "Unofficial desktop pet for the game MoneyUnderBed"
     HOMEPAGE_URL "https://github.com/HZ-TYZQ/MoneyUnderBed-DeskPet"
     LANGUAGES CXX)
@@ -46,12 +53,17 @@ endif()
 
 add_subdirectory(resources)
 add_subdirectory(src)
+add_subdirectory(packaging)
 
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
 
-message(STATUS "MoneyUnderBed DeskPet ${PROJECT_VERSION}-${PROJECT_VERSION_SUFFIX}")
+set(MUB_DISPLAY_VERSION "${PROJECT_VERSION}")
+if(NOT PROJECT_VERSION_SUFFIX STREQUAL "")
+    string(APPEND MUB_DISPLAY_VERSION "-${PROJECT_VERSION_SUFFIX}")
+endif()
+message(STATUS "MoneyUnderBed DeskPet ${MUB_DISPLAY_VERSION}")
 message(STATUS "  Qt              : ${Qt6_VERSION} (API baseline ${MUB_QT_API_BASELINE})")
 message(STATUS "  C++ standard    : ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Build type      : ${CMAKE_BUILD_TYPE}")

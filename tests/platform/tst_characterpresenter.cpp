@@ -1,5 +1,6 @@
 #include "FakeWindowBackend.h"
 
+#include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
 #include "core/EventCoordinator.h"
 #include "core/RandomSource.h"
@@ -24,7 +25,8 @@ namespace {
 
 SpriteSheet loadIdleSheet()
 {
-    return SpriteSheet::load(QStringLiteral(":/assets/character/idle-down-left.png"));
+    return SpriteSheet::load(mub::character::clipAssetPath(
+        QStringLiteral("idle-down-left")));
 }
 
 class RecordingBubbleHost final : public mub::ui::BubbleHost

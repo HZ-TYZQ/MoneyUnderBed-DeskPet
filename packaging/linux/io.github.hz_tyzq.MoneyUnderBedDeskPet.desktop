@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=MoneyUnderBed DeskPet
+Name[zh_CN]=床下有罐钱桌宠
+Comment=Unofficial non-commercial desktop pet for MoneyUnderBed
+Comment[zh_CN]=《床下有罐钱》非官方非商业桌宠
+Exec=money-under-bed-deskpet
+Icon=io.github.hz_tyzq.MoneyUnderBedDeskPet
+Terminal=false
+Categories=Game;Amusement;
+StartupNotify=false

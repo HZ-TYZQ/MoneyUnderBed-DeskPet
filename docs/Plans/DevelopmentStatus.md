@@ -26,7 +26,7 @@
 | 6 | 气泡视觉原型与正式对话系统 | 进行中 | 2026-08-27 |
 | 7 | 完整控制面、设置与桌面集成 | 已通过 | 2026-08-27 |
 | 8 | 会话生命周期、诊断与可靠性 | 进行中 | 2026-08-27 |
-| 9 | 打包、候选版验收与 1.0 发布 | 未开始 | — |
+| 9 | 打包、候选版验收与 1.0 发布 | 进行中 | 2026-08-27 |
 
 ## 阶段 0
 
@@ -254,7 +254,7 @@ Linux 启动路径（`docs/Decisions.md` 第 8.2 节）：
 
 素材与自检：
 
-- `assets/` 全部 22 个 PNG 编入 Qt 资源系统，保持原相对布局。
+- `assets/` 的 22 个运行时角色 PNG 作为 `bin/assets/character` 与 `bin/assets/face` 外置数据文件暂存；Qt 资源系统只保留 Ark Pixel 字体。
 - `CharacterAssets.cpp` 是精灵表的显式登记表，逻辑标识与资源路径分开维护，不从文件名推断语义。
 - `--self-test` 校验 11 张精灵表的帧高、帧宽倍数、帧数与透明通道，以及对话字体能否注册，结果以退出码为准。
 - 早期日志 `DiagnosticLog` 写 stderr 与本地文件，两文件轮转。完整轮转策略与隐私检查在阶段 8。
@@ -517,7 +517,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 - `src/ui/TrayIcon` 在托盘不可用时保持惰性：不建图标，`isActive()` 为假，不影响右键菜单。原生 GNOME 通常没有托盘，这是主要降级路径，不是错误。
 - 托盘提供显示角色、活跃模式、退出。除「显示角色」外每项在右键菜单中都另有入口；「显示角色」是例外，因为角色隐藏时右键菜单点不到 —— 那正是托盘存在的理由。
 - 「隐藏」加入右键菜单，但**只在存在唤回通道时出现**（托盘可用，或单实例服务在监听）。隐藏时立即结束当前对话，不保留待恢复页面。
-- 应用与托盘图标使用 `assets/face/natural.png`（平静睁眼），2026-08-27 由项目所有者选定。直接使用已登记的原件副本，未生成衍生文件，因此不需要在 `assets/MANIFEST.md` 增加衍生素材条目。
+- 应用内与托盘图标使用 `assets/face/natural.png`（平静睁眼），2026-08-27 由项目所有者选定。阶段 9 发现 AppImage 工具拒绝非正方形的 `120×144` 原图，因此 Linux desktop icon 另用 `assets/icon/appimage.png`：把原像素无缩放地居中放入 `160×160` 透明画布。该机械衍生已登记在 `assets/MANIFEST.md`；应用内和托盘仍直接使用原件。
 
 端到端实测（`dev-fedora`，offscreen）：主实例监听成功；第二次启动打印「another instance is running; sent a recall request」后**退出码 0**，未建立窗口；主实例收到「recall requested by another instance」。同一轮里托盘如实报告不可用并退回再次启动唤回。
 
@@ -589,6 +589,8 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 状态：进行中
 
+实现与 KDE 真实桌面范围已经完成；Windows 与三小时结果待阶段 9 候选产物验收。
+
 ### 已实现
 
 - 新增 `SessionMonitor` 窄平台接口与多原因聚合状态。锁定、睡眠、显示关闭／屏保遮蔽、会话非活动各自维护独立状态，一个恢复信号不会误清另一个仍有效的暂停原因。
@@ -610,12 +612,65 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 2026-08-27 在 `dev-fedora` 的 Qt offscreen 后端运行产品 65 秒：启动就绪日志为 13 ms；5 秒时 CPU 0.9%、RSS 50,372 KiB；65 秒时平均 CPU 0.6%、RSS 50,880 KiB，增长 508 KiB。offscreen 不支持动态窗口掩码，每次动画换帧都会打印警告并触发日志写入，因此该值只作为偏保守的候选基线。正式 CPU、内存、启动时间和三小时增长门槛要在 KDE 与 Windows 候选产物实测后冻结。
 
+同日在上述 Fedora 44 + KDE Plasma 6.7.4 + XWayland 真实桌面环境中，程序先连续运行约 10 分钟，再采样 3 分钟：CPU 平均 1.03%、最小 0.00%、最大 2.00%；RSS 平均／最小／最大均为 74.2 MB。短时窗口内没有可见内存增长。这是包含真实合成器、窗口掩码与桌面交互成本的第二个候选基线，但采样总时长仍不足三小时，也不是 Actions 候选 AppImage，因此不据此冻结正式发布门槛。
+
 ### 待验证／人工复测
 
-- Windows 专用实现必须先由双平台 CI 编译；之后由项目所有者在 Windows 实测锁屏／解锁、睡眠／唤醒、显示关闭／恢复，以及切换置顶造成的原生窗口重建。
-- KDE 实测锁屏／解锁、睡眠／唤醒、屏保／显示关闭，确认动画、移动和对话都冻结且恢复后不跳进度。
-- KDE 与 Windows 分别测试屏幕可用区域变化、桌面 Shell 重启、运行时切换置顶／倍率／活动模式、隐藏／唤回。
+- Windows 专用实现已由双平台 CI 编译并通过自动测试；项目所有者仍需在阶段 9 的 Actions 候选 ZIP 上实测锁屏／解锁、睡眠／唤醒、显示关闭／恢复，以及切换置顶造成的原生窗口重建。
+- Windows 仍需测试屏幕可用区域变化、Explorer 重启、运行时切换置顶／倍率／活动模式、托盘隐藏／唤回。
 - 完成三小时真实桌面运行并记录开始／结束 CPU 与 RSS 后，再冻结正式候选版性能门槛。
+
+### KDE 第二轮综合实测（2026-08-27）
+
+项目所有者在 Fedora 44、KDE Plasma 6.7.4、Wayland 会话、Qt XCB/XWayland、单屏 2560×1600@240 Hz、系统缩放 125% 的真实桌面上完成阶段 8 七项检查，全部通过：
+
+- 锁屏／解锁、睡眠／唤醒、显示器关闭／恢复均未造成动画停滞、黑色残影、位置突进或对话计时补算。
+- 手动暂停与会话暂停没有相互覆盖；恢复后仍需由用户解除手动暂停。
+- Plasma Shell 重启后角色、托盘、置顶、菜单与退出仍可用。
+- 运行时切换置顶、`1×`／`2×`／`3×` 倍率、活动模式和隐藏／唤回均正常。
+- 面板、分辨率或可用区域变化会把角色夹回屏幕内；日志记录了三次有效校正。
+
+日志证据：监视器启动时报告 `sleep=1 session=1 screensaver=1`；睡眠期间 `sleeping`、`display-off`、`locked`、`inactive` 四个原因分别置位，恢复时逐项解除，并且只在最后一个原因解除后把聚合状态改回运行。该次运行没有 warning、error、critical 或残留暂停状态，启动就绪耗时 29 ms。
+
+首次出现“静止角色后方有黑色虚影移动”的测试不计入结果。根因不是当前生命周期状态机，而是误运行了阶段 8 完整实现之前生成的旧二进制，同时 Distrobox 没有暴露宿主 system bus，日志明确显示生命周期监视不可用。重新构建当前提交并以 `DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/host/run/dbus/system_bus_socket` 启动后问题消失。该环境变量只属于当前 Distrobox 宿主测试路径；宿主直接运行的 AppImage 使用标准 `/run/dbus/system_bus_socket`，不需要用户配置。
+
+### 阶段结论
+
+阶段 8 的代码、自动测试和 KDE 真实桌面检查没有阻塞项，可以进入阶段 9。Windows 真实桌面与双平台三小时测试必须使用 Actions 生成的实际候选包，继续作为阶段 9 发布门，不能由本地临时构建或 offscreen 测试替代。
+
+## 阶段 9
+
+状态：进行中
+
+### 已实现，待 Actions 首轮验证
+
+- 根 CMake 增加显式 `MUB_VERSION`，标签构建只接受 `vMAJOR.MINOR.PATCH`；普通 push／PR 使用带提交短哈希的开发版本，不改写源码。
+- `packaging/` 建立 Linux／Windows 共用的安装与许可清单；AppImage 使用 FHS `usr/bin` 布局，Windows EXE 位于 ZIP 根目录。两边都携带 GPL、OFL、字体来源、素材条款和素材哈希；Ark Pixel TTF 只嵌入可执行文件，不在发行目录重复放置。
+- 角色素材组合边界已经按项目所有者决定改为外置数据：程序登记表只保存文件名，统一从可执行文件旁 `assets/` 解析；构建目标自动暂存全部 22 个 PNG，安装清单原样复制，两平台不维护不同路径。`tst_resources` 逐文件核对外置副本哈希并确认 `:/assets/` 中没有角色图片，发行布局检查也拒绝漏包。
+- Qt `6.11.2` 正式候选采用 GPLv3 动态链接路径。两平台包复制 Qt 安装随附的 GPL 文本和 `qtbase-6.11.2.spdx`；独立 Actions 任务从 Qt 官方下载并校验固定 SHA-256 的 48 MiB Qt Base 对应源码，每批候选保存为 artifact，标签构建附到同一草稿 Release。
+- 两平台 artifact 同时输出实际发行目录的逐文件 SHA-256 清单；Linux 额外枚举成品内每个 ELF 的 `DT_NEEDED`，Windows 额外枚举每个 EXE／DLL 的导入表。后续平台运行库许可审计直接使用成品证据，不从 runner 软件清单反推。
+- 新增发行包结构检查：关键文件必须存在且非空，不得泄漏日志、外置 TTF 或 `vc_redist` 安装器，并可对平台插件等发行专用文件追加断言。
+- `tst_resources` 现在不只检查素材路径已写入清单，还会解析 `assets/MANIFEST.md` 的全部 23 个 PNG 哈希，逐文件核对并拒绝重复条目、漏登文件或清单指向的缺失文件。
+- `.github/workflows/package.yml` 在 Ubuntu 22.04／Windows 2022 上重新执行 Release 编译和全部 CTest，再分别生成 x86-64 AppImage 与免安装 ZIP。打包后的实际可执行文件运行 `--self-test` 后才计算 SHA-256 并上传 artifact。
+- Windows 使用 `windeployqt` 加 app-local MSVC CRT，检查 GUI 子系统；不附带安装器。标签构建只创建或刷新草稿 Release，普通 push／PR 不创建 Release；人工验收后发布同一份文件。
+- AppImage 工具锁定 linuxdeploy `1-alpha-20251107-1` 与 Qt 插件 `1-alpha-20250213-1`，下载后校验固定 SHA-256。`NO_STRIP=1` 避免工具内旧 binutils 因不认识 Qt 6.11 ELF 的 `.relr.dyn` 而使打包失败；发行物自检所需 `libqoffscreen.so` 作为包内文件显式部署，Windows 同样显式携带 `qoffscreen.dll`。
+- Linux desktop entry、候选发行说明与 AppImage 正方形头像已就位。图标只是把原始 `120×144` 像素居中放入透明 `160×160` 画布，像素裁回后与原件逐像素一致，哈希已登记。
+- README 与发行说明已区分正式支持目标、实际验证配置、实验性／未验证范围，并明确非官方、非商业、素材／字体许可及 Windows 未签名风险。
+
+### 本地证据与边界
+
+- `dev-fedora` 已完成 Release 配置、编译、统一目录安装和发行布局检查；本地 AppImage 能成功生成，约 40 MiB，解包后的许可、可执行文件和 offscreen 插件结构检查通过。
+- Fedora 44 本地生成的 AppImage 不能作为兼容性结论：锁定版 linuxdeploy 内置 patchelf 0.15，在处理 Fedora 44 带 `.relr.dyn` 的 `libudev.so.1` 时移动了 `.init` 节却没有更新 `DT_INIT`，动态加载阶段崩溃。该问题发生在进入 `main()` 之前，GDB 指向被改写的 `libudev` 初始化入口；目标 Ubuntu 22.04 runner 不以这份 Fedora 本地包代替验证。
+- 本轮阶段 9 实现尚未取得 Actions 结果。因此计划第 14.1／14.2 节仍不勾选；只有两平台 Actions 发行物全部通过后才能补齐自动发布门。
+
+### 尚未完成
+
+- **发行许可阻断已缩小但尚未解除**：角色素材已经外置，Qt 已有 GPL 文本、构建 SBOM 和固定对应源码；仍未覆盖实际 AppImage／Windows 候选中的全部平台运行库、AppImage runtime 静态依赖及 MSVC runtime 声明。AppImage 官方明确由制作者负责随包依赖的许可证、声明和必要源码。在实际候选依赖清单审计完成前，产物只能用于验收，不能以“全部许可已经合规”名义公开发布。
+- AppImage 生成器默认会从 `AppImage/type2-runtime` 的 `continuous` Release 临时下载 runtime。现已把 x86-64 runtime 固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`：工作流先下载并校验，再通过 `LDAI_RUNTIME_FILE` 显式传给 appimagetool；上游 `continuous` 内容变化时构建会失败而不会静默漂移。其 MIT 文本与上游列出的静态依赖声明也已随 AppImage 安装，但这些静态依赖的对应源码义务仍待最终审计。
+- 提交、推送并取得 Package candidates 工作流的 Linux／Windows 双绿结果。
+- 由项目所有者下载并核对同一批 artifact 的 SHA-256，完成 KDE AppImage 与干净 Windows 11 ZIP 检查表及各三小时运行。
+- 根据候选实测冻结性能门槛；有合格社区测试者时补 GNOME 结果，否则保持实验性／未验证。
+- 人工验收通过后创建正式版本标签，检查草稿 Release，最后发布同一份候选产物。
 
 ## Linux 侧已有结果
 

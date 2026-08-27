@@ -17,6 +17,7 @@
 #include "core/Settings.h"
 #include "core/SettingsStore.h"
 #include "core/TimeSource.h"
+#include "dialogue/DialogueData.h"
 #include "ui/AboutWindow.h"
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
@@ -183,7 +184,8 @@ int main(int argc, char *argv[])
     }
 
     // 应用图标同样取自作者头像素材（第 6 节）。
-    QApplication::setWindowIcon(QIcon(QStringLiteral(":/assets/face/natural.png")));
+    QApplication::setWindowIcon(
+        QIcon(mub::dialogue::faceAssetPath(QStringLiteral("natural"))));
 
     // 设置走标准用户配置目录：默认构造的 QSettings 已经由 QStandardPaths
     // 决定位置，不会写在 EXE、AppImage 或当前工作目录旁边
@@ -206,7 +208,7 @@ int main(int argc, char *argv[])
     const int integerScale = settings.scale;
 
     const QString sheetPath =
-        mub::character::clipResourcePath(kStartupClipId);
+        mub::character::clipAssetPath(kStartupClipId);
     mub::character::SpriteSheetError sheetError =
         mub::character::SpriteSheetError::None;
     mub::character::SpriteSheet sheet =
@@ -375,7 +377,8 @@ int main(int argc, char *argv[])
             + QStringLiteral("/applications"),
         QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
             + QStringLiteral("/icons/hicolor/256x256/apps"));
-    const QImage entryIcon(QStringLiteral(":/assets/face/natural.png"));
+    const QImage entryIcon(
+        mub::dialogue::faceAssetPath(QStringLiteral("natural")));
 
     const auto refreshDesktopEntryState = [&] {
         settingsWindow.setDesktopEntryState(runningAsAppImage,
