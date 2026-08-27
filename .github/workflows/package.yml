@@ -359,7 +359,7 @@ jobs:
           cmake \
             -DPACKAGE_ROOT="$extract_dir/squashfs-root" \
             -DPACKAGE_EXECUTABLE=usr/bin/money-under-bed-deskpet \
-            "-DPACKAGE_REQUIRED_FILES=usr/plugins/platforms/libqoffscreen.so;licenses/appimage-runtime.txt;licenses/appimage-tooling.txt;licenses/icu.txt;licenses/linux-runtime.tsv;licenses/appimage-runtime/libfuse-LGPL-2.1.txt;licenses/appimage-runtime/squashfuse.txt;licenses/appimage-runtime/musl.txt;licenses/appimage-runtime/zstd.txt;licenses/appimage-runtime/zlib.txt" \
+            "-DPACKAGE_REQUIRED_FILES=usr/plugins/platforms/libqxcb.so;usr/plugins/platforms/libqoffscreen.so;licenses/appimage-runtime.txt;licenses/appimage-tooling.txt;licenses/icu.txt;licenses/linux-runtime.tsv;licenses/appimage-runtime/libfuse-LGPL-2.1.txt;licenses/appimage-runtime/squashfuse.txt;licenses/appimage-runtime/musl.txt;licenses/appimage-runtime/zstd.txt;licenses/appimage-runtime/zlib.txt" \
             "-DPACKAGE_FORBIDDEN_PATHS=usr/plugins/imageformats;usr/plugins/tls;usr/translations;usr/lib/libQt6Svg.so.6" \
             -P packaging/VerifyPackage.cmake
 
@@ -531,7 +531,7 @@ jobs:
 
           cmake "-DPACKAGE_ROOT=$PWD\package" `
             "-DPACKAGE_EXECUTABLE=money-under-bed-deskpet.exe" `
-            "-DPACKAGE_REQUIRED_FILES=platforms/qoffscreen.dll;licenses/msvc-runtime.md" `
+            "-DPACKAGE_REQUIRED_FILES=platforms/qwindows.dll;platforms/qoffscreen.dll;licenses/msvc-runtime.md" `
             "-DPACKAGE_FORBIDDEN_PATHS=d3dcompiler_47.dll;dxcompiler.dll;dxil.dll;opengl32sw.dll;generic;iconengines;imageformats;networkinformation;tls;Qt6Svg.dll" `
             -P packaging/VerifyPackage.cmake
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -670,10 +670,12 @@ jobs:
               echo "::error::Refusing to replace assets of an already published release"
               exit 1
             fi
+            # A draft may already contain manually recorded candidate results.
+            # Refreshing assets must never replace those notes with the checked-in
+            # pre-validation template.  The template is used only at creation.
             gh release edit "$GITHUB_REF_NAME" \
               --draft \
-              --title "MoneyUnderBed DeskPet ${{ needs.metadata.outputs.version }}" \
-              --notes-file packaging/release-notes.md
+              --title "MoneyUnderBed DeskPet ${{ needs.metadata.outputs.version }}"
             gh release upload "$GITHUB_REF_NAME" --clobber "${files[@]}"
           else
             gh release create "$GITHUB_REF_NAME" \

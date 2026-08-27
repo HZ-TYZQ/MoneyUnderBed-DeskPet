@@ -101,19 +101,38 @@ if(EXISTS "${root}/vc_redist.x64.exe")
 endif()
 
 # Linux runtime provenance is generated from the populated AppDir.  A second
-# linuxdeploy pass creates the AppImage, so verify the final extracted image
-# against that manifest and reject any library that appeared after collection.
+# linuxdeploy pass creates the AppImage, so enumerate every ELF in the final
+# extracted image and reject anything that appeared after collection.  This
+# deliberately includes platform/input plugins, not only usr/lib/*.so.
 if(EXISTS "${root}/licenses/linux-runtime.tsv")
     file(READ "${root}/licenses/linux-runtime.tsv" runtime_manifest)
-    file(GLOB bundled_libraries LIST_DIRECTORIES false "${root}/usr/lib/*.so*")
-    foreach(path IN LISTS bundled_libraries)
+    find_program(readelf_executable NAMES readelf REQUIRED)
+    file(GLOB_RECURSE package_files LIST_DIRECTORIES false "${root}/*")
+    set(elf_count 0)
+    foreach(path IN LISTS package_files)
+        if(IS_SYMLINK "${path}")
+            continue()
+        endif()
+        execute_process(
+            COMMAND "${readelf_executable}" -h "${path}"
+            RESULT_VARIABLE readelf_result
+            OUTPUT_QUIET
+            ERROR_QUIET
+        )
+        if(NOT readelf_result EQUAL 0)
+            continue()
+        endif()
+        math(EXPR elf_count "${elf_count} + 1")
         cmake_path(RELATIVE_PATH path BASE_DIRECTORY "${root}" OUTPUT_VARIABLE relative)
         string(FIND "${runtime_manifest}" "${relative}\t" record_offset)
         if(record_offset EQUAL -1)
             message(FATAL_ERROR
-                "Bundled Linux library has no provenance record: ${relative}")
+                "Bundled Linux ELF has no provenance record: ${relative}")
         endif()
     endforeach()
+    if(elf_count EQUAL 0)
+        message(FATAL_ERROR "No ELF files found while verifying Linux provenance")
+    endif()
 endif()
 
 message(STATUS "Portable package layout verified: ${root}")

@@ -2,7 +2,7 @@
 
 日期：2026-08-26
 
-对应计划：`docs/Plans/test1.md`
+对应计划：`docs/Plans/FeasibilityProbe.md`
 
 状态：测试完成，结论为条件可行
 
