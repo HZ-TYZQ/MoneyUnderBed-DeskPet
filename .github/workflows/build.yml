@@ -116,6 +116,12 @@ jobs:
           cmake --version
           ninja --version
 
+      # 计划第 2.4 节要求每阶段结束运行 `git diff --check`。
+      # 放进 CI 才不会漏：它查行尾空白和残留的冲突标记。
+      - name: Check whitespace and conflict markers
+        shell: bash
+        run: git diff --check "$(git hash-object -t tree /dev/null)" HEAD
+
       - name: Configure
         run: cmake --preset ci
 

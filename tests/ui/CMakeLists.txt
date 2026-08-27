@@ -47,3 +47,18 @@ target_link_libraries(tst_settingswindow PRIVATE
     MUB::Resources
     Qt6::Widgets
 )
+
+# 托盘与首次启动提示。两者都直接编译产品源码。
+mub_add_test(tst_trayicon
+    tst_trayicon.cpp
+    "${CMAKE_SOURCE_DIR}/src/ui/TrayIcon.cpp"
+)
+target_include_directories(tst_trayicon PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_trayicon PRIVATE MUB::Core MUB::Resources Qt6::Widgets)
+
+mub_add_test(tst_firstrunwindow
+    tst_firstrunwindow.cpp
+    "${CMAKE_SOURCE_DIR}/src/ui/FirstRunWindow.cpp"
+)
+target_include_directories(tst_firstrunwindow PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_firstrunwindow PRIVATE MUB::Core Qt6::Widgets)

@@ -192,12 +192,21 @@ jobs:
           .\deskpet-probe.exe --case render --duration 1
           if ($LASTEXITCODE -ne 0) { Write-Host "::error::Packaged probe failed to load the bundled sprite"; exit 1 }
           Write-Host "Packaged probe starts and loads the bundled sprite."
+          # 探针把日志写在自己旁边。这一步是在 package 目录里跑的，
+          # 不清掉就会被一起压进发给测试者的 ZIP。
+          Get-ChildItem -Filter '*.log' | Remove-Item -Force
           exit 0
 
       - name: Create ZIP and checksum
         id: pack
         shell: pwsh
         run: |
+          # 包里不应该有任何验证步骤留下的日志。
+          $logs = Get-ChildItem -Recurse -Path package -Filter '*.log'
+          if ($logs) {
+            Write-Host "::error::Verification logs leaked into the package: $($logs.Name -join ', ')"
+            exit 1
+          }
           $short = "${{ github.sha }}".Substring(0, 12)
           $name = "deskpet-probe-windows-x64-$short"
           Compress-Archive -Path package\* -DestinationPath "$name.zip"

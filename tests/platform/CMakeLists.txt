@@ -32,3 +32,7 @@ target_link_libraries(tst_characterpresenter PRIVATE
     MUB::Resources
     Qt6::Widgets
 )
+
+# 工厂与真实后端。产品代码里唯一按操作系统分支的地方，两平台都要覆盖。
+mub_add_test(tst_backendfactory tst_backendfactory.cpp)
+target_link_libraries(tst_backendfactory PRIVATE MUB::Platform Qt6::Gui)
