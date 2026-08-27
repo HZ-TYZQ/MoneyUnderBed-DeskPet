@@ -12,16 +12,43 @@
 本原型相反：它必须使用产品真实的台词数据、表情素材和字体，
 所以链接 `MUB::Core` 与 `MUB::Resources`。复制一份台词只会引入漂移。
 
-## 布局结构不可调
+## 基线是已选定的 HTML 原型
 
-`docs/Decisions.md` 第 4 节已经冻结原型 A 的结构，本工具不提供改动入口：
+布局与全部默认值**逐条取自** `Temp/dialogue-bubble-designs/prototype.css` 中
+`body[data-layout="embedded"]` 的实际取值，不是重新设计的。
+那份 HTML 是项目所有者已经选定的那一版，因此它是事实基线。
 
-- 表情完整嵌在面板左侧，文字位于右侧，中间一条低对比度竖分隔线。
-- 面板是近直角的半透明黑色矩形，只有低对比度单像素边界。
-- 不加投影、发光、装饰标题栏或角色名标签。
-- 翻页提示位于面板右下角。
+对应关系：
 
-可调的只有 `BubbleParameters` 里的数值。
+| CSS | 参数 | 默认值 |
+| --- | --- | --- |
+| `.dialogue-panel { width }` | `panelWidth` | `260`，**固定**，不随文字长短变化 |
+| `.dialogue-panel { min-height }` | `panelMinHeight` | `78` |
+| `.dialogue-panel { padding }` | `paddingTop/Right/Bottom` | `13 / 17 / 17` |
+| `[embedded] .dialogue-panel { padding-left }` | `paddingLeft` | `72` |
+| `.dialogue-panel { border-radius }` | `cornerRadius` | `1` |
+| `[embedded] .dialogue-panel { background }` | `panelAlpha` | `rgb(12,11,14)` @ `219`（86%） |
+| `[embedded] .dialogue-panel { border }` | `borderAlpha` | `41`（16%） |
+| `.dialogue-portrait { width/height }` | `portraitWidth/Height` | `60 x 72` |
+| `[embedded] .dialogue-portrait { left/bottom }` | `portraitLeft/Bottom` | `6 / 3` |
+| `[embedded] .dialogue-panel::before` | `separatorLeft/Inset/Alpha` | `66 / 8 / 36`（14%） |
+| `.dialogue-text { font-size }` | `fontPixelSize` | `12` |
+| `.dialogue-text { line-height }` | `lineHeightPermille` | `1620`（1.62 倍） |
+| `.dialogue-text { min-height }` | `textMinHeight` | `46` |
+| `.page-cue` | `pageCue*` | 右下角一个 `□`，7px，70%，打字时降到 28% |
+| `[embedded] .dialogue-shell { right/bottom }` | `offsetRight/Bottom` | `38 / 107` |
+| `setInterval(..., 28)` | `typingMsPerChar` | `28` |
+
+结构本身不提供改动入口，可调的只有这些数值。
+
+三处与 HTML 原型不同，都是有意为之：
+
+- **边缘避让**。HTML 原型跑在固定舞台上，没有这件事；`docs/Decisions.md`
+  第 11.3 节要求不允许气泡或表情被裁出屏幕，因此新增 `screenMargin` 与
+  `mirrorNearEdge`。具体避让方式在决策第 13 节仍未确定，交由本次审核决定。
+- **角色动画**。HTML 用 CSS `steps(9)` 播 1.35 s，本原型改用产品的
+  `AnimationClip` 登记值，以便看到与正式实现一致的节奏。
+- **气泡不会自己消失**。原型把超时与自动消失都关掉了，免得审核过程中气泡跑掉。
 
 ## 运行
 
@@ -41,7 +68,7 @@ cmake --build --preset dev
 计划第 11.1 节列出的审核项：
 
 - 实际像素字号、抗锯齿策略、行高。
-- 面板最大宽度、每页行数。参数窗口会显示当前页折行几行，超出上限会提示该页需要人工再分页。
+- 面板固定宽度与文字区最小高度。参数窗口会显示当前页折行几行、面板能容纳几行，超出会提示该页需要人工再分页。
 - 翻页提示样式。
 - 表情切换方式：选一段多页对话，点击推进，看表情是否跟着换。
 - 靠近屏幕左右与顶部边缘时的避让：把角色拖到各个边角再看气泡去了哪里。

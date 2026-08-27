@@ -4,6 +4,7 @@
 #include "BubbleRenderer.h"
 
 #include "character/SpriteSheet.h"
+#include "character/AnimationPlayer.h"
 #include "core/TimeSource.h"
 #include "dialogue/DialogueSession.h"
 
@@ -48,6 +49,7 @@ public:
     CharacterOverlay(character::SpriteSheet sheet, QWidget *parent = nullptr);
 
     void setScale(double scale);
+    void setFrameIndex(int index);
 
 signals:
     void moved();
@@ -62,6 +64,7 @@ protected:
 private:
     character::SpriteSheet sheet_;
     double scale_ = 2.0;
+    int frameIndex_ = 0;
     bool dragging_ = false;
     QPoint dragOffset_;
 };
@@ -80,8 +83,9 @@ public:
     void playDialogue(const QString &dialogueId);
 
 signals:
-    // 供控制窗口显示当前页的折行行数与是否超出每页行数上限。
-    void pageStatusChanged(int lineCount, bool overflows);
+    // 供控制窗口显示当前页的折行行数、可容纳行数、是否溢出与页码。
+    void pageStatusChanged(int lineCount, int maxLines, bool overflows,
+                           int pageNumber, int pageCount);
 
 private:
     void tick();
@@ -90,6 +94,7 @@ private:
 
     core::MonotonicTimeSource clock_;
     dialogue::DialogueSession session_;
+    character::AnimationPlayer animation_;
     BubbleParameters parameters_;
     CharacterOverlay *character_ = nullptr;
     BubbleOverlay *bubble_ = nullptr;

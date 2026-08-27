@@ -67,6 +67,15 @@ CharacterOverlay::CharacterOverlay(character::SpriteSheet sheet, QWidget *parent
     setScale(2.0);
 }
 
+void CharacterOverlay::setFrameIndex(const int index)
+{
+    if (index == frameIndex_) {
+        return;
+    }
+    frameIndex_ = index;
+    update();
+}
+
 void CharacterOverlay::setScale(const double scale)
 {
     scale_ = scale > 0.0 ? scale : 1.0;
@@ -113,12 +122,13 @@ void CharacterOverlay::paintEvent(QPaintEvent *event)
     }
     QPainter painter(this);
     painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
-    painter.drawImage(rect(), sheet_.frame(0));
+    painter.drawImage(rect(), sheet_.frame(frameIndex_));
 }
 
 PreviewController::PreviewController(QObject *parent)
     : QObject(parent)
     , session_(clock_)
+    , animation_(clock_)
 {
     const QString path =
         character::clipResourcePath(QStringLiteral("idle-down-left"));
@@ -134,6 +144,12 @@ PreviewController::PreviewController(QObject *parent)
         session_.click();
         refreshContent();
     });
+
+    const character::AnimationClip *idle =
+        character::findClip(QStringLiteral("idle-down-left"));
+    if (idle != nullptr) {
+        animation_.restart(*idle);
+    }
 
     timer_.setTimerType(Qt::PreciseTimer);
     timer_.setInterval(kTickMs);
@@ -188,6 +204,9 @@ void PreviewController::playDialogue(const QString &dialogueId)
 
 void PreviewController::tick()
 {
+    if (animation_.update()) {
+        character_->setFrameIndex(animation_.frameIndex());
+    }
     if (session_.update()) {
         refreshContent();
     }
@@ -204,17 +223,17 @@ void PreviewController::refreshContent()
     const QImage face(dialogue::faceResourcePath(session_.faceId()));
     renderer.setContent(face, session_.fullText());
     renderer.setVisibleCharacters(static_cast<int>(session_.visibleText().size()));
-    renderer.setPageIndicator(
-        session_.pageCount() > 1
-            ? QStringLiteral("%1/%2").arg(session_.pageIndex() + 1).arg(session_.pageCount())
-            : QString());
+    renderer.setTyping(session_.state() == dialogue::DialogueState::Typing);
 
     emit pageStatusChanged(static_cast<int>(renderer.wrappedLines().size()),
-                           renderer.overflowsPage());
+                           renderer.maxLinesThatFit(), renderer.overflowsPanel(),
+                           session_.pageIndex() + 1, session_.pageCount());
 
     bubble_->show();
     reposition();
     bubble_->update();
+    // CSS 里角色 z-index 4、气泡 z-index 3，角色画在气泡之上。
+    character_->raise();
 }
 
 void PreviewController::reposition()

@@ -28,7 +28,8 @@ public:
     BubbleParameters parameters() const;
 
 public slots:
-    void setPageStatus(int lineCount, bool overflows);
+    void setPageStatus(int lineCount, int maxLines, bool overflows,
+                       int pageNumber, int pageCount);
 
 signals:
     void parametersChanged(const BubbleParameters &parameters);
@@ -44,7 +45,8 @@ private:
     QComboBox *scale_ = nullptr;
     QComboBox *dialogue_ = nullptr;
     QCheckBox *antialias_ = nullptr;
-    QCheckBox *pageIndicator_ = nullptr;
+    QCheckBox *pageCue_ = nullptr;
+    QCheckBox *mirror_ = nullptr;
     QLabel *status_ = nullptr;
 };
 

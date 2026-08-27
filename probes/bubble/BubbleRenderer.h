@@ -14,12 +14,17 @@ namespace mub::bubbleprobe {
 
 // 原型 A 的布局与绘制。
 //
-// 布局结构由 docs/Decisions.md 第 4 节冻结，本类不得改变：
-// 表情完整嵌在面板左侧，文字位于右侧，中间一条低对比度竖分隔线；
-// 面板是近直角的半透明黑色矩形，只有低对比度单像素边界；
-// 不加投影、发光、装饰标题栏或角色名标签；翻页提示位于右下角。
+// 结构逐条对应 Temp/dialogue-bubble-designs/prototype.css 的
+// `body[data-layout="embedded"]`：
 //
-// 可以调的只有 BubbleParameters 里的数值。
+// - 面板固定 260 px 宽，不随文字长短变化。
+// - 表情绝对定位在面板左下，60 x 72，贴底。
+// - 竖分隔线在 left: 66px，上下各内缩 8px，一像素。
+// - 文字区由 padding-left: 72px 让出，右侧留 17px。
+// - 翻页提示是右下角一个 □，打字过程中变淡。
+// - 面板近直角、无投影、无发光。
+//
+// 可以调的只有 BubbleParameters 里的数值，结构本身不提供改动入口。
 class BubbleRenderer
 {
 public:
@@ -28,38 +33,41 @@ public:
     void setParameters(const BubbleParameters &parameters);
     const BubbleParameters &parameters() const;
 
-    // 设置当前页内容。face 为空表示不画表情区。
+    // face 为空表示不画表情区。
     void setContent(const QImage &face, const QString &fullText);
-    // 已打出的字符数，用于打字效果。
     void setVisibleCharacters(int count);
-    void setPageIndicator(const QString &text);
+    // 打字未完成时翻页提示变淡。
+    void setTyping(bool typing);
 
-    // 按当前参数与内容算出的面板尺寸，已含倍率。
+    // 按当前参数与内容算出的面板尺寸，已含倍率。宽度恒为 panelWidth。
     QSize panelSize() const;
 
-    // 当前文本按 maxTextWidth 折行后的结果。
+    // 文字按文字区宽度折行后的结果。
     QStringList wrappedLines() const;
-    // 折行后的行数是否超过 maxLinesPerPage。
-    bool overflowsPage() const;
+    // 折行后是否超出文字区可容纳的高度。
+    bool overflowsPanel() const;
+    // 文字区在当前参数下最多能容纳几行。
+    int maxLinesThatFit() const;
 
-    // 在 painter 的 (0,0) 处绘制整个面板。
     void paint(QPainter &painter) const;
 
     // 面板相对角色窗口的位置。
     //
-    // 默认放在角色正上方并水平居中；顶部放不下时改放角色下方；
-    // 左右超出可用区域时夹回，保证面板与表情都不被裁出屏幕。
+    // 默认按 CSS 的固定偏移放在角色左上方并略有重叠；
+    // 超出可用区域时按 mirrorNearEdge 决定镜像还是夹取。
     QRect placeFor(const QRect &characterGeometry, const QRect &availableGeometry) const;
 
 private:
     int scaled(int value) const;
+    int lineHeight() const;
+    int textAreaWidth() const;
     QStringList computeWrappedLines() const;
 
     BubbleParameters parameters_;
     QImage face_;
     QString fullText_;
-    QString pageIndicator_;
     int visibleCharacters_ = 0;
+    bool typing_ = false;
 };
 
 } // namespace mub::bubbleprobe

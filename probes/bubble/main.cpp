@@ -58,10 +58,6 @@ int main(int argc, char *argv[])
                 QString::fromLatin1(page.faceId)));
             renderer.setContent(
                 face, QString::fromUtf8(reinterpret_cast<const char *>(page.text)));
-            renderer.setPageIndicator(
-                entry->pages.size() > 1
-                    ? QStringLiteral("%1/%2").arg(index + 1).arg(entry->pages.size())
-                    : QString());
 
             QImage canvas(renderer.panelSize(), QImage::Format_ARGB32_Premultiplied);
             // 用中灰底衬出半透明面板，纯透明背景看不出实际观感。
