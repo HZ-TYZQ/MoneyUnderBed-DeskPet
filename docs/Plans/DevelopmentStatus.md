@@ -107,9 +107,23 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 - ZIP SHA-256：`c335de582b6b06e8c64d94a94d4db3b084314a8484fed750293176bf26adb8f0`
 - 检查表：包内 `WindowsChecklist.md`，结果填入 `docs/WindowsFeasibilityResults.md`
 
+### 首轮 Windows 实测（2026-08-27）
+
+项目所有者用 run 33001629207 的探针包（commit `017fd14e`，SHA-256 已核对）在 150% 缩放的单显示器上运行了 10 个用例。完整结果见 `docs/WindowsFeasibilityResults.md`。
+
+通过的核心能力：帧间隔（596 采样，平均 100.00 ms）、自主移动（132/132 请求与实际位置一致）、透明背景、像素锐利、置顶、不进任务栏、启动不抢焦点、原生穿透。
+
+两个需要记住的结论：
+
+- **窗口重建问题没有复现。** `passthrough-qt` 与 `topmost` 的全部切换都是 `rebuilt=false`。计划 6.1 设想的「复现窗口重建后才引入 Win32」这个触发条件不成立。
+- **但 Qt 穿透路径以另一种方式失败。** 背靠背两轮、同样的持续点击：`passthrough-qt` 只记到 1 次角色点击、0 次穿透；`passthrough-native` 记到 43 次角色点击、49 次穿透。Qt 路径切换后窗口既不接收输入也不透传。存在一个未排除的干扰因素（下层点击靶可能被 PowerShell 遮住），但它解释不了角色只收到 1 次点击。已请项目所有者复核。
+
+**像素锐利的条件是乘积为整数。** 150% 缩放下 `--scale 2` 锐利，是因为 `2 x 1.50 = 3` 正好是整数物理倍率。实际生效的是 `项目倍率 x 系统 DPR`：125% 下没有任何整数倍率能得到整数物理倍率，150% 下只有偶数倍率可以。这是 `docs/Decisions.md` 第 13 节「完整的整数显示倍率集合」的直接输入，本轮不下结论。
+
 未完成：
 
-- 项目所有者尚未在 Windows 11 上运行探针 ZIP。第 4 节全部核心能力仍为未实测。
+- `passthrough-qt` 待复核，`hittest`、`drag-system`、`drag-manual`、`lifecycle`、`render` 五个用例未运行，100%／125%／200% 三档缩放未测。清单见 `docs/WindowsFeasibilityResults.md` 第 8 节。
+- 退出门未判定。
 
 ### 阶段顺序偏离（2026-08-27，项目所有者决定）
 
