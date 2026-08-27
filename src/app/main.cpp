@@ -324,6 +324,7 @@ int main(int argc, char *argv[])
     presenter.setRecallAvailable(recallAvailable);
 
     const auto showCharacter = [&] {
+        presenter.setHidden(false);
         window.show();
         window.raise();
         tray.setCharacterVisible(true);
@@ -331,6 +332,9 @@ int main(int argc, char *argv[])
     const auto hideCharacter = [&] {
         // 第 4.2 节：隐藏时立即结束当前对话，不保留待恢复的页面。
         dialogue.stop();
+        // 隐藏期间角色不再自主行动，也不再自己弹气泡：占住协调器的最高
+        // 优先级事件并冻结自主行为，否则看不见的角色会继续在桌面上说话。
+        presenter.setHidden(true);
         window.hide();
         tray.setCharacterVisible(false);
     };

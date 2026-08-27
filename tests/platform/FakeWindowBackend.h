@@ -17,6 +17,7 @@ class FakeWindowBackend final : public platform::DeskPetWindowBackend
 public:
     struct Calls
     {
+        int deskPetWindowFlags = 0;
         int configureAsDeskPet = 0;
         int setAlwaysOnTop = 0;
         int setInputPassthrough = 0;
@@ -42,9 +43,18 @@ public:
         return capabilities_;
     }
 
+    Qt::WindowFlags deskPetWindowFlags() const override
+    {
+        ++calls_.deskPetWindowFlags;
+        return Qt::FramelessWindowHint | Qt::Tool | Qt::WindowDoesNotAcceptFocus
+            | Qt::NoDropShadowWindowHint;
+    }
+
     void configureAsDeskPet(QWindow *window) override
     {
         Q_UNUSED(window)
+        // 标志必须在原生窗口创建之前取用，也就是在这一步之前。
+        flagsTakenBeforeConfigure_ = calls_.deskPetWindowFlags > 0;
         ++calls_.configureAsDeskPet;
     }
 
@@ -77,6 +87,7 @@ public:
     }
 
     const Calls &calls() const { return calls_; }
+    bool flagsTakenBeforeConfigure() const { return flagsTakenBeforeConfigure_; }
     bool alwaysOnTop() const { return alwaysOnTop_; }
     bool passthrough() const { return passthrough_; }
     QRegion lastMask() const { return lastMask_; }
@@ -84,7 +95,8 @@ public:
 
 private:
     platform::BackendCapabilities capabilities_;
-    Calls calls_;
+    mutable Calls calls_;
+    bool flagsTakenBeforeConfigure_ = false;
     bool alwaysOnTop_ = false;
     bool passthrough_ = false;
     bool systemDragAccepted_ = true;

@@ -46,6 +46,7 @@ private slots:
     void backendWithoutHitMaskSupportIsNotCalled();
     void realBackendReportsTheCapabilitiesTheProductNeeds();
     void realBackendAppliesDeskPetFlagsBeforeShow();
+    void deskPetFlagsAreTakenBeforeTheNativeWindowIsCreated();
 };
 
 void TestCharacterWindow::windowSizeIsTheFrameSizeTimesTheScale_data()
@@ -255,6 +256,21 @@ void TestCharacterWindow::realBackendAppliesDeskPetFlagsBeforeShow()
     QVERIFY(handle->flags().testFlag(Qt::Tool));
     QVERIFY(handle->flags().testFlag(Qt::WindowDoesNotAcceptFocus));
     QVERIFY(!window.isVisible());
+}
+
+void TestCharacterWindow::deskPetFlagsAreTakenBeforeTheNativeWindowIsCreated()
+{
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+
+    // Windows 上先按普通窗口创建、之后再改 QWindow 标志的窗口会保留 DWM 的
+    // 圆角边框与系统背景材质，角色四周因此出现可见矩形框。窗口必须在原生
+    // 句柄创建之前就把桌宠标志落到 QWidget 上。
+    QVERIFY(backend.calls().deskPetWindowFlags > 0);
+    QVERIFY(backend.flagsTakenBeforeConfigure());
+    QVERIFY(window.windowFlags().testFlag(Qt::FramelessWindowHint));
+    QVERIFY(window.windowFlags().testFlag(Qt::Tool));
+    QVERIFY(window.windowFlags().testFlag(Qt::WindowStaysOnTopHint));
 }
 
 QTEST_MAIN(TestCharacterWindow)

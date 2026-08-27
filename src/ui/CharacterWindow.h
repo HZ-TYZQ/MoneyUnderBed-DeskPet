@@ -76,6 +76,8 @@ protected:
     void showEvent(QShowEvent *event) override;
 
 private:
+    // 在原生窗口创建之前把桌宠标志落到 QWidget 上。见实现处的说明。
+    void applyDeskPetWindowFlags();
     void configureNativeWindow();
     void applyHitMask();
 

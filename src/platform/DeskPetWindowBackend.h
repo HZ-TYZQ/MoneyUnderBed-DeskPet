@@ -40,6 +40,14 @@ public:
 
     virtual BackendCapabilities capabilities() const = 0;
 
+    // 桌宠窗口的窗口标志。
+    //
+    // 调用方必须在原生窗口**创建之前**把它套到 QWidget 上。Windows 上先按
+    // 普通窗口创建、再改标志的窗口会保留 DWM 的圆角边框与系统背景材质，
+    // 结果是角色四周出现一个可见的矩形框；探针之所以没有这个问题，正是因为
+    // 它在窗口创建前就设定了最终标志。
+    virtual Qt::WindowFlags deskPetWindowFlags() const = 0;
+
     // 一次性把窗口配置成桌宠窗口：无边框、透明、不进任务栏、不抢焦点。
     // 必须在窗口首次显示之前调用。
     virtual void configureAsDeskPet(QWindow *window) = 0;

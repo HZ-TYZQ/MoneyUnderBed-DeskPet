@@ -14,6 +14,7 @@ class QtWindowBackend : public DeskPetWindowBackend
 {
 public:
     BackendCapabilities capabilities() const override;
+    Qt::WindowFlags deskPetWindowFlags() const override;
     void configureAsDeskPet(QWindow *window) override;
     void setAlwaysOnTop(QWindow *window, bool enabled) override;
     void setInputPassthrough(QWindow *window, bool enabled) override;

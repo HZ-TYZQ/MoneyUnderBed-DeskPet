@@ -21,6 +21,12 @@ BubbleWindow::BubbleWindow(platform::DeskPetWindowBackend *backend, QWidget *par
     // （docs/Decisions.md 第 3.4 节）。
     setAttribute(Qt::WA_ShowWithoutActivating, true);
     setAutoFillBackground(false);
+
+    // 与角色窗口同理：标志必须在原生窗口创建之前落到 QWidget 上，
+    // 否则 Windows 上气泡四周会留下 DWM 的圆角边框。
+    if (backend_ != nullptr) {
+        setWindowFlags(backend_->deskPetWindowFlags() | Qt::WindowStaysOnTopHint);
+    }
     configureNativeWindow();
 }
 

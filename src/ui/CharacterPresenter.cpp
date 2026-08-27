@@ -106,6 +106,35 @@ bool CharacterPresenter::isSessionSuspended() const
     return sessionSuspended_;
 }
 
+void CharacterPresenter::setHidden(const bool hidden)
+{
+    if (hidden_ == hidden) {
+        return;
+    }
+    hidden_ = hidden;
+
+    if (hidden_) {
+        // 第 4.2 节：隐藏与退出同属最高优先级。占住协调器即可让其后的自主
+        // 闲聊、单击反馈和对话全部被抑制，被抑制的请求不排队、不补播。
+        requestEvent(core::EventKind::Shutdown);
+        // 正在播放的投喂动画被放弃，冻结位随之释放，否则恢复显示后
+        // 自主行为会一直停在事件冻结状态。
+        eventFreeze_ = false;
+        // 强制下一次 applyFacing 重新装载待机或跑动素材。
+        currentClipId_.clear();
+    } else {
+        finishEvent(core::EventKind::Shutdown);
+    }
+
+    updateFreeze();
+    qCInfo(lcPresenter) << "character" << (hidden_ ? "hidden" : "shown");
+}
+
+bool CharacterPresenter::isHidden() const
+{
+    return hidden_;
+}
+
 void CharacterPresenter::setBubbleFrequency(const core::BubbleFrequency frequency)
 {
     settings_.bubble = frequency;
@@ -203,13 +232,13 @@ const core::EventCoordinator &CharacterPresenter::coordinator() const
 
 void CharacterPresenter::updateFreeze()
 {
-    const bool frozen =
-        userPaused_ || sessionSuspended_ || eventFreeze_ || dialogueFreeze_;
+    const bool frozen = userPaused_ || sessionSuspended_ || hidden_ || eventFreeze_
+        || dialogueFreeze_;
     behavior_.setPaused(frozen);
     // 事件动画期间时钟必须继续走，否则投喂动画不会推进；
-    // 用户暂停与系统会话暂停冻结动画；事件与连续对话只冻结自主行为，
+    // 用户暂停、系统会话暂停与隐藏冻结动画；事件与连续对话只冻结自主行为，
     // 否则投喂动画无法推进、对话期间待机动画也会停住。
-    if (userPaused_ || sessionSuspended_) {
+    if (userPaused_ || sessionSuspended_ || hidden_) {
         animation_.pause();
     } else {
         animation_.resume();

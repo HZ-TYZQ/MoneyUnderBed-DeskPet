@@ -14,6 +14,11 @@ Qt::WindowFlags QtWindowBackend::deskPetFlags()
         | Qt::NoDropShadowWindowHint;
 }
 
+Qt::WindowFlags QtWindowBackend::deskPetWindowFlags() const
+{
+    return deskPetFlags();
+}
+
 BackendCapabilities QtWindowBackend::capabilities() const
 {
     BackendCapabilities caps;

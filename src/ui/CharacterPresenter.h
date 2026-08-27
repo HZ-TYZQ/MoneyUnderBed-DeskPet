@@ -55,6 +55,14 @@ public:
     void setSessionSuspended(bool suspended);
     bool isSessionSuspended() const;
 
+    // 角色已被用户隐藏。
+    //
+    // 第 4.2 节把「退出／隐藏」定为最高优先级事件：隐藏立即结束正在进行的
+    // 事件，并且在隐藏期间抑制其后的一切内容。看不见的角色不能继续自主移动、
+    // 播放动画，更不能自己弹气泡。
+    void setHidden(bool hidden);
+    bool isHidden() const;
+
     void setBubbleFrequency(core::BubbleFrequency frequency);
     core::BubbleFrequency bubbleFrequency() const;
 
@@ -146,6 +154,7 @@ private:
     core::FeedingOutcome feedingOutcome_ = core::FeedingOutcome::Eat;
     bool userPaused_ = false;
     bool sessionSuspended_ = false;
+    bool hidden_ = false;
     bool eventFreeze_ = false;
     bool dialogueFreeze_ = false;
     bool recallAvailable_ = false;

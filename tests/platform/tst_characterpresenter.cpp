@@ -59,6 +59,8 @@ private slots:
     void bubbleOffSuppressesAutonomousChatter();
     void clickChangesTheVisibleFrameWhenBubbleIsOff();
     void sessionSuspensionDoesNotClearUserPause();
+    void hiddenCharacterDoesNotChatterOnItsOwn();
+    void showingAgainReleasesTheHideEvent();
 };
 
 void TestCharacterPresenter::droppedIcecreamDoesNotAcquireAnUnownedDialogueEvent()
@@ -181,6 +183,64 @@ void TestCharacterPresenter::sessionSuspensionDoesNotClearUserPause()
 
     presenter.setPaused(false);
     QVERIFY(!presenter.behavior().isPaused());
+    presenter.stop();
+}
+
+void TestCharacterPresenter::hiddenCharacterDoesNotChatterOnItsOwn()
+{
+    ManualTimeSource clock;
+    // 与 bubbleOffSuppressesAutonomousChatter 相同的脚本：待机 2000 ms 后
+    // 请求自主闲聊。这里气泡频率保持默认，因此不隐藏时确实会说话。
+    ScriptedRandomSource random(QList<int>{2000, 2000},
+                                QList<double>{0.5, 0.5, 0.5, 0.5});
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+    CharacterPresenter presenter(window, clock, random);
+    RecordingBubbleHost bubbles;
+    presenter.setBubbleHost(&bubbles);
+    presenter.setMode(mub::core::ActivityMode::Active);
+
+    window.moveToCursorScreenBottom();
+    presenter.start();
+    presenter.setHidden(true);
+    QVERIFY(presenter.isHidden());
+    // 第 4.2 节：隐藏占住最高优先级事件，其后的请求一律被抑制。
+    QCOMPARE(presenter.coordinator().current(), EventKind::Shutdown);
+    QCOMPARE(presenter.requestEvent(EventKind::AutonomousChatter),
+             EventDecision::Suppressed);
+    QVERIFY(presenter.behavior().isPaused());
+
+    presenter.behavior().update();
+    clock.advance(2000);
+    QTest::qWait(50);
+
+    // 看不见的角色不能自己弹气泡。
+    QCOMPARE(bubbles.chatterCount, 0);
+    presenter.stop();
+}
+
+void TestCharacterPresenter::showingAgainReleasesTheHideEvent()
+{
+    ManualTimeSource clock;
+    ScriptedRandomSource random(QList<int>{2000}, QList<double>{0.5, 0.5});
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+    CharacterPresenter presenter(window, clock, random);
+
+    window.moveToCursorScreenBottom();
+    presenter.start();
+    presenter.setPaused(true);
+    presenter.setHidden(true);
+    presenter.setHidden(false);
+
+    QVERIFY(!presenter.isHidden());
+    QCOMPARE(presenter.coordinator().current(), EventKind::None);
+    QCOMPARE(presenter.requestEvent(EventKind::AutonomousChatter),
+             EventDecision::Accepted);
+    presenter.finishEvent(EventKind::AutonomousChatter);
+    // 隐藏与恢复不能清掉用户在菜单里选的暂停。
+    QVERIFY(presenter.isPaused());
+    QVERIFY(presenter.behavior().isPaused());
     presenter.stop();
 }
 

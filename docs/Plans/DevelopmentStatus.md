@@ -663,11 +663,35 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 - Fedora 44 本地生成的 AppImage 不能作为兼容性结论：锁定版 linuxdeploy 内置 patchelf 0.15，在处理 Fedora 44 带 `.relr.dyn` 的 `libudev.so.1` 时移动了 `.init` 节却没有更新 `DT_INIT`，动态加载阶段崩溃。该问题发生在进入 `main()` 之前，GDB 指向被改写的 `libudev` 初始化入口；目标 Ubuntu 22.04 runner 不以这份 Fedora 本地包代替验证。
 - 本轮阶段 9 实现尚未取得 Actions 结果。因此计划第 14.1／14.2 节仍不勾选；只有两平台 Actions 发行物全部通过后才能补齐自动发布门。
 
+### 候选包首轮实测（2026-08-27）
+
+`Package candidates` 已在提交 `e23fbe8` 取得 Linux／Windows 双绿（run 33078173621），
+两平台候选包与 Qt 对应源码均已产出。项目所有者随即在 Windows 上完成首轮检查，
+报告两个问题，均已定位并修复：
+
+| 现象 | 根因 | 修复 |
+| --- | --- | --- |
+| 角色四周有一个可见的圆角矩形边框，框内底色偏亮 | 窗口标志过去只通过 `QWindow::setFlags()` 施加，而 `QWidget` 是先用自己记录的 `window_flags`（默认普通顶层窗口）创建原生窗口、之后才改样式位。Windows 11 的 DWM 按创建时的窗口类型决定边框策略，这类窗口会一直保留圆角边框与系统背景材质 | 窄平台接口新增 `deskPetWindowFlags()`；角色窗口与气泡窗口在创建原生句柄之前先把桌宠标志落到 `QWidget` 上 |
+| 角色隐藏后仍会自己弹出对话气泡 | 隐藏只做了结束当前对话加 `QWidget::hide()`，自主行为没有停止，因此闲聊请求继续产生并交给气泡宿主 | `CharacterPresenter` 新增隐藏状态：隐藏时按第 4.2 节占住 `Shutdown` 事件并冻结自主行为与动画，恢复显示时释放 |
+
+边框问题的判据来自阶段 1 探针与产品的对照。探针在同一台 Windows 机器上目视
+确认过「背景透明，无白底或黑框」，它与产品的窗口标志几乎相同，唯一的实质差别
+就是探针在原生窗口创建之前调用了 `setWindowFlags()`。截图测量也支持该结论：
+可见矩形宽 207 物理像素，正好等于 `69 × 2 倍率 × 1.5 系统缩放`，即整个窗口矩形；
+矩形四角是圆角，说明它是 DWM 画的窗口边框，而不是命中掩码失效后露出的位图。
+
+本轮只按 `docs/Decisions.md` 第 8.4 节走 Qt 路径，没有引入 `DwmSetWindowAttribute`
+之类的原生调用。若下一轮 Windows 复测边框仍在，再按第 8.4 节论证是否补原生兜底。
+
+自动覆盖：`tst_characterwindow` 断言桌宠标志在配置原生窗口之前就已取用，
+`tst_characterpresenter` 断言隐藏期间协调器停在 `shutdown`、自主行为被冻结、
+气泡宿主收不到闲聊，且恢复显示不会清掉用户主动暂停。
+
 ### 尚未完成
 
 - **发行许可阻断已缩小但尚未解除**：角色素材已经外置，Qt Base／Qt SVG 已有 GPL 文本、SPDX 元数据和固定对应源码；仍未覆盖实际 AppImage／Windows 候选中的全部平台运行库、AppImage runtime 静态依赖及 MSVC runtime 声明。AppImage 官方明确由制作者负责随包依赖的许可证、声明和必要源码。在实际候选依赖清单审计完成前，产物只能用于验收，不能以“全部许可已经合规”名义公开发布。
 - AppImage 生成器默认会从 `AppImage/type2-runtime` 的 `continuous` Release 临时下载 runtime。现已把 x86-64 runtime 固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`：工作流先下载并校验，再通过 `LDAI_RUNTIME_FILE` 显式传给 appimagetool；上游 `continuous` 内容变化时构建会失败而不会静默漂移。其 MIT 文本与上游列出的静态依赖声明也已随 AppImage 安装，但这些静态依赖的对应源码义务仍待最终审计。
-- 提交、推送并取得 Package candidates 工作流的 Linux／Windows 双绿结果。
+- 重新取得一批候选包，由项目所有者复测 Windows 边框与隐藏两项修复。
 - 由项目所有者下载并核对同一批 artifact 的 SHA-256，完成 KDE AppImage 与干净 Windows 11 ZIP 检查表及各三小时运行。
 - 根据候选实测冻结性能门槛；有合格社区测试者时补 GNOME 结果，否则保持实验性／未验证。
 - 人工验收通过后创建正式版本标签，检查草稿 Release，最后发布同一份候选产物。

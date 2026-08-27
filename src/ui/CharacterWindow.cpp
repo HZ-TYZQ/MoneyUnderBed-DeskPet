@@ -46,6 +46,12 @@ CharacterWindow::CharacterWindow(character::SpriteSheet sheet,
     setFixedSize(frameSize.width() * integerScale_,
                  frameSize.height() * integerScale_);
 
+    // 标志必须在原生窗口创建之前落到 QWidget 上。QWidget 用自己记录的
+    // window_flags 创建原生窗口，之后再改 QWindow 标志只是改样式位：
+    // Windows 上这样的窗口已经被 DWM 当作普通带框窗口，会一直保留圆角边框
+    // 与系统背景材质，表现为角色四周的可见矩形框。
+    applyDeskPetWindowFlags();
+
     // Qt::Tool 与 WindowDoesNotAcceptFocus 是窗口首次映射时的属性。提前创建
     // 原生句柄并配置，不能等 showEvent() 之后再补，否则窗口管理器可能已经
     // 把它当作普通任务栏窗口并激活。
@@ -245,6 +251,16 @@ void CharacterWindow::showEvent(QShowEvent *event)
     // 构造阶段正常情况下已经完成；保留这里作为原生句柄创建失败时的兜底。
     configureNativeWindow();
     applyHitMask();
+}
+
+void CharacterWindow::applyDeskPetWindowFlags()
+{
+    if (backend_ == nullptr) {
+        return;
+    }
+    Qt::WindowFlags flags = backend_->deskPetWindowFlags();
+    flags.setFlag(Qt::WindowStaysOnTopHint, alwaysOnTop_);
+    setWindowFlags(flags);
 }
 
 void CharacterWindow::configureNativeWindow()
