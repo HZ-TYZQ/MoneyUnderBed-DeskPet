@@ -22,9 +22,8 @@ enum class DialogueState
 
 struct DialogueSessionConfig
 {
-    // docs/Decisions.md 第 4.1 节：每个字符约 20–30 ms，
-    // 具体数值在原型阶段从该范围内确定。
-    int typingMsPerChar = 25;
+    // docs/Decisions.md 第 4.1 节：Qt 原型审核后冻结为每字符 28 ms。
+    int typingMsPerChar = 28;
     // 第 4.1 节：用户持续 20 s 没有操作时对话自动结束。
     int idleTimeoutMs = 20000;
     // 第 4 节：普通单句气泡在文字完成后开始自动消失计时。

@@ -16,7 +16,7 @@ namespace mub::bubbleprobe {
 // 所以气泡与角色始终等比例，这里保持同样的做法。
 struct BubbleParameters
 {
-    // 显示倍率。1 与 2 是正式基线，1.5 是候选档位。
+    // 显示倍率。1、1.5 与 2 均已正式采用。
     double scale = 2.0;
 
     // --- 面板：.dialogue-panel ---
@@ -62,7 +62,7 @@ struct BubbleParameters
     // --- 翻页提示：.page-cue ---
     // 原型 A 只显示一个 □，不显示页码；页码是原型 C 的做法。
     bool showPageCue = true;
-    int pageCueRight = 8;
+    int pageCueRight = 7;
     int pageCueBottom = 7;
     int pageCueFontSize = 7;
     int pageCueAlpha = 179;
@@ -70,10 +70,10 @@ struct BubbleParameters
     int pageCueTypingAlphaPercent = 28;
 
     // --- 相对角色的位置：body[data-layout="embedded"] .dialogue-shell ---
-    // 面板右边缘距角色右边缘 38px，面板下边缘距角色下边缘 107px，
+    // 面板右边缘距角色右边缘 38px，面板下边缘距角色下边缘 90px，
     // 即气泡位于角色左上方并略有重叠。角色画在气泡之上。
     int offsetRight = 38;
-    int offsetBottom = 107;
+    int offsetBottom = 90;
     // 面板距屏幕边缘的最小距离。HTML 原型没有边缘避让，
     // 这一项是为满足 docs/Decisions.md 第 11.3 节新增的。
     int screenMargin = 8;

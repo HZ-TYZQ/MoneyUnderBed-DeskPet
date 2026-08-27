@@ -51,10 +51,18 @@ public:
     void setBubbleFrequency(core::BubbleFrequency frequency);
     core::BubbleFrequency bubbleFrequency() const;
 
+    // 用户主动投喂。公开为产品动作，右键菜单与后续设置／快捷入口共用，
+    // 也让组件测试可以直接验证完整的事件生命周期。
+    void feed();
+
     // 提交一次行为请求。返回协调器的裁决。
     // 所有行为请求都必须经过这里，功能模块不得直接切换全局状态
     // （docs/Decisions.md 第 4.2 节）。
     core::EventDecision requestEvent(core::EventKind kind);
+
+    // 结束由调用方拥有的事件。只有当前事件类型匹配时才会清除，迟到的完成
+    // 通知不会误清已经替换上来的更高优先级事件。
+    void finishEvent(core::EventKind kind);
 
     const core::EventCoordinator &coordinator() const;
 
@@ -66,14 +74,19 @@ public:
 signals:
     // 阶段 6 的对话系统接管这两个信号。
     void textFeedbackRequested();
+    // 这里只报告触发请求，不提前占用 EventKind::Dialogue。
+    // 接收者成功启动会话后再通过 requestEvent() 申请 Dialogue，结束时调用
+    // finishEvent()。这样没有接收者时不会遗留永不结束的事件。
     void dialogueRequested(const QString &dialogueId);
+    // 更高优先级事件替换了旧事件。旧事件的所有者必须立即清理其会话和 UI，
+    // 但不再调用 finish(oldKind)，因为协调器已经切换到了新事件。
+    void eventReplaced(core::EventKind oldKind);
     void quitRequested();
 
 private:
     void tick();
     void handleClick();
     void showContextMenu(const QPoint &globalPosition);
-    void startFeeding();
     void finishFeeding();
     void updateFreeze();
     bool advanceEventAnimation();

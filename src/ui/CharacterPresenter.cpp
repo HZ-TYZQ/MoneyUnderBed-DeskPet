@@ -106,7 +106,15 @@ core::EventDecision CharacterPresenter::requestEvent(const core::EventKind kind)
                     core::eventDecisionId(decision),
                     core::eventKindId(coordinator_.current()),
                     core::eventKindId(coordinator_.lastReplaced()));
+    if (decision == core::EventDecision::Replaced) {
+        emit eventReplaced(coordinator_.lastReplaced());
+    }
     return decision;
+}
+
+void CharacterPresenter::finishEvent(const core::EventKind kind)
+{
+    coordinator_.finish(kind);
 }
 
 const core::EventCoordinator &CharacterPresenter::coordinator() const
@@ -168,7 +176,7 @@ void CharacterPresenter::handleClick()
     }
 
     // 阶段 6 之前没有真正的气泡时长，反馈即刻结束。
-    coordinator_.finish(core::EventKind::ClickFeedback);
+    finishEvent(core::EventKind::ClickFeedback);
 }
 
 void CharacterPresenter::showContextMenu(const QPoint &globalPosition)
@@ -182,14 +190,14 @@ void CharacterPresenter::showContextMenu(const QPoint &globalPosition)
 
     const QAction *chosen = menu.exec(globalPosition);
     if (chosen == feed) {
-        startFeeding();
+        this->feed();
     } else if (chosen == quit) {
         requestEvent(core::EventKind::Shutdown);
         emit quitRequested();
     }
 }
 
-void CharacterPresenter::startFeeding()
+void CharacterPresenter::feed()
 {
     if (requestEvent(core::EventKind::Feeding) == core::EventDecision::Suppressed) {
         // 当前投喂动画结束前忽略新的投喂请求，不排队、不重播
@@ -206,7 +214,7 @@ void CharacterPresenter::startFeeding()
     const character::SpriteSheet *sheet = sheetFor(clipId);
     if (clip == nullptr || sheet == nullptr) {
         qCCritical(lcPresenter) << "feeding animation unavailable:" << clipId;
-        coordinator_.finish(core::EventKind::Feeding);
+        finishEvent(core::EventKind::Feeding);
         return;
     }
 
@@ -227,17 +235,16 @@ void CharacterPresenter::finishFeeding()
 {
     eventFreeze_ = false;
     updateFreeze();
-    coordinator_.finish(core::EventKind::Feeding);
+    finishEvent(core::EventKind::Feeding);
 
     // 强制下一次 applyFacing 换回待机或跑动素材。
     currentClipId_.clear();
 
     if (feedingOutcome_ == core::FeedingOutcome::Drop) {
-        // 掉落事件结束后进入对应连续对话，不让自主闲聊插入。
-        // 对话优先级高于自主闲聊，因此协调器会自动抑制后者。
-        if (requestEvent(core::EventKind::Dialogue) != core::EventDecision::Suppressed) {
-            emit dialogueRequested(core::FeedingSelector::dropDialogueId());
-        }
+        // 这里只报告对话触发请求，不提前占用 Dialogue。真正拥有会话的阶段 6
+        // 对话控制器只有在数据与 UI 都成功启动后才申请事件，并负责结束它。
+        // 当前还没有接收者时，协调器因此保持空闲，不会永久抑制后续单击。
+        emit dialogueRequested(core::FeedingSelector::dropDialogueId());
     }
 }
 
@@ -284,7 +291,7 @@ void CharacterPresenter::tick()
             != core::EventDecision::Suppressed) {
             emit textFeedbackRequested();
             // 阶段 6 之前没有真正的气泡时长，请求即刻结束。
-            coordinator_.finish(core::EventKind::AutonomousChatter);
+            finishEvent(core::EventKind::AutonomousChatter);
         }
     }
 }

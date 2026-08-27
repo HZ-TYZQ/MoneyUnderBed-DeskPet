@@ -36,7 +36,7 @@
 | `.dialogue-text { line-height }` | `lineHeightPermille` | `1620`（1.62 倍） |
 | `.dialogue-text { min-height }` | `textMinHeight` | `46` |
 | `.page-cue` | `pageCue*` | 右下角一个 `□`，7px，70%，打字时降到 28% |
-| `[embedded] .dialogue-shell { right/bottom }` | `offsetRight/Bottom` | `38 / 107` |
+| Qt 原型审核冻结的 `right/bottom` | `offsetRight/Bottom` | `38 / 90` |
 | `setInterval(..., 28)` | `typingMsPerChar` | `28` |
 
 结构本身不提供改动入口，可调的只有这些数值。

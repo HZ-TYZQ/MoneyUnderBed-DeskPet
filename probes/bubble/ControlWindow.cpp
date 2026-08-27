@@ -49,7 +49,7 @@ ControlWindow::ControlWindow(QWidget *parent)
     contentForm->addRow(tr("台词"), dialogue_);
     scale_ = new QComboBox(contentBox);
     scale_->addItem(QStringLiteral("1x"), 1.0);
-    scale_->addItem(QStringLiteral("1.5x  候选"), 1.5);
+    scale_->addItem(QStringLiteral("1.5x"), 1.5);
     scale_->addItem(QStringLiteral("2x"), 2.0);
     scale_->setCurrentIndex(2);
     contentForm->addRow(tr("显示倍率"), scale_);
@@ -105,7 +105,7 @@ ControlWindow::ControlWindow(QWidget *parent)
     pageCue_->setChecked(true);
     pageCue_->setToolTip(tr("原型 A 只显示一个 □，不显示页码"));
     cueForm->addRow(QString(), pageCue_);
-    addSpin(cueForm, tr("距右"), QStringLiteral("pageCueRight"), 0, 40, 8);
+    addSpin(cueForm, tr("距右"), QStringLiteral("pageCueRight"), 0, 40, 7);
     addSpin(cueForm, tr("距底"), QStringLiteral("pageCueBottom"), 0, 40, 7);
     addSpin(cueForm, tr("字号"), QStringLiteral("pageCueFontSize"), 4, 24, 7);
     addSpin(cueForm, tr("不透明度"), QStringLiteral("pageCueAlpha"), 0, 255, 179,
@@ -118,8 +118,8 @@ ControlWindow::ControlWindow(QWidget *parent)
     auto *placeForm = new QFormLayout(placeBox);
     addSpin(placeForm, tr("面板右缘距角色右缘"), QStringLiteral("offsetRight"), -200, 200, 38,
             tr("CSS 的 right: 38px"));
-    addSpin(placeForm, tr("面板下缘距角色下缘"), QStringLiteral("offsetBottom"), 0, 300, 107,
-            tr("CSS 的 bottom: 107px"));
+    addSpin(placeForm, tr("面板下缘距角色下缘"), QStringLiteral("offsetBottom"), 0, 300, 90,
+            tr("Qt 原型审核冻结为 bottom: 90px"));
     addSpin(placeForm, tr("距屏幕边缘最小距离"), QStringLiteral("screenMargin"), 0, 60, 8,
             tr("HTML 原型没有边缘避让，这项是为决策第 11.3 节新增的"));
     mirror_ = new QCheckBox(tr("靠近左缘时镜像到角色右上方"), placeBox);
@@ -196,7 +196,7 @@ BubbleParameters ControlWindow::parameters() const
     p.antialiasText = antialias_->isChecked();
 
     p.showPageCue = pageCue_->isChecked();
-    p.pageCueRight = value(QStringLiteral("pageCueRight"), 8);
+    p.pageCueRight = value(QStringLiteral("pageCueRight"), 7);
     p.pageCueBottom = value(QStringLiteral("pageCueBottom"), 7);
     p.pageCueFontSize = value(QStringLiteral("pageCueFontSize"), 7);
     p.pageCueAlpha = value(QStringLiteral("pageCueAlpha"), 179);
@@ -204,7 +204,7 @@ BubbleParameters ControlWindow::parameters() const
         value(QStringLiteral("pageCueTypingAlphaPercent"), 28);
 
     p.offsetRight = value(QStringLiteral("offsetRight"), 38);
-    p.offsetBottom = value(QStringLiteral("offsetBottom"), 107);
+    p.offsetBottom = value(QStringLiteral("offsetBottom"), 90);
     p.screenMargin = value(QStringLiteral("screenMargin"), 8);
     p.mirrorNearEdge = mirror_->isChecked();
     p.typingMsPerChar = value(QStringLiteral("typingMsPerChar"), 28);

@@ -235,8 +235,8 @@ QRect BubbleRenderer::placeFor(const QRect &characterGeometry,
     const QSize size = panelSize();
     const int margin = scaled(parameters_.screenMargin);
 
-    // CSS：.dialogue-shell { right: 38px; bottom: 107px }，相对角色框。
-    // 面板右边缘在角色右边缘左侧 38px 处，下边缘在角色下边缘上方 107px 处，
+    // 审核冻结值：right 38px、bottom 90px，相对角色框。
+    // 面板右边缘在角色右边缘左侧 38px 处，下边缘在角色下边缘上方 90px 处，
     // 因此气泡位于角色左上方并与角色顶部略有重叠。
     int right = characterGeometry.right() - scaled(parameters_.offsetRight);
     int x = right - size.width();

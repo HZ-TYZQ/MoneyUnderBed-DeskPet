@@ -54,6 +54,7 @@ class TestDialogueSession final : public QObject
 
 private slots:
     void startsIdle();
+    void defaultTypingSpeedMatchesTheFrozenDecision();
     void startBeginsTypingTheFirstPage();
     void textAppearsOneCharacterAtATime();
     void typingEndsAtPageComplete();
@@ -80,6 +81,21 @@ void TestDialogueSession::startsIdle()
     QCOMPARE(session.state(), DialogueState::Idle);
     QVERIFY(!session.isActive());
     QVERIFY(session.dialogue() == nullptr);
+}
+
+void TestDialogueSession::defaultTypingSpeedMatchesTheFrozenDecision()
+{
+    ManualTimeSource clock;
+    DialogueSession session(clock);
+    session.start(multiPage());
+
+    // docs/Decisions.md 第 4.1 节冻结为每字符 28 ms，默认配置必须直接遵守。
+    clock.advance(27);
+    QVERIFY(!session.update());
+    QVERIFY(session.visibleText().isEmpty());
+    clock.advance(1);
+    QVERIFY(session.update());
+    QCOMPARE(session.visibleText().size(), 1);
 }
 
 void TestDialogueSession::startBeginsTypingTheFirstPage()
