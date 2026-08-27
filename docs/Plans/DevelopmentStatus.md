@@ -662,7 +662,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 - `dev-fedora` 已完成 Release 配置、编译、统一目录安装和发行布局检查；本地 AppImage 能成功生成，约 40 MiB，解包后的许可、可执行文件和 offscreen 插件结构检查通过。
 - Fedora 44 本地生成的 AppImage 不能作为兼容性结论：锁定版 linuxdeploy 内置 patchelf 0.15，在处理 Fedora 44 带 `.relr.dyn` 的 `libudev.so.1` 时移动了 `.init` 节却没有更新 `DT_INIT`，动态加载阶段崩溃。该问题发生在进入 `main()` 之前，GDB 指向被改写的 `libudev` 初始化入口；目标 Ubuntu 22.04 runner 不以这份 Fedora 本地包代替验证。
-- 收尾候选 run 33091220284（commit `36661ce`）已通过 Linux AppImage、Windows ZIP、框架/runtime 对应源码和 Linux 系统对应源码四类 artifact 的生成与上传；同提交的 `Build and test` run 33091220297 和 Windows probe run 33091220328 也全部通过。
+- 最终收尾候选 run 33096110820（commit `3ee6e78`）已通过 Linux AppImage、Windows ZIP、框架/runtime 对应源码和 Linux 系统对应源码四类 artifact 的生成与上传；同提交的 `Build and test` run 33096110785 和 Windows probe run 33096110732 也全部通过。
 
 ### 候选包首轮实测（2026-08-27）
 
@@ -691,7 +691,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 ### 尚未完成
 
-- **开发候选的发行许可自动门已经解除**：run 33091220284 从最终 AppDir 收集 47 条运行库记录并全部找到许可来源，其中 25 个 Ubuntu 源包以精确版本下载，共 82 个源文件进入独立 artifact；Qt／ICU／AppImage runtime／libfuse／squashfuse／打包工具进入另一固定源码 artifact。Windows 包只保留 Qt、系统 DLL 与 `VC\Redist` 的未修改 CRT，禁用组件断言与成品自检通过。正式标签仍须再次生成并核对同类材料，不能拿开发版结果替代。
+- **开发候选的发行许可自动门已经解除**：run 33096110820 从最终 AppDir 收集 55 条 ELF 记录，覆盖项目程序、全部 Qt 插件和共享库；每份外部 ELF 同时记录部署后与来源 SHA-256，字节因 RPATH 改写不同时必须有相同 GNU Build ID。25 个 Ubuntu 源包以精确版本下载，共 82 个源文件进入独立 artifact；Qt／ICU／AppImage runtime／libfuse／squashfuse／打包工具进入另一固定源码 artifact。Windows 包只保留 Qt、系统 DLL 与 `VC\Redist` 的未修改 CRT，真实桌面插件、禁用组件断言与成品自检均通过。正式标签仍须再次生成并核对同类材料，不能拿开发版结果替代。
 - AppImage runtime 字节固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`，上游 `continuous` 内容变化时构建会失败而不会静默漂移。runtime、其构建脚本、精确 libfuse 3.15.0／squashfuse 0.5.2 源码和全部静态依赖许可都已进入同批材料；上游未列出的 mimalloc MIT 声明也由项目主动补齐。
 - 由项目所有者下载并核对同一批 artifact 的 SHA-256，完成 KDE AppImage 与干净 Windows 11 ZIP 检查表及各三小时运行。
 - 根据候选实测冻结性能门槛；有合格社区测试者时补 GNOME 结果，否则保持实验性／未验证。

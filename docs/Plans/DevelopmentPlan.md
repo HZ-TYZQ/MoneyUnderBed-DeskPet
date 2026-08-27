@@ -491,7 +491,7 @@ core 不依赖 Widgets、Win32、XCB 或 D-Bus
 ### 14.1 正式打包
 
 - [x] 解决 GPL 程序与非商业角色素材的组合边界：角色 PNG 作为可执行文件旁的独立只读数据文件发行，不编入 Qt 资源系统；构建、测试和两平台发行统一使用该路径。
-- [x] 完成 Qt、AppImage runtime 与实际随包运行库的许可证／版权／对应源码审计；固定 AppImage runtime 字节，不允许 `continuous` 资源在打包时漂移。run 33091220284 从实际 AppDir 收集 47 条运行库记录、25 个 Ubuntu 精确源包，并产出两类对应源码 artifact。
+- [x] 完成 Qt、AppImage runtime 与实际随包运行库的许可证／版权／对应源码审计；固定 AppImage runtime 字节，不允许 `continuous` 资源在打包时漂移。run 33096110820 从实际 AppDir 收集并核验 55 条 ELF 溯源记录（含项目程序、Qt 插件与共享库）、25 个 Ubuntu 精确源包，并产出两类对应源码 artifact。
 - [x] Linux 在 Ubuntu 22.04 runner 构建 x86-64 AppImage；验证 Qt `6.11.2` 的 glibc 兼容路径。
 - [x] Windows 在 `windows-2022` 使用 `windeployqt` 生成 x86-64 免安装 ZIP，GUI 子系统不弹控制台。
 - [x] 两个平台只包含一份 Ark Pixel TTF，并包含 GPL、OFL、素材条款、素材清单、署名和来源。
