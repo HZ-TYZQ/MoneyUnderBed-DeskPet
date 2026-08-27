@@ -36,6 +36,14 @@ foreach(relative IN LISTS required_files)
     endif()
 endforeach()
 
+if(DEFINED PACKAGE_FORBIDDEN_PATHS AND NOT PACKAGE_FORBIDDEN_PATHS STREQUAL "")
+    foreach(relative IN LISTS PACKAGE_FORBIDDEN_PATHS)
+        if(EXISTS "${root}/${relative}" OR IS_SYMLINK "${root}/${relative}")
+            message(FATAL_ERROR "Forbidden package path is present: ${relative}")
+        endif()
+    endforeach()
+endif()
+
 file(READ "${root}/licenses/qt-modules-6.11.2.spdx" qt_sbom)
 foreach(package_id IN ITEMS QtBase QtSvg)
     if(NOT qt_sbom MATCHES "SPDXID:[ \t]+SPDXRef-Package-${package_id}")
@@ -90,6 +98,22 @@ endif()
 
 if(EXISTS "${root}/vc_redist.x64.exe")
     message(FATAL_ERROR "vc_redist.x64.exe is an installer and must not be in the portable ZIP")
+endif()
+
+# Linux runtime provenance is generated from the populated AppDir.  A second
+# linuxdeploy pass creates the AppImage, so verify the final extracted image
+# against that manifest and reject any library that appeared after collection.
+if(EXISTS "${root}/licenses/linux-runtime.tsv")
+    file(READ "${root}/licenses/linux-runtime.tsv" runtime_manifest)
+    file(GLOB bundled_libraries LIST_DIRECTORIES false "${root}/usr/lib/*.so*")
+    foreach(path IN LISTS bundled_libraries)
+        cmake_path(RELATIVE_PATH path BASE_DIRECTORY "${root}" OUTPUT_VARIABLE relative)
+        string(FIND "${runtime_manifest}" "${relative}\t" record_offset)
+        if(record_offset EQUAL -1)
+            message(FATAL_ERROR
+                "Bundled Linux library has no provenance record: ${relative}")
+        endif()
+    endforeach()
 endif()
 
 message(STATUS "Portable package layout verified: ${root}")

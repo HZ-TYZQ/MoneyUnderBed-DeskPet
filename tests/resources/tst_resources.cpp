@@ -98,6 +98,13 @@ void TestResources::licenseFilesExist()
         // 第三方字体：OFL-1.1，保持独立许可证。
         QStringLiteral("third_party/ark-pixel-font/OFL.txt"),
         QStringLiteral("third_party/ark-pixel-font/README.md"),
+        // 两平台发行时由安装清单复制或作为进一步收集的基线。
+        QStringLiteral("packaging/LICENSES.md"),
+        QStringLiteral("packaging/licenses/qt-source.md"),
+        QStringLiteral("packaging/licenses/qt-modules-6.11.2.spdx"),
+        QStringLiteral("packaging/licenses/appimage-runtime.txt"),
+        QStringLiteral("packaging/licenses/appimage-tooling.txt"),
+        QStringLiteral("packaging/licenses/msvc-runtime.md"),
     };
 
     for (const QString &relative : required) {

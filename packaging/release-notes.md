@@ -2,12 +2,16 @@
 
 本 Release 的二进制由标签对应的 GitHub Actions 自动构建。候选验收期间保持为草稿；请核对随附的 `.sha256` 文件后再测试，验收通过时发布同一份产物，不重新构建。
 
+草稿同时附带 Qt／ICU／AppImage runtime／打包工具的固定源码归档，以及 Linux
+AppImage 实际随包系统库对应的 Ubuntu 源码包。二进制内的 `licenses/` 目录记录
+逐组件许可和版本映射；源码与二进制属于同一次 Actions 构建，不从 runner 清单猜测。
+
 ## 授权与身份
 
 - 本项目是《床下有罐钱》的非官方、非商业二次创作，与原作开发者没有隶属关系，也不由其发布或背书。
 - 角色素材来自作者 `_U5B_` 发布的[二创素材包](https://www.bilibili.com/video/BV1XwhV6TEXQ/)，仅供二次创作、不可商用、禁止 R18、禁止用于 AI 训练。
 - 程序代码采用 GPL-3.0-or-later；Ark Pixel 字体采用 OFL-1.1。各自完整文本和素材清单均包含在发行物中。
-- Qt 6.11.2 采用 GPLv3 动态链接路径；Qt Base／Qt SVG 对应源码归档及校验文件随本 Release 提供。
+- Qt 6.11.2 采用 GPLv3 动态链接路径；Qt／ICU 与其他需提供的对应源码及校验文件随本 Release 提供。
 - Windows 包未签名，可能触发 SmartScreen，也可能被 Smart App Control 或企业策略阻止。
 
 ## 支持与验证边界

@@ -65,6 +65,9 @@ if(LINUX)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/licenses/appimage-runtime.txt"
         DESTINATION "licenses"
     )
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/licenses/appimage-tooling.txt"
+        DESTINATION "licenses"
+    )
     install(FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/linux/io.github.hz_tyzq.MoneyUnderBedDeskPet.desktop"
         DESTINATION "usr/share/applications"
@@ -74,5 +77,9 @@ if(LINUX)
     install(FILES "${CMAKE_SOURCE_DIR}/assets/icon/appimage.png"
         DESTINATION "usr/share/icons/hicolor/160x160/apps"
         RENAME "io.github.hz_tyzq.MoneyUnderBedDeskPet.png"
+    )
+elseif(WIN32)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/licenses/msvc-runtime.md"
+        DESTINATION "licenses"
     )
 endif()

@@ -124,7 +124,7 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 
 **首轮对 `passthrough-qt` 的判断是错的。** 首轮只记到 1 次角色点击、0 次穿透，与 `passthrough-native` 的 43/49 形成 92 比 1，据此曾初步判断 Qt 路径无效。复测数据是 135/122 与 189/181，并且逐段核对开关与点击的对应关系，两条路径全程正确。首轮异常来自测试环境（下层点击靶很可能被 PowerShell 遮住，且那轮落在角色上的点击远少于复测轮）。教训：单看总数不足以判定，必须核对分段对应关系。
 
-**因此 Windows 穿透采用纯 Qt 路径**，按 `docs/Decisions.md` 第 8.4 节「优先使用 Qt」。待办：删除 `WindowsWindowBackend` 的 `PassthroughStrategy` 与 `MUB_WIN_PASSTHROUGH` 环境变量，只保留继承自 `QtWindowBackend` 的实现；其中补齐 `WS_EX_TOOLWINDOW` 与 `WS_EX_NOACTIVATE` 的部分保留，与穿透路径无关。
+**因此 Windows 穿透采用纯 Qt 路径**，按 `docs/Decisions.md` 第 8.4 节「优先使用 Qt」。收尾阶段已经删除 `WindowsWindowBackend` 的 `PassthroughStrategy` 与 `MUB_WIN_PASSTHROUGH` 环境变量，只保留继承自 `QtWindowBackend` 的实现；其中补齐 `WS_EX_TOOLWINDOW` 与 `WS_EX_NOACTIVATE` 的部分保留，与穿透路径无关。
 
 **像素锐利的条件是乘积为整数。** 150% 缩放下 `--scale 2` 锐利，是因为 `2 x 1.50 = 3` 正好是整数物理倍率。实际生效的是 `项目倍率 x 系统 DPR`：125% 下没有任何整数倍率能得到整数物理倍率，150% 下只有偶数倍率可以。这是 `docs/Decisions.md` 第 13 节「完整的整数显示倍率集合」的直接输入，本轮不下结论。
 
@@ -143,7 +143,7 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 未完成：
 
 - 100%／125%／200% 三档缩放、`Alt+Tab` 目视确认、置顶关闭态、点击与拖动时的焦点、动画帧序、锁屏与睡眠恢复。全部属于补档位或补单独确认，不涉及未知的能力风险。清单见 `docs/WindowsFeasibilityResults.md` 第 8 节。
-- 穿透路径的代码清理（删除原生候选）尚未执行。
+- 穿透路径的代码清理已经完成，正式产品不再暴露未采用的原生候选。
 
 ### 阶段顺序偏离（2026-08-27，项目所有者决定）
 
@@ -224,7 +224,7 @@ MSVC 的严格警告集合是首次在本项目验证，`/WX` 打开后一次通
 - 判定标准降为「双平台编译通过、自动测试通过」，不再要求先有 Windows 探针结果。
 - 阶段 3 的退出门仍不判定：退出门要求「正式产品窗口在 KDE 与 Windows 都达到探针已验证的核心表现」，那需要真实桌面人工验收。
 - 前提条件仍然成立：平台相关能力必须集中在窄接口内（`docs/Decisions.md` 第 8.4 节）。分叉只允许出现在接口实现里，不得散入动画、行为和角色逻辑。
-- 有不确定取舍的地方实现两条路径并可在运行时切换，使一次人工校验就能覆盖两种可能，而不是错了再出一次包。当前唯一这样的取舍是 Windows 的整窗穿透：`MUB_WIN_PASSTHROUGH=qt`（默认）走 Qt 窗口标志，`MUB_WIN_PASSTHROUGH=native` 只改 `WS_EX_TRANSPARENT`。默认选 Qt 路径符合第 8.4 节「优先使用 Qt」。
+- 当时唯一不确定的取舍是 Windows 整窗穿透，因此探针与首版实现曾同时保留 Qt 标志和原生扩展样式两条路径。真实 Windows 复测确认两者均可用后，已按第 8.4 节选择 Qt 路径，并在收尾阶段删除原生候选与环境变量。
 - `docs/WindowsFeasibilityResults.md` 继续如实标记未实测。凡是未经实测就写进产品的 Windows 行为，都记为假设而不是结论。
 
 ### 已完成
@@ -690,11 +690,11 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 ### 尚未完成
 
-- **发行许可阻断已缩小但尚未解除**：角色素材已经外置，Qt Base／Qt SVG 已有 GPL 文本、SPDX 元数据和固定对应源码；仍未覆盖实际 AppImage／Windows 候选中的全部平台运行库、AppImage runtime 静态依赖及 MSVC runtime 声明。AppImage 官方明确由制作者负责随包依赖的许可证、声明和必要源码。在实际候选依赖清单审计完成前，产物只能用于验收，不能以“全部许可已经合规”名义公开发布。
+- **发行许可阻断正在收尾验证**：角色素材边界与 Qt GPL 路径已经完成；收尾实现会从实际 AppImage 逐库反查 Ubuntu 二进制包、copyright 和精确源包，并附同批 Debian 源码 artifact。ICU、AppImage runtime、libfuse、打包工具与 MSVC CRT 也已加入固定来源和许可材料。只有新一批 Actions 候选实际产出、清单和源码校验全部通过后才解除阻断。
 - AppImage 生成器默认会从 `AppImage/type2-runtime` 的 `continuous` Release 临时下载 runtime。现已把 x86-64 runtime 固定为源码提交 `75849dce7cc37e4319b633df1f116ca895c71a12` 对应的 SHA-256 `1cc49b…ebbf`：工作流先下载并校验，再通过 `LDAI_RUNTIME_FILE` 显式传给 appimagetool；上游 `continuous` 内容变化时构建会失败而不会静默漂移。其 MIT 文本与上游列出的静态依赖声明也已随 AppImage 安装，但这些静态依赖的对应源码义务仍待最终审计。
 - 由项目所有者下载并核对同一批 artifact 的 SHA-256，完成 KDE AppImage 与干净 Windows 11 ZIP 检查表及各三小时运行。
 - 根据候选实测冻结性能门槛；有合格社区测试者时补 GNOME 结果，否则保持实验性／未验证。
-- 人工验收通过后创建正式版本标签，检查草稿 Release，最后发布同一份候选产物。
+- 收尾工程与许可自动门全绿后创建正式版本标签；Actions 生成草稿 Release，再对草稿中的原文件完成双平台最终验收，最后直接发布而不重新构建。
 
 ## Linux 侧已有结果
 

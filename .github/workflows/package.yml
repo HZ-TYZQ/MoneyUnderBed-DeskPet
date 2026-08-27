@@ -29,6 +29,27 @@ env:
   QTBASE_SOURCE_SHA256: 5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22
   QTSVG_SOURCE_URL: https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtsvg-everywhere-src-6.11.2.tar.xz
   QTSVG_SOURCE_SHA256: d594337feca84c26fb67fe87b85e6a5c12fda404b611d905f9d138210c311876
+  ICU_SOURCE_URL: https://github.com/unicode-org/icu/releases/download/release-73-2/icu4c-73_2-src.tgz
+  ICU_SOURCE_SHA256: 818a80712ed3caacd9b652305e01afc7fa167e6f2e94996da44b90c2ab604ce1
+  ICU_LICENSE_URL: https://raw.githubusercontent.com/unicode-org/icu/release-73-2/icu4c/LICENSE
+  ICU_LICENSE_SHA256: f3005e195ff74d8812cc1f182a1c446fab678d70a10e3dada497585befee5416
+  APPIMAGE_RUNTIME_COMMIT: 75849dce7cc37e4319b633df1f116ca895c71a12
+  LINUXDEPLOY_COMMIT: cc7b86472c3caa3fd729b9dc502fd2aa78394257
+  LINUXDEPLOY_QT_COMMIT: ce5291e25979d7d6417551d787f308b88c1b8d76
+  FUSE_SOURCE_URL: https://github.com/libfuse/libfuse/releases/download/fuse-3.15.0/fuse-3.15.0.tar.xz
+  FUSE_SOURCE_SHA256: 70589cfd5e1cff7ccd6ac91c86c01be340b227285c5e200baa284e401eea2ca0
+  SQUASHFUSE_SOURCE_URL: https://github.com/vasi/squashfuse/archive/0.5.2.tar.gz
+  SQUASHFUSE_SOURCE_SHA256: db0238c5981dabbd80ee09ae15387f390091668ca060a7bc38047912491443d3
+  LIBFUSE_LICENSE_URL: https://raw.githubusercontent.com/libfuse/libfuse/fuse-3.15.0/LGPL2.txt
+  LIBFUSE_LICENSE_SHA256: dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551
+  SQUASHFUSE_LICENSE_URL: https://raw.githubusercontent.com/vasi/squashfuse/0.5.2/LICENSE
+  SQUASHFUSE_LICENSE_SHA256: 9e909cc8a8ba27b1a649c964cf9eda37de911f3138c2b64e6d2f01703904ac13
+  MUSL_LICENSE_URL: https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.5
+  MUSL_LICENSE_SHA256: f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af
+  ZSTD_LICENSE_URL: https://raw.githubusercontent.com/facebook/zstd/v1.5.6/LICENSE
+  ZSTD_LICENSE_SHA256: 7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8
+  ZLIB_LICENSE_URL: https://raw.githubusercontent.com/madler/zlib/v1.3.1/LICENSE
+  ZLIB_LICENSE_SHA256: 845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243
 
 jobs:
   metadata:
@@ -67,7 +88,7 @@ jobs:
           echo "Package version: $display_version"
 
   qt_source:
-    name: Qt corresponding source
+    name: Framework and runtime corresponding source
     needs: metadata
     runs-on: ubuntu-22.04
     outputs:
@@ -89,7 +110,46 @@ jobs:
           printf '%s  %s\n' "$QTSVG_SOURCE_SHA256" "$svg" > "$svg.sha256"
           sha256sum -c "$svg.sha256"
           test -s "$svg"
-          echo "artifact_name=Qt-source-${QT_VERSION}-${{ needs.metadata.outputs.label }}" >> "$GITHUB_OUTPUT"
+
+          icu="icu4c-73_2-src.tgz"
+          curl -fL --retry 3 -o "$icu" "$ICU_SOURCE_URL"
+          printf '%s  %s\n' "$ICU_SOURCE_SHA256" "$icu" > "$icu.sha256"
+          sha256sum -c "$icu.sha256"
+
+          git clone --filter=blob:none https://github.com/AppImage/type2-runtime.git type2-runtime
+          git -C type2-runtime checkout "$APPIMAGE_RUNTIME_COMMIT"
+          test "$(git -C type2-runtime rev-parse HEAD)" = "$APPIMAGE_RUNTIME_COMMIT"
+          git -C type2-runtime archive --format=tar.gz \
+            --prefix="type2-runtime-${APPIMAGE_RUNTIME_COMMIT}/" \
+            -o "../type2-runtime-${APPIMAGE_RUNTIME_COMMIT}.tar.gz" HEAD
+          sha256sum "type2-runtime-${APPIMAGE_RUNTIME_COMMIT}.tar.gz" \
+            > "type2-runtime-${APPIMAGE_RUNTIME_COMMIT}.tar.gz.sha256"
+
+          for spec in \
+            "linuxdeploy $LINUXDEPLOY_COMMIT" \
+            "linuxdeploy-plugin-qt $LINUXDEPLOY_QT_COMMIT"; do
+            read -r repository commit <<< "$spec"
+            git clone --filter=blob:none \
+              "https://github.com/linuxdeploy/$repository.git" "$repository"
+            git -C "$repository" checkout "$commit"
+            test "$(git -C "$repository" rev-parse HEAD)" = "$commit"
+            archive="$repository-$commit.tar.gz"
+            git -C "$repository" archive --format=tar.gz \
+              --prefix="$repository-$commit/" -o "../$archive" HEAD
+            sha256sum "$archive" > "$archive.sha256"
+          done
+
+          fuse="fuse-3.15.0.tar.xz"
+          curl -fL --retry 3 -o "$fuse" "$FUSE_SOURCE_URL"
+          printf '%s  %s\n' "$FUSE_SOURCE_SHA256" "$fuse" > "$fuse.sha256"
+          sha256sum -c "$fuse.sha256"
+
+          squash="squashfuse-0.5.2.tar.gz"
+          curl -fL --retry 3 -o "$squash" "$SQUASHFUSE_SOURCE_URL"
+          printf '%s  %s\n' "$SQUASHFUSE_SOURCE_SHA256" "$squash" > "$squash.sha256"
+          sha256sum -c "$squash.sha256"
+
+          echo "artifact_name=Corresponding-source-${{ needs.metadata.outputs.label }}" >> "$GITHUB_OUTPUT"
 
       - name: Upload corresponding source
         uses: actions/upload-artifact@v7
@@ -100,6 +160,18 @@ jobs:
             qtbase-everywhere-src-${{ env.QT_VERSION }}.tar.xz.sha256
             qtsvg-everywhere-src-${{ env.QT_VERSION }}.tar.xz
             qtsvg-everywhere-src-${{ env.QT_VERSION }}.tar.xz.sha256
+            icu4c-73_2-src.tgz
+            icu4c-73_2-src.tgz.sha256
+            type2-runtime-${{ env.APPIMAGE_RUNTIME_COMMIT }}.tar.gz
+            type2-runtime-${{ env.APPIMAGE_RUNTIME_COMMIT }}.tar.gz.sha256
+            fuse-3.15.0.tar.xz
+            fuse-3.15.0.tar.xz.sha256
+            squashfuse-0.5.2.tar.gz
+            squashfuse-0.5.2.tar.gz.sha256
+            linuxdeploy-${{ env.LINUXDEPLOY_COMMIT }}.tar.gz
+            linuxdeploy-${{ env.LINUXDEPLOY_COMMIT }}.tar.gz.sha256
+            linuxdeploy-plugin-qt-${{ env.LINUXDEPLOY_QT_COMMIT }}.tar.gz
+            linuxdeploy-plugin-qt-${{ env.LINUXDEPLOY_QT_COMMIT }}.tar.gz.sha256
           if-no-files-found: error
           retention-days: 30
 
@@ -109,6 +181,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       artifact_name: ${{ steps.names.outputs.artifact_name }}
+      source_artifact_name: ${{ steps.source_names.outputs.artifact_name }}
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -118,7 +191,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            curl file ninja-build patchelf \
+            curl dpkg-dev file ninja-build patchelf \
             libgl1-mesa-dev \
             libxkbcommon-dev libxkbcommon-x11-0 libx11-xcb1 \
             libxcb1-dev libxcb-cursor0 libxcb-glx0 libxcb-icccm4 \
@@ -188,14 +261,77 @@ jobs:
           echo "$APPIMAGE_RUNTIME_SHA256  tools/runtime-x86_64" | sha256sum -c -
           chmod +x tools/*.AppImage
 
+      - name: Populate and prune AppDir
+        shell: bash
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          EXTRA_PLATFORM_PLUGINS: libqoffscreen.so
+          NO_STRIP: "1"
+        run: |
+          set -euo pipefail
+          qmake_path="$(command -v qmake || command -v qmake6)"
+          QMAKE="$qmake_path" \
+            tools/linuxdeploy-x86_64.AppImage \
+              --appdir AppDir \
+              --executable AppDir/usr/bin/money-under-bed-deskpet \
+              --desktop-file AppDir/usr/share/applications/io.github.hz_tyzq.MoneyUnderBedDeskPet.desktop \
+              --icon-file AppDir/usr/share/icons/hicolor/160x160/apps/io.github.hz_tyzq.MoneyUnderBedDeskPet.png \
+              --plugin qt
+
+          # The product loads only PNG assets (PNG support is built into QtGui),
+          # uses no TLS, and provides its own Chinese UI text.  Removing these
+          # soft plugins and translations reduces both package size and the
+          # third-party audit surface.  The packaged self-test below proves the
+          # remaining offscreen asset path before an artifact is accepted.
+          rm -rf AppDir/usr/plugins/imageformats AppDir/usr/plugins/tls \
+            AppDir/usr/translations
+          rm -f AppDir/usr/lib/libQt6Svg.so.6
+
+          curl -fL --retry 3 -o AppDir/licenses/icu.txt "$ICU_LICENSE_URL"
+          echo "$ICU_LICENSE_SHA256  AppDir/licenses/icu.txt" | sha256sum -c -
+
+          mkdir -p AppDir/licenses/appimage-runtime
+          while IFS=$'\t' read -r name url checksum; do
+            target="AppDir/licenses/appimage-runtime/$name"
+            curl -fL --retry 3 -o "$target" "$url"
+            echo "$checksum  $target" | sha256sum -c -
+          done <<EOF
+          libfuse-LGPL-2.1.txt	$LIBFUSE_LICENSE_URL	$LIBFUSE_LICENSE_SHA256
+          squashfuse.txt	$SQUASHFUSE_LICENSE_URL	$SQUASHFUSE_LICENSE_SHA256
+          musl.txt	$MUSL_LICENSE_URL	$MUSL_LICENSE_SHA256
+          zstd.txt	$ZSTD_LICENSE_URL	$ZSTD_LICENSE_SHA256
+          zlib.txt	$ZLIB_LICENSE_URL	$ZLIB_LICENSE_SHA256
+          EOF
+
+          packaging/CollectLinuxRuntime.sh AppDir linux-source-packages.tsv
+
+      - name: Archive exact Ubuntu source packages
+        id: source_names
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo sed -n 's/^deb /deb-src /p' /etc/apt/sources.list \
+            | sudo tee /etc/apt/sources.list.d/mub-source.list >/dev/null
+          sudo apt-get update
+          mkdir -p linux-system-source
+          while IFS=$'\t' read -r package version; do
+            (cd linux-system-source && apt-get source --download-only "$package=$version")
+          done < linux-source-packages.tsv
+          cp linux-source-packages.tsv linux-system-source/SOURCE_PACKAGES.tsv
+          (
+            cd linux-system-source
+            find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 \
+              | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          test -s linux-system-source/SHA256SUMS
+          echo "artifact_name=Linux-system-source-${{ needs.metadata.outputs.label }}" \
+            >> "$GITHUB_OUTPUT"
+
       - name: Build AppImage
         id: names
         shell: bash
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
-          # 发行物自检在没有真实显示服务的 runner 上运行；把自检所需的平台
-          # 插件也当作发行物的一部分验证，而不是借用 runner 的 Qt 安装。
-          EXTRA_PLATFORM_PLUGINS: libqoffscreen.so
           # linuxdeploy 自带的旧 strip 不认识现代 Qt ELF 的 .relr.dyn。
           # 官方支持 NO_STRIP；Release 体积以可靠可运行为先，后续再单独评估剥离。
           NO_STRIP: "1"
@@ -203,16 +339,10 @@ jobs:
           set -euo pipefail
           base="MoneyUnderBed-DeskPet-linux-x86_64-${{ needs.metadata.outputs.label }}"
           output="$base.AppImage"
-          qmake_path="$(command -v qmake || command -v qmake6)"
-          QMAKE="$qmake_path" \
           LDAI_OUTPUT="$output" \
           LDAI_RUNTIME_FILE="$PWD/tools/runtime-x86_64" \
             tools/linuxdeploy-x86_64.AppImage \
               --appdir AppDir \
-              --executable AppDir/usr/bin/money-under-bed-deskpet \
-              --desktop-file AppDir/usr/share/applications/io.github.hz_tyzq.MoneyUnderBedDeskPet.desktop \
-              --icon-file AppDir/usr/share/icons/hicolor/160x160/apps/io.github.hz_tyzq.MoneyUnderBedDeskPet.png \
-              --plugin qt \
               --output appimage
           test -s "$output"
           echo "base=$base" >> "$GITHUB_OUTPUT"
@@ -239,7 +369,8 @@ jobs:
           cmake \
             -DPACKAGE_ROOT="$extract_dir/squashfs-root" \
             -DPACKAGE_EXECUTABLE=usr/bin/money-under-bed-deskpet \
-            "-DPACKAGE_REQUIRED_FILES=usr/plugins/platforms/libqoffscreen.so;licenses/appimage-runtime.txt" \
+            "-DPACKAGE_REQUIRED_FILES=usr/plugins/platforms/libqoffscreen.so;licenses/appimage-runtime.txt;licenses/appimage-tooling.txt;licenses/icu.txt;licenses/linux-runtime.tsv;licenses/appimage-runtime/libfuse-LGPL-2.1.txt;licenses/appimage-runtime/squashfuse.txt;licenses/appimage-runtime/musl.txt;licenses/appimage-runtime/zstd.txt;licenses/appimage-runtime/zlib.txt" \
+            "-DPACKAGE_FORBIDDEN_PATHS=usr/plugins/imageformats;usr/plugins/tls;usr/translations;usr/lib/libQt6Svg.so.6" \
             -P packaging/VerifyPackage.cmake
 
           base="${image%.AppImage}"
@@ -292,6 +423,14 @@ jobs:
             ${{ steps.names.outputs.base }}.AppImage.sha256
             ${{ steps.names.outputs.base }}.contents.txt
             ${{ steps.names.outputs.base }}.elf-needed.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Linux corresponding source
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.source_names.outputs.artifact_name }}
+          path: linux-system-source/
           if-no-files-found: error
           retention-days: 30
 
@@ -353,6 +492,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           windeployqt --release --no-translations --no-compiler-runtime `
+            --no-system-d3d-compiler --no-system-dxc-compiler --no-opengl-sw `
+            --skip-plugin-types generic,iconengines,imageformats,networkinformation,tls `
             package\money-under-bed-deskpet.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -400,7 +541,8 @@ jobs:
 
           cmake "-DPACKAGE_ROOT=$PWD\package" `
             "-DPACKAGE_EXECUTABLE=money-under-bed-deskpet.exe" `
-            "-DPACKAGE_REQUIRED_FILES=platforms/qoffscreen.dll" `
+            "-DPACKAGE_REQUIRED_FILES=platforms/qoffscreen.dll;licenses/msvc-runtime.md" `
+            "-DPACKAGE_FORBIDDEN_PATHS=d3dcompiler_47.dll;dxcompiler.dll;dxil.dll;opengl32sw.dll;generic;iconengines;imageformats;networkinformation;tls;Qt6Svg.dll" `
             -P packaging/VerifyPackage.cmake
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -512,6 +654,12 @@ jobs:
           name: ${{ needs.qt_source.outputs.artifact_name }}
           path: dist/source
 
+      - name: Download Linux system corresponding source
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.linux.outputs.source_artifact_name }}
+          path: dist/linux-source
+
       - name: Verify downloaded checksums
         shell: bash
         run: |
@@ -519,6 +667,7 @@ jobs:
           (cd dist/linux && sha256sum -c ./*.sha256)
           (cd dist/windows && sha256sum -c ./*.sha256)
           (cd dist/source && sha256sum -c ./*.sha256)
+          (cd dist/linux-source && sha256sum -c SHA256SUMS)
 
       - name: Create or refresh draft release
         shell: bash

@@ -167,10 +167,10 @@ PowerShell 窗口遮住，同时那一轮实际落在角色上的点击也远少
 两条路径都可用，因此按 `docs/Decisions.md` 第 8.4 节「优先使用 Qt；
 Qt 无法满足窗口细节时，允许通过窄平台接口调用 Win32 API」选择 Qt 标志路径。
 
-后续动作：把 `WindowsWindowBackend` 的 `PassthroughStrategy` 与
-`MUB_WIN_PASSTHROUGH` 环境变量删除，只保留继承自 `QtWindowBackend` 的实现。
-`WindowsWindowBackend` 中补齐 `WS_EX_TOOLWINDOW` 与 `WS_EX_NOACTIVATE` 的部分保留，
-那部分与穿透路径无关。
+收尾清理已经完成：`WindowsWindowBackend` 的 `PassthroughStrategy` 与
+`MUB_WIN_PASSTHROUGH` 环境变量均已删除，整窗穿透只保留继承自
+`QtWindowBackend` 的实现。`WindowsWindowBackend` 中补齐
+`WS_EX_TOOLWINDOW` 与 `WS_EX_NOACTIVATE` 的部分继续保留，那部分与穿透路径无关。
 
 ## 6. 失败证据
 

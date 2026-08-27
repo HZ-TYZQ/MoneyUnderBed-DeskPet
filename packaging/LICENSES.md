@@ -6,9 +6,9 @@
 
 对应 `docs/Decisions.md` 第 10.1 节与第 12 节。
 
-> 阶段 9 审计状态：Qt Base／Qt SVG 已固定 GPLv3 路径、SBOM 和对应源码归档；
-> AppImage／MSVC 及打包工具收集的平台运行库仍需按实际候选产物完成审计。
-> 本文件还不是“全部第三方依赖已经合规”的证明；该审计结束前不得公开发行。
+> 阶段 9 审计状态：Qt、ICU、AppImage runtime、MSVC CRT 与 Linux 随包系统库
+> 都已建立固定来源、许可材料和对应源码收集路径。只有新的 Actions 候选实际
+> 产出并通过清单校验后，才可把审计标为完成；在此之前不得公开发行。
 
 ## 仓库全部内容不是同一个许可证
 
@@ -36,6 +36,11 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 | `licenses/qt-gpl-3.0-only.txt` | 仓库根 `LICENSE` 的 GPLv3 完整正文 | 本发行物选择的 Qt GPLv3 路径 |
 | `licenses/qt-modules-6.11.2.spdx` | `packaging/licenses/qt-modules-6.11.2.spdx` | Qt Base／Qt SVG、许可路径与对应源码哈希 |
 | `licenses/appimage-runtime.txt`（仅 Linux） | `packaging/licenses/appimage-runtime.txt` | AppImage runtime 及其静态依赖声明 |
+| `licenses/appimage-tooling.txt`（仅 Linux） | `packaging/licenses/appimage-tooling.txt` | AppRun 与 Qt 环境 hook 生成工具的 MIT 声明 |
+| `licenses/icu.txt`（仅 Linux，构建时固定下载） | ICU 73.2 `icu4c/LICENSE` | Qt 官方 Linux 包携带的 ICU 完整声明 |
+| `licenses/appimage-runtime/*`（仅 Linux，构建时固定下载） | 各 runtime 依赖上游 | libfuse、squashfuse、musl、zstd、zlib 完整许可文本 |
+| `licenses/linux-runtime.tsv` 与 `licenses/linux-runtime/*.copyright`（仅 Linux） | Ubuntu 22.04 实际二进制包 | 随包系统库的精确版本、源包和 Debian copyright |
+| `licenses/msvc-runtime.md`（仅 Windows） | `packaging/licenses/msvc-runtime.md` | app-local MSVC CRT 来源和微软再分发条款 |
 
 对话字体的 TTF 编译进 Qt 资源系统，发行目录不再单独放一份，
 以免出现同一字体的两个副本（`docs/Decisions.md` 第 4.7 节）。
@@ -45,9 +50,16 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 放在可执行文件旁的 `assets/character/` 与 `assets/face/`，并继续遵循
 `licenses/assets.md` 中的单独授权；程序缺少这些文件时自检会失败。
 
-Qt Base 与 Qt SVG 对应源码归档与每批二进制候选一起作为 Actions artifact
-保存，正式标签构建附到同一个草稿 Release，SHA-256 由工作流固定核对。
+Qt Base、Qt SVG、ICU 73.2、固定 AppImage runtime、libfuse、squashfuse、
+linuxdeploy 与 linuxdeploy-plugin-qt 的源码归档与每批候选一起保存。Linux 候选
+还从实际 AppDir 反查 Ubuntu 二进制包，下载精确版本的 Debian 源码包作为独立
+artifact。正式标签构建把这些材料全部附到同一草稿 Release 并核对 SHA-256。
 项目使用动态链接，不禁止用户替换 Qt 动态库。
+
+Windows 包不携带系统 DLL。app-local MSVC CRT 只从 runner 的
+`%VCToolsRedistDir%` 复制未修改 release 文件；调试版与 `debug_nonredist` 均不进入
+发行物。DirectX shader compiler、D3D compiler 与软件 OpenGL 不是本项目的运行
+需求，已经从部署命令中排除，不为无用软依赖扩大再分发面。
 
 ## Release 说明必须包含的声明
 
@@ -64,6 +76,9 @@ Qt Base 与 Qt SVG 对应源码归档与每批二进制候选一起作为 Action
 - [ ] 包内不存在第二份 Ark Pixel TTF。
 - [ ] 包内素材与 `assets/MANIFEST.md` 一致。
 - [ ] Qt GPL 文本与构建所用 Qt Base SBOM 存在，Qt 对应源码归档哈希通过。
+- [ ] Linux 每个随包非 Qt 库均映射到版本化 Ubuntu 源包、copyright 和同批源码 artifact。
+- [ ] AppImage runtime 的完整静态依赖许可与 libfuse 对应源码存在。
+- [ ] Windows CRT 只来自 `VC\Redist`，且 DirectX／软件 OpenGL 等未用组件不存在。
 - [ ] Release 说明包含上一节全部声明。
 
 每个 Actions 候选 artifact 还附带实际成品的逐文件 SHA-256 清单；Linux
