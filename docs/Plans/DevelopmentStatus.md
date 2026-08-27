@@ -107,23 +107,43 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 - ZIP SHA-256：`c335de582b6b06e8c64d94a94d4db3b084314a8484fed750293176bf26adb8f0`
 - 检查表：包内 `WindowsChecklist.md`，结果填入 `docs/WindowsFeasibilityResults.md`
 
-### 首轮 Windows 实测（2026-08-27）
+### Windows 实测（2026-08-27）
 
 项目所有者用 run 33001629207 的探针包（commit `017fd14e`，SHA-256 已核对）在 150% 缩放的单显示器上运行了 10 个用例。完整结果见 `docs/WindowsFeasibilityResults.md`。
 
 通过的核心能力：帧间隔（596 采样，平均 100.00 ms）、自主移动（132/132 请求与实际位置一致）、透明背景、像素锐利、置顶、不进任务栏、启动不抢焦点、原生穿透。
 
-两个需要记住的结论：
+复测后补齐了 `hittest`、`drag-system`、`drag-manual`、`lifecycle` 与 `passthrough-qt`，14 个用例全部核心能力通过，**没有任何失败项**：
 
-- **窗口重建问题没有复现。** `passthrough-qt` 与 `topmost` 的全部切换都是 `rebuilt=false`。计划 6.1 设想的「复现窗口重建后才引入 Win32」这个触发条件不成立。
-- **但 Qt 穿透路径以另一种方式失败。** 背靠背两轮、同样的持续点击：`passthrough-qt` 只记到 1 次角色点击、0 次穿透；`passthrough-native` 记到 43 次角色点击、49 次穿透。Qt 路径切换后窗口既不接收输入也不透传。存在一个未排除的干扰因素（下层点击靶可能被 PowerShell 遮住），但它解释不了角色只收到 1 次点击。已请项目所有者复核。
+- `hittest`：149 次角色点击**全部** `sprite_alpha=255`，另有 18 次从透明区穿到下层。掩码 98 个矩形，包围盒 `38,44,72,178` 明显小于 `138x222` 窗口。`docs/Decisions.md` 第 3.4 节在 Windows 上成立。
+- `drag-manual`：11 702 次移动，请求与实际位置 **0 / 11 730** 不一致。
+- `drag-system`：5 次请求全部 `accepted=true`。
+- `lifecycle`：`window_close` → `exit`，干净退出。
+
+**窗口重建问题没有复现。** 两条穿透路径与 `topmost` 的所有切换都是 `rebuilt=false`。计划 6.1 设想的「复现窗口重建后才引入 Win32」这个触发条件不成立。
+
+**首轮对 `passthrough-qt` 的判断是错的。** 首轮只记到 1 次角色点击、0 次穿透，与 `passthrough-native` 的 43/49 形成 92 比 1，据此曾初步判断 Qt 路径无效。复测数据是 135/122 与 189/181，并且逐段核对开关与点击的对应关系，两条路径全程正确。首轮异常来自测试环境（下层点击靶很可能被 PowerShell 遮住，且那轮落在角色上的点击远少于复测轮）。教训：单看总数不足以判定，必须核对分段对应关系。
+
+**因此 Windows 穿透采用纯 Qt 路径**，按 `docs/Decisions.md` 第 8.4 节「优先使用 Qt」。待办：删除 `WindowsWindowBackend` 的 `PassthroughStrategy` 与 `MUB_WIN_PASSTHROUGH` 环境变量，只保留继承自 `QtWindowBackend` 的实现；其中补齐 `WS_EX_TOOLWINDOW` 与 `WS_EX_NOACTIVATE` 的部分保留，与穿透路径无关。
 
 **像素锐利的条件是乘积为整数。** 150% 缩放下 `--scale 2` 锐利，是因为 `2 x 1.50 = 3` 正好是整数物理倍率。实际生效的是 `项目倍率 x 系统 DPR`：125% 下没有任何整数倍率能得到整数物理倍率，150% 下只有偶数倍率可以。这是 `docs/Decisions.md` 第 13 节「完整的整数显示倍率集合」的直接输入，本轮不下结论。
 
+### 退出门
+
+计划第 6 节的三条退出门条件，按本轮数据均已满足：
+
+| 条件 | 判定 |
+| --- | --- |
+| 透明、动画、自主移动、拖动、像素级输入、置顶、焦点和窗口列表表现均有实际结果 | 满足 |
+| 核心失败已定位到具体路径并验证解决方案，不以“预计 Win32 可行”通过 | 满足，本轮无核心失败 |
+| 任一核心能力仍失败则停止正式产品开发 | 不触发 |
+
+状态仍填 `进行中` 而非 `已通过`：本记录的规则是「需要项目所有者人工验收的阶段，未收到验收结论前不得填 `已通过`」。数据已齐备，等项目所有者给出验收结论后改。
+
 未完成：
 
-- `passthrough-qt` 待复核，`hittest`、`drag-system`、`drag-manual`、`lifecycle`、`render` 五个用例未运行，100%／125%／200% 三档缩放未测。清单见 `docs/WindowsFeasibilityResults.md` 第 8 节。
-- 退出门未判定。
+- 100%／125%／200% 三档缩放、`Alt+Tab` 目视确认、置顶关闭态、点击与拖动时的焦点、动画帧序、锁屏与睡眠恢复。全部属于补档位或补单独确认，不涉及未知的能力风险。清单见 `docs/WindowsFeasibilityResults.md` 第 8 节。
+- 穿透路径的代码清理（删除原生候选）尚未执行。
 
 ### 阶段顺序偏离（2026-08-27，项目所有者决定）
 
