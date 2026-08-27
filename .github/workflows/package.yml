@@ -425,12 +425,13 @@ jobs:
           [IO.File]::WriteAllText("$PWD\$base.zip.sha256", "$hash  $base.zip`n", [Text.Encoding]::ASCII)
 
           $packageRoot = (Resolve-Path package).Path
+          $utf8NoBom = [Text.UTF8Encoding]::new($false)
           $contents = Get-ChildItem package -Recurse -File | Sort-Object FullName | ForEach-Object {
             $relative = $_.FullName.Substring($packageRoot.Length + 1).Replace('\', '/')
             $fileHash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
             "$fileHash  $relative"
           }
-          [IO.File]::WriteAllLines("$PWD\$base.contents.txt", $contents, [Text.Encoding]::UTF8)
+          [IO.File]::WriteAllLines("$PWD\$base.contents.txt", $contents, $utf8NoBom)
 
           $imports = [Collections.Generic.List[string]]::new()
           Get-ChildItem package -Recurse -File | Where-Object {
@@ -445,7 +446,7 @@ jobs:
               }
             }
           }
-          [IO.File]::WriteAllLines("$PWD\$base.dll-dependencies.txt", $imports, [Text.Encoding]::UTF8)
+          [IO.File]::WriteAllLines("$PWD\$base.dll-dependencies.txt", $imports, $utf8NoBom)
           if ((Get-Item "$base.contents.txt").Length -eq 0) { throw 'Empty package contents manifest' }
           if ((Get-Item "$base.dll-dependencies.txt").Length -eq 0) { throw 'Empty DLL dependency manifest' }
 
