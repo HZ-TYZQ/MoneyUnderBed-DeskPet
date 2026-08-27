@@ -18,5 +18,6 @@ endfunction()
 
 add_subdirectory(character)
 add_subdirectory(core)
+add_subdirectory(dialogue)
 add_subdirectory(platform)
 add_subdirectory(resources)

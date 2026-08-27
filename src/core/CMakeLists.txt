@@ -42,6 +42,14 @@ target_sources(money-under-bed-core PRIVATE
     ../character/SpriteSheet.cpp
     ../character/SpriteSheet.h
 )
+
+# dialogue/ 的内容同样编入 core，不单独成库。
+target_sources(money-under-bed-core PRIVATE
+    ../dialogue/DialogueData.cpp
+    ../dialogue/DialogueData.h
+    ../dialogue/DialogueSession.cpp
+    ../dialogue/DialogueSession.h
+)
 add_library(MUB::Core ALIAS money-under-bed-core)
 
 target_include_directories(money-under-bed-core
