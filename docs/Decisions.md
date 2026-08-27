@@ -257,7 +257,8 @@ GitHub 用户名中的连字符在应用 ID 的域名段替换为下划线，以
 ### 4.8 气泡渲染参数
 
 以下取值由项目所有者于 2026-08-27 通过 Qt 交互原型审核后冻结。
-原型为 `probes/bubble/`，其默认值取自已选定的 `Temp/dialogue-bubble-designs/variant-a-embedded.html`。
+审核用的 Qt 交互原型取值自已选定的 `Temp/dialogue-bubble-designs/variant-a-embedded.html`；
+参数冻结后该原型已删除，本节即唯一来源，`tests/ui/tst_bubblelayout.cpp` 会逐条核对实现与本节一致。
 
 长度单位为**未经倍率放大的基准像素**，气泡与角色按同一倍率一起缩放。
 第 4 节的布局结构不因这些数值可调而改变。
