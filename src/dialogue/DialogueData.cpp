@@ -19,7 +19,7 @@ constexpr std::array<DialoguePage, 4> kIcecreamDropPages{{
     {u8"我刚刚掉了甜筒……", "panic"},
     {u8"可恶，一定是这个家伙害我掉了甜筒！", "impatient"},
     {u8"我已经没有钱买第二个了……", "serious-eyes-closed"},
-    {u8"你要陪我！", "impatient"},
+    {u8"你要赔我！", "impatient"},
 }};
 constexpr std::array<DialoguePage, 1> kOriginal01Pages{{
     {u8"不管啦，能出多大事呢，今天可以三顿都吃零食啦！", "proud"},

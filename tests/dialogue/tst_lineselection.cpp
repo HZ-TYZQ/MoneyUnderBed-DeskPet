@@ -27,7 +27,8 @@ class TestLineSelection final : public QObject
 
 private slots:
     void everyTriggerHasLines();
-    void everyIdResolvesToASinglePageDialogue();
+    void everyIdResolvesToAPlayableDialogue();
+    void poolsExcludeTheFeedingDropDialogue();
     void noDuplicatesWithinATrigger();
     void selectionStaysInsideTheTriggerPool();
     void selectionCoversTheWholePool();
@@ -40,18 +41,32 @@ void TestLineSelection::everyTriggerHasLines()
     }
 }
 
-// 单页气泡只显示一页。多页台词必须走连续对话，不能被随机气泡选中。
-void TestLineSelection::everyIdResolvesToASinglePageDialogue()
+// 第 4.1 节允许随机气泡选中多页文案，因此这里不限制页数，
+// 但每一页都必须能解析、非空，并带一个常规表情。
+void TestLineSelection::everyIdResolvesToAPlayableDialogue()
 {
     for (const LineTrigger trigger : kTriggers) {
         for (const char *const id : lineIdsFor(trigger)) {
             const QString name = QString::fromLatin1(id);
             const mub::dialogue::Dialogue *entry = findDialogue(name);
             QVERIFY2(entry != nullptr, qPrintable(name));
-            QCOMPARE(entry->pages.size(), std::size_t{1});
-            // 第 4 节：每个显示页面都必须有经过人工审核的表情。
-            QVERIFY(mub::dialogue::isRegularFace(
-                QString::fromLatin1(entry->pages.front().faceId)));
+            QVERIFY2(!entry->pages.empty(), qPrintable(name));
+            for (const mub::dialogue::DialoguePage &page : entry->pages) {
+                QVERIFY2(page.text != nullptr && *page.text != u8'\0', qPrintable(name));
+                // 第 4 节：每个显示页面都必须有经过人工审核的表情。
+                QVERIFY2(mub::dialogue::isRegularFace(QString::fromLatin1(page.faceId)),
+                         qPrintable(name));
+            }
+        }
+    }
+}
+
+// 冰淇淋掉落是连续对话事件的专属入口，不能被随机气泡抽到。
+void TestLineSelection::poolsExcludeTheFeedingDropDialogue()
+{
+    for (const LineTrigger trigger : kTriggers) {
+        for (const char *const id : lineIdsFor(trigger)) {
+            QVERIFY2(QString::fromLatin1(id) != QStringLiteral("icecream-drop"), id);
         }
     }
 }

@@ -23,17 +23,17 @@ constexpr auto kPageCueGlyph = u"□";
 
 } // namespace
 
-BubbleRenderer::BubbleRenderer(const double scale)
+BubbleRenderer::BubbleRenderer(const int scale)
 {
     setScale(scale);
 }
 
-void BubbleRenderer::setScale(const double scale)
+void BubbleRenderer::setScale(const int scale)
 {
-    scale_ = scale > 0.0 ? scale : 1.0;
+    scale_ = scale > 0 ? scale : 1;
 }
 
-double BubbleRenderer::scale() const
+int BubbleRenderer::scale() const
 {
     return scale_;
 }
@@ -57,13 +57,13 @@ void BubbleRenderer::setTyping(const bool typing)
 
 int BubbleRenderer::scaled(const int value) const
 {
-    return static_cast<int>(std::lround(value * scale_));
+    return value * scale_;
 }
 
 int BubbleRenderer::lineHeight() const
 {
-    // 行高是字号的倍数，不是字体自身的行距。先放大字号再乘行高倍数，
-    // 保证 1.5× 下的行距与 1× 成比例，而不是逐行累积取整误差。
+    // 行高是字号的倍数，不是字体自身的行距。先按倍率放大字号再乘行高倍数，
+    // 避免逐行累积取整误差。
     return std::max(1,
                     static_cast<int>(std::lround(scaled(bubble::kFontPixelSize)
                                                  * bubble::kLineHeightPermille

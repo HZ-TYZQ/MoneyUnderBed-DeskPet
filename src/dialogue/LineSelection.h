@@ -24,6 +24,7 @@ enum class LineTrigger
 };
 
 // 某个触发场景可用的对话标识。顺序固定，便于审查与测试。
+// 分组内可以有多页文案：第 4.1 节允许随机气泡选中它们，按连续对话规则显示。
 std::span<const char *const> lineIdsFor(LineTrigger trigger);
 
 // 从该场景的台词里随机取一条。分组为空时返回空串。

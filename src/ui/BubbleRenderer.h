@@ -20,11 +20,12 @@ namespace mub::ui {
 class BubbleRenderer
 {
 public:
-    explicit BubbleRenderer(double scale = 1.0);
+    explicit BubbleRenderer(int scale = 1);
 
-    // 显示倍率。第 5.1 节：`1×`、`1.5×`、`2×` 等离散档位，一律最近邻采样。
-    void setScale(double scale);
-    double scale() const;
+    // 显示倍率。第 5.1 节：只用整数倍率，一律最近邻采样。
+    // 与角色窗口共用同一个倍率，气泡和角色因此始终等比。
+    void setScale(int scale);
+    int scale() const;
 
     // `face` 为空表示该页没有可用表情素材，此时只画文字区。
     // 正常内容里每页都有表情（第 4 节），空表情属于素材缺失的降级路径。
@@ -59,7 +60,7 @@ private:
     int textAreaWidth() const;
     QStringList computeWrappedLines() const;
 
-    double scale_ = 1.0;
+    int scale_ = 1;
     QImage face_;
     QString fullText_;
     int visibleCharacters_ = 0;

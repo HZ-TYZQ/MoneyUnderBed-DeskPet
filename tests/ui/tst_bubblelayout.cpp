@@ -8,8 +8,6 @@
 #include <QString>
 #include <QTest>
 
-#include <cmath>
-
 using mub::ui::BubbleRenderer;
 namespace bubble = mub::ui::bubble;
 
@@ -22,15 +20,16 @@ constexpr int kFrameHeight = 111;
 // 一块常见的桌面可用区域。角落用例都相对它取。
 const QRect kAvailable(0, 0, 1920, 1080);
 
-// 项目所有者已经采用的三档倍率（第 5.1 节）。1.5 必须和整数档一样有测试覆盖。
-const QList<double> kScales{1.0, 1.5, 2.0};
+// 第 5.1 节只允许整数倍率。`1×` 与 `2×` 是第一版的验收档，
+// `3×` 一并覆盖，确认布局不是只在两档上凑对。
+const QList<int> kScales{1, 2, 3};
 
-int scaled(const int value, const double scale)
+int scaled(const int value, const int scale)
 {
-    return static_cast<int>(std::lround(value * scale));
+    return value * scale;
 }
 
-QRect characterAt(const QPoint &topLeft, const double scale)
+QRect characterAt(const QPoint &topLeft, const int scale)
 {
     return {topLeft, QSize(scaled(kFrameWidth, scale), scaled(kFrameHeight, scale))};
 }
@@ -44,7 +43,7 @@ QString decisionsText()
     return QString::fromUtf8(file.readAll());
 }
 
-BubbleRenderer rendererWith(const QString &text, const double scale)
+BubbleRenderer rendererWith(const QString &text, const int scale)
 {
     BubbleRenderer renderer(scale);
     renderer.setContent(QImage(), text);
@@ -132,7 +131,7 @@ void TestBubbleLayout::frozenValuesMatchTheDecisionRecord()
 // 固定宽度是原型 A 与其他两版的关键区别。
 void TestBubbleLayout::panelWidthIsFixedRegardlessOfTextLength()
 {
-    for (const double scale : kScales) {
+    for (const int scale : kScales) {
         const int expected = scaled(bubble::kPanelWidth, scale);
         QCOMPARE(rendererWith(QStringLiteral("好吃！"), scale).panelSize().width(),
                  expected);
@@ -146,7 +145,7 @@ void TestBubbleLayout::panelWidthIsFixedRegardlessOfTextLength()
 
 void TestBubbleLayout::panelIsNeverSmallerThanTheFrozenMinimum()
 {
-    for (const double scale : kScales) {
+    for (const int scale : kScales) {
         const QSize size = rendererWith(QStringLiteral("好吃！"), scale).panelSize();
         QCOMPARE(size.width(), scaled(bubble::kPanelWidth, scale));
         QVERIFY(size.height() >= scaled(bubble::kPanelMinHeight, scale));
@@ -157,7 +156,7 @@ void TestBubbleLayout::panelIsNeverSmallerThanTheFrozenMinimum()
 // 角色在屏幕右下角时不需要夹取，可以直接核对公式本身。
 void TestBubbleLayout::placesTheBubbleAboveAndLeftOfTheCharacter()
 {
-    for (const double scale : kScales) {
+    for (const int scale : kScales) {
         const BubbleRenderer renderer =
             rendererWith(QStringLiteral("你要陪我！"), scale);
         const QRect character =
@@ -179,7 +178,7 @@ void TestBubbleLayout::placesTheBubbleAboveAndLeftOfTheCharacter()
 
 void TestBubbleLayout::keepsThePanelInsideTheAvailableAreaAtEveryCorner()
 {
-    for (const double scale : kScales) {
+    for (const int scale : kScales) {
         const BubbleRenderer renderer =
             rendererWith(QStringLiteral("我已经没有钱买第二个了……"), scale);
         const QSize panel = renderer.panelSize();
@@ -213,7 +212,7 @@ void TestBubbleLayout::keepsThePanelInsideTheAvailableAreaAtEveryCorner()
 // 第 4.8 节：靠近屏幕左缘时夹取回可用区域，不镜像到角色右上方。
 void TestBubbleLayout::clampsInsteadOfMirroringNearTheLeftEdge()
 {
-    for (const double scale : kScales) {
+    for (const int scale : kScales) {
         const BubbleRenderer renderer = rendererWith(QStringLiteral("怎么啦？"), scale);
         const QRect character = characterAt({kAvailable.left(), 600}, scale);
         const QRect place = renderer.placeFor(character, kAvailable);
@@ -229,7 +228,7 @@ void TestBubbleLayout::clampsInsteadOfMirroringNearTheLeftEdge()
 // 退出门：所有台词在各倍率下都要能读，不允许被面板裁掉。
 void TestBubbleLayout::everyPageFitsWithoutOverflowing()
 {
-    for (const double scale : kScales) {
+    for (const int scale : kScales) {
         BubbleRenderer renderer(scale);
         for (const mub::dialogue::Dialogue &entry : mub::dialogue::registeredDialogues()) {
             for (const mub::dialogue::DialoguePage &page : entry.pages) {

@@ -46,9 +46,9 @@ public:
                        QObject *parent = nullptr);
     ~DialogueController() override;
 
-    // 气泡与角色使用同一倍率（第 4.8 节）。
-    void setScale(double scale);
-    double scale() const;
+    // 气泡与角色使用同一整数倍率（第 4.8 节）。
+    void setScale(int scale);
+    int scale() const;
 
     // BubbleHost。
     bool consumeCharacterClick() override;

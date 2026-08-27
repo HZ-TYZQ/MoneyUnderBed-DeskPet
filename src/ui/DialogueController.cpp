@@ -69,7 +69,7 @@ DialogueController::~DialogueController()
     delete bubble_;
 }
 
-void DialogueController::setScale(const double scale)
+void DialogueController::setScale(const int scale)
 {
     bubble_->renderer().setScale(scale);
     if (isShowing()) {
@@ -77,7 +77,7 @@ void DialogueController::setScale(const double scale)
     }
 }
 
-double DialogueController::scale() const
+int DialogueController::scale() const
 {
     return bubble_->renderer().scale();
 }
