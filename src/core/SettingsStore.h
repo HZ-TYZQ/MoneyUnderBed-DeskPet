@@ -29,6 +29,13 @@ public:
     // 只删自己的分组，不清空整个配置文件。
     void restoreDefaults();
 
+    // 首次启动提示是否已经显示过。
+    //
+    // 这不是用户设置，因此不在 Settings 里，也**不受「恢复默认设置」影响** ——
+    // 恢复默认是把设置调回出厂值，不是把程序变回从没运行过。
+    bool firstRunNoticeShown() const;
+    void markFirstRunNoticeShown();
+
 private:
     QSettings *backend_;
 };

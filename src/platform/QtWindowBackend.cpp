@@ -72,4 +72,11 @@ bool QtWindowBackend::startSystemDrag(QWindow *window)
     return window->startSystemMove();
 }
 
+void QtWindowBackend::setWorkspaceVisibility(QWindow *window, const bool allWorkspaces)
+{
+    Q_UNUSED(window)
+    Q_UNUSED(allWorkspaces)
+    // 纯 Qt 无法表达工作区归属。调用方按能力自述判断，不在这里报错。
+}
+
 } // namespace mub::platform

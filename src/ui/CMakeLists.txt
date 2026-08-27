@@ -18,6 +18,8 @@ target_sources(money-under-bed-deskpet PRIVATE
     DialogueController.h
     DialogueFont.cpp
     DialogueFont.h
+    FirstRunWindow.cpp
+    FirstRunWindow.h
     SettingsWindow.cpp
     SettingsWindow.h
     TrayIcon.cpp

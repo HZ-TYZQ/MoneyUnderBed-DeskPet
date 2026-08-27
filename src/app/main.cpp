@@ -1,3 +1,4 @@
+#include "app/DesktopEntry.h"
 #include "app/DiagnosticLog.h"
 #include "app/SelfTest.h"
 #include "app/SingleInstance.h"
@@ -17,6 +18,7 @@
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
 #include "ui/DialogueController.h"
+#include "ui/FirstRunWindow.h"
 #include "ui/SettingsWindow.h"
 #include "ui/TrayIcon.h"
 
@@ -27,6 +29,8 @@
 #include <QLoggingCategory>
 #include <QRandomGenerator>
 #include <QIcon>
+#include <QImage>
+#include <QStandardPaths>
 #include <QSettings>
 #include <QString>
 
@@ -180,6 +184,14 @@ int main(int argc, char *argv[])
         if (trayForSettings != nullptr) {
             trayForSettings->setMode(settings.mode);
         }
+        // 工作区归属只在后端自述支持时才下发；不支持时设置界面隐藏该项，
+        // 取值恒为默认（第 3.4、5.1 节）。
+        if (backend->capabilities().workspacePinning
+            && window.windowHandle() != nullptr) {
+            backend->setWorkspaceVisibility(
+                window.windowHandle(),
+                settings.workspace == mub::core::WorkspaceVisibility::AllWorkspaces);
+        }
     };
 
     // 修改后立即生效并保存，不设「应用」阶段（第 5.1 节）。
@@ -263,9 +275,57 @@ int main(int argc, char *argv[])
                          application.quit();
                      });
 
+    // 应用菜单入口只对 AppImage 有意义。Windows 免安装 ZIP 不创建快捷方式，
+    // 普通 Linux 安装包由包管理器提供入口（第 5.2 节）。
+    const QString appImagePath = qEnvironmentVariable("APPIMAGE");
+    const bool runningAsAppImage = !appImagePath.isEmpty();
+    mub::app::DesktopEntry desktopEntry(
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+            + QStringLiteral("/applications"),
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+            + QStringLiteral("/icons/hicolor/256x256/apps"));
+    const QImage entryIcon(QStringLiteral(":/assets/face/natural.png"));
+
+    const auto refreshDesktopEntryState = [&] {
+        settingsWindow.setDesktopEntryState(runningAsAppImage,
+                                            desktopEntry.isInstalled());
+    };
+    QObject::connect(&settingsWindow,
+                     &mub::ui::SettingsWindow::installDesktopEntryRequested,
+                     &application, [&] {
+                         desktopEntry.install(appImagePath, entryIcon);
+                         refreshDesktopEntryState();
+                     });
+    QObject::connect(&settingsWindow,
+                     &mub::ui::SettingsWindow::removeDesktopEntryRequested,
+                     &application, [&] {
+                         desktopEntry.remove();
+                         refreshDesktopEntryState();
+                     });
+
+    // 用户移动 AppImage 后重新运行该文件即更新集成（第 5.2 节）。
+    // 这是更新已有入口，不是静默新建：用户此前已经同意过。
+    if (runningAsAppImage && desktopEntry.isInstalled()
+        && desktopEntry.installedExecutable() != appImagePath) {
+        qCInfo(lcMain) << "the AppImage moved; updating the application menu entry";
+        desktopEntry.install(appImagePath, entryIcon);
+    }
+
     applySettings(settings);
     settingsWindow.setSettings(settings);
+    refreshDesktopEntryState();
     presenter.start();
+
+    // 首次启动的简短提示。第 5.2 节：一页，不做多页欢迎向导。
+    if (!settingsStore.firstRunNoticeShown()) {
+        mub::ui::FirstRunWindow notice(runningAsAppImage);
+        notice.exec();
+        if (notice.wantsDesktopEntry()) {
+            desktopEntry.install(appImagePath, entryIcon);
+            refreshDesktopEntryState();
+        }
+        settingsStore.markFirstRunNoticeShown();
+    }
 
     return application.exec();
 }

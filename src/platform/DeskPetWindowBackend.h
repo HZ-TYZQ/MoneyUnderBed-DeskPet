@@ -57,6 +57,12 @@ public:
     // 请求由窗口管理器接管拖动。返回是否被接受。
     // 不被接受时由调用方自行做手动移动，本接口不代为回退。
     virtual bool startSystemDrag(QWindow *window) = 0;
+
+    // 固定到全部工作区，或只留在当前工作区（docs/Decisions.md 第 3.4 节）。
+    //
+    // 只有 capabilities().workspacePinning 为真时才有意义。为假时设置界面
+    // 直接隐藏该项，因此正常路径下不会调用到不支持的实现。
+    virtual void setWorkspaceVisibility(QWindow *window, bool allWorkspaces) = 0;
 };
 
 } // namespace mub::platform

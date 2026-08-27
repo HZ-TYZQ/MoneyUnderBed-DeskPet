@@ -4,6 +4,7 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
+#include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QVariant>
@@ -67,6 +68,20 @@ SettingsWindow::SettingsWindow(const bool workspaceSupported, QWidget *parent)
         workspace_->hide();
     }
 
+    // 应用菜单入口。默认隐藏，只有以 AppImage 运行时由调用方打开。
+    desktopEntryLabel_ = new QLabel(tr("应用菜单"), this);
+    desktopEntryButton_ = new QPushButton(this);
+    form->addRow(desktopEntryLabel_, desktopEntryButton_);
+    desktopEntryLabel_->hide();
+    desktopEntryButton_->hide();
+    connect(desktopEntryButton_, &QPushButton::clicked, this, [this] {
+        if (desktopEntryInstalled_) {
+            emit removeDesktopEntryRequested();
+        } else {
+            emit installDesktopEntryRequested();
+        }
+    });
+
     auto *buttons = new QDialogButtonBox(this);
     restoreDefaults_ =
         buttons->addButton(tr("恢复默认设置"), QDialogButtonBox::ResetRole);
@@ -115,6 +130,15 @@ core::Settings SettingsWindow::settings() const
         ? static_cast<core::WorkspaceVisibility>(workspace_->currentData().toInt())
         : core::Settings{}.workspace;
     return core::sanitized(settings);
+}
+
+void SettingsWindow::setDesktopEntryState(const bool offered, const bool installed)
+{
+    desktopEntryInstalled_ = installed;
+    desktopEntryLabel_->setVisible(offered);
+    desktopEntryButton_->setVisible(offered);
+    desktopEntryButton_->setText(installed ? tr("移除应用菜单入口")
+                                           : tr("加入应用菜单"));
 }
 
 void SettingsWindow::emitIfNotUpdating()

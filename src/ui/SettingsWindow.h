@@ -6,6 +6,7 @@
 
 class QCheckBox;
 class QComboBox;
+class QLabel;
 class QPushButton;
 
 namespace mub::ui {
@@ -32,9 +33,17 @@ public:
     void setSettings(const core::Settings &settings);
     core::Settings settings() const;
 
+    // 应用菜单入口的当前状态。
+    //
+    // 第 5.2 节要求程序提供移除自己创建的入口，并把该操作放在设置或关于界面。
+    // `offered` 为假时整行隐藏 —— 只有以 AppImage 运行时才谈得上这件事。
+    void setDesktopEntryState(bool offered, bool installed);
+
 signals:
     void settingsChanged(const core::Settings &settings);
     void restoreDefaultsRequested();
+    void installDesktopEntryRequested();
+    void removeDesktopEntryRequested();
 
 private:
     void emitIfNotUpdating();
@@ -48,6 +57,10 @@ private:
     QComboBox *scale_ = nullptr;
     QComboBox *workspace_ = nullptr;
     QPushButton *restoreDefaults_ = nullptr;
+
+    bool desktopEntryInstalled_ = false;
+    QLabel *desktopEntryLabel_ = nullptr;
+    QPushButton *desktopEntryButton_ = nullptr;
 };
 
 } // namespace mub::ui

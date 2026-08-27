@@ -22,6 +22,7 @@ public:
         int setInputPassthrough = 0;
         int setHitMask = 0;
         int startSystemDrag = 0;
+        int setWorkspaceVisibility = 0;
     };
 
     explicit FakeWindowBackend(platform::BackendCapabilities capabilities = {})
@@ -76,7 +77,15 @@ public:
         return systemDragAccepted_;
     }
 
+    void setWorkspaceVisibility(QWindow *window, const bool allWorkspaces) override
+    {
+        Q_UNUSED(window)
+        ++calls_.setWorkspaceVisibility;
+        allWorkspaces_ = allWorkspaces;
+    }
+
     const Calls &calls() const { return calls_; }
+    bool allWorkspaces() const { return allWorkspaces_; }
     bool alwaysOnTop() const { return alwaysOnTop_; }
     bool passthrough() const { return passthrough_; }
     QRegion lastMask() const { return lastMask_; }
@@ -88,6 +97,7 @@ private:
     bool alwaysOnTop_ = false;
     bool passthrough_ = false;
     bool systemDragAccepted_ = true;
+    bool allWorkspaces_ = true;
     QRegion lastMask_;
 };
 

@@ -2,6 +2,8 @@
 
 #if defined(Q_OS_WIN) || defined(_WIN32)
 #include "platform/WindowsWindowBackend.h"
+#elif defined(Q_OS_LINUX) || defined(__linux__)
+#include "platform/LinuxWindowBackend.h"
 #else
 #include "platform/QtWindowBackend.h"
 #endif
@@ -12,10 +14,12 @@ std::unique_ptr<DeskPetWindowBackend> createWindowBackend()
 {
 #if defined(Q_OS_WIN) || defined(_WIN32)
     return std::make_unique<WindowsWindowBackend>();
+#elif defined(Q_OS_LINUX) || defined(__linux__)
+    // Linux 的其余能力都由纯 Qt XCB 路径实测通过
+    // （docs/FeasibilityResults.md）。LinuxWindowBackend 只补一项 Qt 表达不了的
+    // 工作区归属，其余全部继承 QtWindowBackend。
+    return std::make_unique<LinuxWindowBackend>();
 #else
-    // Linux 的全部所需能力已由纯 Qt XCB 路径实测通过
-    // （docs/FeasibilityResults.md），因此不另立 XCB 专用后端。
-    // 阶段 7 需要「固定到全部工作区」时再增加 XCB 实现。
     return std::make_unique<QtWindowBackend>();
 #endif
 }

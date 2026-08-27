@@ -1,5 +1,7 @@
 # QApplication 前后的启动、组装与命令行入口。
 qt_add_executable(money-under-bed-deskpet
+    DesktopEntry.cpp
+    DesktopEntry.h
     DiagnosticLog.cpp
     DiagnosticLog.h
     SelfTest.cpp

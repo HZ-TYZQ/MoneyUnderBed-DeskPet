@@ -29,7 +29,11 @@ target_compile_definitions(money-under-bed-platform PUBLIC QT_DISABLE_DEPRECATED
 if(LINUX)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(XCB REQUIRED IMPORTED_TARGET xcb)
-    target_sources(money-under-bed-platform PRIVATE LinuxStartupProbe.cpp)
+    target_sources(money-under-bed-platform PRIVATE
+        LinuxStartupProbe.cpp
+        LinuxWindowBackend.cpp
+        LinuxWindowBackend.h
+    )
     target_link_libraries(money-under-bed-platform PRIVATE PkgConfig::XCB)
 else()
     target_sources(money-under-bed-platform PRIVATE GenericStartupProbe.cpp)

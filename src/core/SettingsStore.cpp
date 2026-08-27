@@ -15,6 +15,9 @@ constexpr auto kAlwaysOnTop = "alwaysOnTop";
 constexpr auto kScale = "scale";
 constexpr auto kWorkspace = "workspace";
 
+// 首次启动标记放在设置分组之外，因此不会被「恢复默认设置」清掉。
+constexpr auto kFirstRunNoticeShown = "state/firstRunNoticeShown";
+
 } // namespace
 
 SettingsStore::SettingsStore(QSettings &backend)
@@ -62,6 +65,17 @@ void SettingsStore::restoreDefaults()
     backend_->beginGroup(QLatin1StringView(kGroup));
     backend_->remove(QString());
     backend_->endGroup();
+    backend_->sync();
+}
+
+bool SettingsStore::firstRunNoticeShown() const
+{
+    return backend_->value(QLatin1StringView(kFirstRunNoticeShown), false).toBool();
+}
+
+void SettingsStore::markFirstRunNoticeShown()
+{
+    backend_->setValue(QLatin1StringView(kFirstRunNoticeShown), true);
     backend_->sync();
 }
 

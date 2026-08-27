@@ -51,6 +51,7 @@ private slots:
     void savedSettingsSurviveAReload();
     void corruptedValuesFallBackWithoutLosingTheRest();
     void restoreDefaultsClearsOnlyOurGroup();
+    void firstRunNoticeFlagSurvivesRestoreDefaults();
 };
 
 // 默认值直接对应决策文档，改这里等于改产品首次启动行为。
@@ -192,6 +193,20 @@ void TestSettings::restoreDefaultsClearsOnlyOurGroup()
     QCOMPARE(temporary.store().load(), Settings{});
     QCOMPARE(temporary.backend().value(QStringLiteral("window/geometry")).toString(),
              QStringLiteral("keep-me"));
+}
+
+// 恢复默认是把设置调回出厂值，不是把程序变回从没运行过。
+void TestSettings::firstRunNoticeFlagSurvivesRestoreDefaults()
+{
+    TemporaryStore temporary;
+    QVERIFY(!temporary.store().firstRunNoticeShown());
+
+    temporary.store().markFirstRunNoticeShown();
+    QVERIFY(temporary.store().firstRunNoticeShown());
+
+    temporary.store().restoreDefaults();
+    QVERIFY(temporary.store().firstRunNoticeShown());
+    QCOMPARE(temporary.store().load(), Settings{});
 }
 
 QTEST_MAIN(TestSettings)
