@@ -47,6 +47,13 @@ endif()
 add_subdirectory(resources)
 add_subdirectory(src)
 
+# 审核用原型。不是产品代码，默认只在开发构建中启用。
+# 参数冻结并写回 docs/Decisions.md 后可以整个删除。
+option(MUB_BUILD_PROTOTYPES "Build the review prototypes under probes/" ON)
+if(MUB_BUILD_PROTOTYPES)
+    add_subdirectory(probes/bubble)
+endif()
+
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
