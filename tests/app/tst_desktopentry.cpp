@@ -88,8 +88,12 @@ void TestDesktopEntry::installWritesTheEntryAndTheIcon()
     QVERIFY(QFile::exists(entry.entryFilePath()));
     QVERIFY(QFile::exists(entry.iconFilePath()));
     QVERIFY(readAll(entry.entryFilePath()).contains(QStringLiteral("/opt/pet.AppImage")));
+#ifndef Q_OS_WIN
     // 桌面环境要求 .desktop 带可执行位才认为它可信。
+    // Windows 没有可执行位，Qt 只按扩展名推断，`.desktop` 永远不会带上，
+    // 因此这条只在类 Unix 上断言。应用菜单入口本身也只在 Linux 上使用。
     QVERIFY(QFile::permissions(entry.entryFilePath()).testFlag(QFileDevice::ExeOwner));
+#endif
 }
 
 void TestDesktopEntry::installedExecutableReadsBackTheQuotedPath()

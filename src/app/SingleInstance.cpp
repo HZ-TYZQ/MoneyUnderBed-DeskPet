@@ -18,7 +18,14 @@ Q_LOGGING_CATEGORY(lcInstance, "mub.app.instance")
 
 // 唤回消息只有一个动作，不需要协议。内容仅用于确认对端确实是本程序。
 constexpr auto kRecallMessage = "recall";
+// 主实例收到并认可后回一个字节。
+//
+// 这个应答不是为了传信息，而是为了**让客户端在服务端读完之前不要断开**。
+// 没有它时，客户端写完就断开，Windows 命名管道上服务端可能读到空数据，
+// 唤回就会静默丢失；Unix socket 上因为缓冲区语义不同而看不出问题。
+constexpr auto kAcknowledgement = "k";
 constexpr int kConnectTimeoutMs = 500;
+constexpr int kHandshakeTimeoutMs = 2000;
 
 } // namespace
 
@@ -56,7 +63,16 @@ SingleInstance::Role SingleInstance::acquire()
             return false;
         }
         socket.write(kRecallMessage);
-        socket.waitForBytesWritten(kConnectTimeoutMs);
+        if (!socket.waitForBytesWritten(kHandshakeTimeoutMs)) {
+            qCWarning(lcInstance) << "could not send the recall request";
+            return false;
+        }
+        // 等主实例的应答再断开。连上了就说明确实有实例在运行，
+        // 因此即使应答超时也照样退让 —— 不能因为握手慢就开第二个实例。
+        if (!socket.waitForReadyRead(kHandshakeTimeoutMs)) {
+            qCWarning(lcInstance)
+                << "the running instance did not acknowledge the recall request";
+        }
         socket.disconnectFromServer();
         return true;
     };
@@ -102,16 +118,29 @@ SingleInstance::Role SingleInstance::acquire()
 
 void SingleInstance::handleConnection()
 {
+    const QByteArray expected(kRecallMessage);
+
     while (QLocalSocket *socket = server_->nextPendingConnection()) {
         connect(socket, &QLocalSocket::disconnected, socket, &QLocalSocket::deleteLater);
-        socket->waitForReadyRead(kConnectTimeoutMs);
-        const QByteArray message = socket->readAll();
-        socket->disconnectFromServer();
 
-        if (message != QByteArray(kRecallMessage)) {
+        // 一次 readyRead 不保证收全。按期望长度读满为止，超时就放弃这条连接。
+        QByteArray message;
+        while (message.size() < expected.size()
+               && socket->waitForReadyRead(kHandshakeTimeoutMs)) {
+            message.append(socket->readAll());
+        }
+
+        if (message != expected) {
             qCWarning(lcInstance) << "ignoring an unexpected message on the local socket";
+            socket->disconnectFromServer();
             continue;
         }
+
+        // 先应答再断开：客户端在收到应答前不会关闭连接。
+        socket->write(kAcknowledgement);
+        socket->waitForBytesWritten(kHandshakeTimeoutMs);
+        socket->disconnectFromServer();
+
         qCInfo(lcInstance) << "recall requested by another instance";
         emit recallRequested();
     }

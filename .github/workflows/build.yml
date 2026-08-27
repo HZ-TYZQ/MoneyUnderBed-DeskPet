@@ -125,6 +125,34 @@ jobs:
       - name: Test
         run: ctest --preset ci
 
+      # ctest 的 outputOnFailure 在 Windows runner 上抓不到 Qt Test 的输出：
+      # 失败时只有一行 ***Failed，看不出是哪个测试函数、哪一行断言。
+      # 因此失败时直接跑一遍测试可执行文件，把它们自己的输出打进日志。
+      # 只在失败时执行，正常流水线不受影响。
+      - name: Test output on failure (Linux)
+        if: failure() && runner.os == 'Linux'
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          for exe in build/ci/bin/tst_*; do
+            echo "===== $exe ====="
+            "$exe" || true
+          done
+
+      - name: Test output on failure (Windows)
+        if: failure() && runner.os == 'Windows'
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          Get-ChildItem 'build\ci\bin\tst_*.exe' | ForEach-Object {
+            Write-Host "===== $($_.Name) ====="
+            & $_.FullName
+          }
+          exit 0
+
       # 打包产物自检在阶段 9 加入。这里先验证未打包的可执行文件能启动并退出，
       # 结果以退出码为准，不依赖标准输出（docs/Decisions.md 第 11.1 节）。
       - name: Self-test (Linux)
