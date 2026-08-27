@@ -37,6 +37,9 @@ public:
     ~CharacterWindow() override;
 
     int integerScale() const;
+    // 运行期切换显示倍率（docs/Decisions.md 第 5.1 节：修改后立即生效）。
+    // 窗口尺寸与命中掩码一起重算；非法倍率被忽略。
+    void setIntegerScale(int scale);
 
     // 切换精灵表。所有角色素材的帧尺寸相同，因此窗口大小不变。
     void setSpriteSheet(character::SpriteSheet sheet);

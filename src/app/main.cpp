@@ -9,10 +9,14 @@
 #include "platform/StartupProbe.h"
 #include "core/BubbleFrequency.h"
 #include "core/RandomSource.h"
+#include "core/Settings.h"
+#include "core/SettingsStore.h"
 #include "core/TimeSource.h"
+#include "ui/AboutWindow.h"
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
 #include "ui/DialogueController.h"
+#include "ui/SettingsWindow.h"
 
 #include <QApplication>
 #include <QCommandLineOption>
@@ -20,6 +24,7 @@
 #include <QGuiApplication>
 #include <QLoggingCategory>
 #include <QRandomGenerator>
+#include <QSettings>
 #include <QString>
 
 #include <memory>
@@ -32,6 +37,16 @@ constexpr int kAssetFailureExitCode = 4;
 
 // 启动时的初始动画。方向映射会在第一次移动后接管。
 constexpr auto kStartupClipId = u"idle-down-left";
+
+// 供 --scale 的报错信息使用，避免把允许集合在两处各写一遍。
+QString allowedScaleList()
+{
+    QStringList values;
+    for (const int scale : mub::core::allowedScales()) {
+        values.append(QString::number(scale));
+    }
+    return values.join(QStringLiteral(", "));
+}
 
 } // namespace
 
@@ -71,10 +86,11 @@ int main(int argc, char *argv[])
         QStringLiteral("self-test"),
         QCoreApplication::translate(
             "main", "运行无交互自检后退出，结果以退出码为准。"));
+    // 命令行倍率只用于开发和排查，覆盖本次运行，不写回配置文件。
     const QCommandLineOption scaleOption(
         QStringLiteral("scale"),
-        QCoreApplication::translate("main", "角色显示倍率，正整数。"),
-        QCoreApplication::translate("main", "倍率"), QStringLiteral("2"));
+        QCoreApplication::translate("main", "本次运行的角色显示倍率，覆盖已保存的设置。"),
+        QCoreApplication::translate("main", "倍率"));
     parser.addOption(selfTestOption);
     parser.addOption(scaleOption);
     parser.process(application);
@@ -83,14 +99,25 @@ int main(int argc, char *argv[])
         return mub::app::runSelfTest();
     }
 
-    bool scaleOk = false;
-    const int integerScale = parser.value(scaleOption).toInt(&scaleOk);
-    if (!scaleOk || integerScale < 1 || integerScale > 8) {
-        qCCritical(lcMain).noquote()
-            << QStringLiteral("invalid scale %1; expected an integer from 1 to 8")
-                   .arg(parser.value(scaleOption));
-        return 2;
+    // 设置走标准用户配置目录：默认构造的 QSettings 已经由 QStandardPaths
+    // 决定位置，不会写在 EXE、AppImage 或当前工作目录旁边
+    // （docs/Decisions.md 第 5.1 节）。
+    QSettings settingsBackend;
+    mub::core::SettingsStore settingsStore(settingsBackend);
+    mub::core::Settings settings = settingsStore.load();
+
+    if (parser.isSet(scaleOption)) {
+        bool scaleOk = false;
+        const int requested = parser.value(scaleOption).toInt(&scaleOk);
+        if (!scaleOk || !mub::core::isAllowedScale(requested)) {
+            qCCritical(lcMain).noquote()
+                << QStringLiteral("invalid scale %1; allowed values are %2")
+                       .arg(parser.value(scaleOption), allowedScaleList());
+            return 2;
+        }
+        settings.scale = requested;
     }
+    const int integerScale = settings.scale;
 
     const QString sheetPath =
         mub::character::clipResourcePath(kStartupClipId);
@@ -120,16 +147,57 @@ int main(int argc, char *argv[])
     mub::core::SeededRandomSource random(QRandomGenerator::global()->generate());
 
     mub::ui::CharacterPresenter presenter(window, timeSource, random);
-    // 首次启动默认为安静模式，气泡默认低频（docs/Decisions.md 第 2.2、4 节）。
-    // 设置界面在阶段 7 接管这两个取值。
-    presenter.setMode(mub::core::ActivityMode::Quiet);
-    presenter.setBubbleFrequency(mub::core::BubbleFrequency::Low);
 
     // 气泡与角色使用同一倍率（docs/Decisions.md 第 4.8 节）。
     mub::ui::DialogueController dialogue(presenter, window, timeSource, random,
                                          backend.get());
-    dialogue.setScale(integerScale);
     presenter.setBubbleHost(&dialogue);
+
+    // 平台是否支持固定到全部工作区由后端自述，界面据此决定是否显示该项，
+    // 而不是自己判断当前运行在哪个系统上（第 5.1、8.4 节）。
+    mub::ui::SettingsWindow settingsWindow(
+        backend->capabilities().workspacePinning);
+
+    const auto applySettings = [&](const mub::core::Settings &next) {
+        settings = mub::core::sanitized(next);
+        presenter.applySettings(settings);
+        dialogue.setScale(settings.scale);
+    };
+
+    // 修改后立即生效并保存，不设「应用」阶段（第 5.1 节）。
+    QObject::connect(&settingsWindow, &mub::ui::SettingsWindow::settingsChanged,
+                     &application, [&](const mub::core::Settings &next) {
+                         applySettings(next);
+                         settingsStore.save(settings);
+                     });
+    QObject::connect(&presenter, &mub::ui::CharacterPresenter::settingsChanged,
+                     &application, [&](const mub::core::Settings &next) {
+                         applySettings(next);
+                         settingsStore.save(settings);
+                         settingsWindow.setSettings(settings);
+                     });
+    QObject::connect(&settingsWindow,
+                     &mub::ui::SettingsWindow::restoreDefaultsRequested, &application,
+                     [&] {
+                         settingsStore.restoreDefaults();
+                         applySettings(settingsStore.load());
+                         settingsWindow.setSettings(settings);
+                     });
+    QObject::connect(&presenter, &mub::ui::CharacterPresenter::settingsRequested,
+                     &settingsWindow, [&] {
+                         settingsWindow.setSettings(settings);
+                         settingsWindow.show();
+                         settingsWindow.raise();
+                         settingsWindow.activateWindow();
+                     });
+    // 托盘尚未实现，诊断信息里先如实报告为不可用。
+    mub::ui::AboutWindow aboutWindow(backend->capabilities().name, false);
+    QObject::connect(&presenter, &mub::ui::CharacterPresenter::aboutRequested,
+                     &aboutWindow, [&aboutWindow] {
+                         aboutWindow.show();
+                         aboutWindow.raise();
+                         aboutWindow.activateWindow();
+                     });
 
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::quitRequested,
                      &application, [&application, &dialogue] {
@@ -137,6 +205,9 @@ int main(int argc, char *argv[])
                          dialogue.stop();
                          application.quit();
                      });
+
+    applySettings(settings);
+    settingsWindow.setSettings(settings);
     presenter.start();
 
     return application.exec();

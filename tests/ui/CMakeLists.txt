@@ -34,3 +34,16 @@ target_link_libraries(tst_dialoguecontroller PRIVATE
     MUB::Resources
     Qt6::Widgets
 )
+
+# 设置界面与诊断信息。同样直接编译产品源码。
+mub_add_test(tst_settingswindow
+    tst_settingswindow.cpp
+    "${CMAKE_SOURCE_DIR}/src/ui/AboutWindow.cpp"
+    "${CMAKE_SOURCE_DIR}/src/ui/SettingsWindow.cpp"
+)
+target_include_directories(tst_settingswindow PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_settingswindow PRIVATE
+    MUB::Core
+    MUB::Resources
+    Qt6::Widgets
+)

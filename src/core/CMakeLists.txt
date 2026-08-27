@@ -24,6 +24,10 @@ add_library(money-under-bed-core STATIC
     RandomSource.h
     ScreenPlacement.cpp
     ScreenPlacement.h
+    Settings.cpp
+    Settings.h
+    SettingsStore.cpp
+    SettingsStore.h
     TimeSource.cpp
     TimeSource.h
     "${CMAKE_CURRENT_BINARY_DIR}/generated/mub/Version.h"

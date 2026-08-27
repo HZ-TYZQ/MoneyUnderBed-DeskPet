@@ -9,6 +9,7 @@
 #include "core/ClickFeedback.h"
 #include "core/EventCoordinator.h"
 #include "core/Feeding.h"
+#include "core/Settings.h"
 
 #include <QHash>
 #include <QObject>
@@ -52,6 +53,11 @@ public:
     void setBubbleFrequency(core::BubbleFrequency frequency);
     core::BubbleFrequency bubbleFrequency() const;
 
+    // 一次性套用全部用户设置（docs/Decisions.md 第 5.1 节：修改后立即生效）。
+    // 暂停不在设置里：第 2.2 节规定它只对当前运行周期有效。
+    void applySettings(const core::Settings &settings);
+    const core::Settings &settings() const;
+
     // 气泡宿主。不注入时所有事件都由本类即刻结束，产品退化为无气泡但可运行。
     // 本类不拥有它。
     void setBubbleHost(BubbleHost *host);
@@ -90,6 +96,15 @@ signals:
     // 更高优先级事件替换了旧事件。旧事件的所有者必须立即清理其会话和 UI，
     // 但不再调用 finish(oldKind)，因为协调器已经切换到了新事件。
     void eventReplaced(core::EventKind oldKind);
+
+    // 菜单里直接改掉的设置。上层据此保存并同步设置窗口
+    // （第 5.1 节：修改后立即生效并保存）。暂停不走这里，它不保存。
+    void settingsChanged(const core::Settings &settings);
+
+    // 右键菜单入口。窗口只报告请求，具体界面由上层组装
+    // （第 3.3 节：角色右键菜单是主要控制入口）。
+    void settingsRequested();
+    void aboutRequested();
     void quitRequested();
 
 private:
@@ -115,7 +130,7 @@ private:
     core::FeedingSelector feeding_;
     core::RandomSource *random_;
     BubbleHost *bubbles_ = nullptr;
-    core::BubbleFrequency bubbleFrequency_ = core::BubbleFrequency::Low;
+    core::Settings settings_;
     core::FeedingOutcome feedingOutcome_ = core::FeedingOutcome::Eat;
     bool userPaused_ = false;
     bool eventFreeze_ = false;

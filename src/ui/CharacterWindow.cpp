@@ -54,6 +54,22 @@ int CharacterWindow::integerScale() const
     return integerScale_;
 }
 
+void CharacterWindow::setIntegerScale(const int scale)
+{
+    if (scale < 1 || scale == integerScale_) {
+        return;
+    }
+    integerScale_ = scale;
+
+    // 所有角色素材帧尺寸相同，因此换倍率只是窗口整体缩放，不影响当前帧。
+    const QSize frameSize = sheet_.frameSize();
+    setFixedSize(frameSize.width() * integerScale_,
+                 frameSize.height() * integerScale_);
+    cachedFrameIndex_ = -1;
+    applyHitMask();
+    update();
+}
+
 void CharacterWindow::setSpriteSheet(character::SpriteSheet sheet)
 {
     if (!sheet.isValid()) {

@@ -69,6 +69,7 @@ void CharacterPresenter::stop()
 
 void CharacterPresenter::setMode(const core::ActivityMode mode)
 {
+    settings_.mode = mode;
     behavior_.setMode(mode);
 }
 
@@ -90,12 +91,35 @@ bool CharacterPresenter::isPaused() const
 
 void CharacterPresenter::setBubbleFrequency(const core::BubbleFrequency frequency)
 {
-    bubbleFrequency_ = frequency;
+    settings_.bubble = frequency;
 }
 
 core::BubbleFrequency CharacterPresenter::bubbleFrequency() const
 {
-    return bubbleFrequency_;
+    return settings_.bubble;
+}
+
+void CharacterPresenter::applySettings(const core::Settings &settings)
+{
+    settings_ = core::sanitized(settings);
+
+    behavior_.setMode(settings_.mode);
+    window_->setAlwaysOnTop(settings_.alwaysOnTop);
+
+    if (window_->integerScale() != settings_.scale) {
+        window_->setIntegerScale(settings_.scale);
+        // 窗口尺寸变了，活动区域内的可移动范围随之改变。
+        syncActivityArea();
+        behavior_.setPosition(window_->pos());
+    }
+
+    // 工作区可见性由平台后端决定是否支持；不支持时设置界面不显示该项，
+    // 这里也就不会收到与默认值不同的取值。
+}
+
+const core::Settings &CharacterPresenter::settings() const
+{
+    return settings_;
 }
 
 void CharacterPresenter::setBubbleHost(BubbleHost *host)
@@ -199,7 +223,7 @@ void CharacterPresenter::handleClick()
     }
 
     const core::ClickFeedback feedback =
-        clickFeedback_.select(behavior_.mode(), bubbleFrequency_, *random_);
+        clickFeedback_.select(behavior_.mode(), settings_.bubble, *random_);
 
     // 即使气泡关闭或处于安静模式，也必须给出动作或表情反馈
     // （docs/Decisions.md 第 3.1 节）。当前可用素材没有专门的反应动画，
@@ -222,32 +246,43 @@ void CharacterPresenter::handleClick()
 
 void CharacterPresenter::showContextMenu(const QPoint &globalPosition)
 {
-    // 阶段 7 才建立完整菜单。这里只提供几个临时测试入口，
-    // 以及一个退出项，避免无边框窗口无法关闭。
+    // 第 3.3 节：角色右键菜单是主要控制入口。菜单状态与当前模式同步；
+    // 明确选择「退出」后直接结束，不再弹确认框。
     //
-    // 两个气泡入口是为了让气泡在默认设置下也能被人工检查：默认是安静模式，
-    // 第 2.2 节要求安静模式完全抑制气泡，掉落对话又只有 15% 概率。
-    // 它们**刻意绕过模式与频率判定**，只走协调器，因此不能保留到正式菜单里。
+    // 「隐藏」尚未加入：第 3.3 节要求隐藏后必须有唤回通道（托盘或单实例唤回），
+    // 在唤回通道实现之前不提供只能藏起来、藏了就找不回来的入口。
     QMenu menu;
+
     QAction *feed = menu.addAction(tr("投喂"));
-    QAction *chatter = menu.addAction(tr("说一句（测试）"));
-    QAction *dialogue = menu.addAction(tr("演一段对话（测试）"));
+
+    QAction *active = menu.addAction(tr("活跃模式"));
+    active->setCheckable(true);
+    active->setChecked(settings_.mode == core::ActivityMode::Active);
+
+    QAction *pause = menu.addAction(tr("暂停"));
+    pause->setCheckable(true);
+    pause->setChecked(userPaused_);
+
+    menu.addSeparator();
+    QAction *settings = menu.addAction(tr("设置…"));
+    QAction *about = menu.addAction(tr("关于…"));
     menu.addSeparator();
     QAction *quit = menu.addAction(tr("退出"));
 
     const QAction *chosen = menu.exec(globalPosition);
     if (chosen == feed) {
         this->feed();
-    } else if (chosen == chatter) {
-        if (requestEvent(core::EventKind::AutonomousChatter)
-            != core::EventDecision::Suppressed) {
-            handOffToBubble(core::EventKind::AutonomousChatter);
-        }
-    } else if (chosen == dialogue) {
-        if (requestEvent(core::EventKind::Dialogue) != core::EventDecision::Suppressed) {
-            handOffToBubble(core::EventKind::Dialogue,
-                            core::FeedingSelector::dropDialogueId());
-        }
+    } else if (chosen == active) {
+        setMode(active->isChecked() ? core::ActivityMode::Active
+                                    : core::ActivityMode::Quiet);
+        emit settingsChanged(settings_);
+    } else if (chosen == pause) {
+        // 第 2.2 节：暂停只对当前运行周期有效，不保存。
+        setPaused(pause->isChecked());
+    } else if (chosen == settings) {
+        emit settingsRequested();
+    } else if (chosen == about) {
+        emit aboutRequested();
     } else if (chosen == quit) {
         requestEvent(core::EventKind::Shutdown);
         emit quitRequested();
