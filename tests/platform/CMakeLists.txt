@@ -36,3 +36,7 @@ target_link_libraries(tst_characterpresenter PRIVATE
 # 工厂与真实后端。产品代码里唯一按操作系统分支的地方，两平台都要覆盖。
 mub_add_test(tst_backendfactory tst_backendfactory.cpp)
 target_link_libraries(tst_backendfactory PRIVATE MUB::Platform Qt6::Gui)
+
+# 唯一实例锁。Windows 走命名互斥量，其余平台明确回答不支持。
+mub_add_test(tst_instancelock tst_instancelock.cpp)
+target_link_libraries(tst_instancelock PRIVATE MUB::Platform)

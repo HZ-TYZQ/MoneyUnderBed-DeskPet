@@ -7,6 +7,8 @@
 add_library(money-under-bed-platform STATIC
     BackendFactory.cpp
     BackendFactory.h
+    InstanceLock.cpp
+    InstanceLock.h
     DeskPetWindowBackend.cpp
     DeskPetWindowBackend.h
     QtWindowBackend.cpp
@@ -37,6 +39,13 @@ if(LINUX)
     target_link_libraries(money-under-bed-platform PRIVATE PkgConfig::XCB)
 else()
     target_sources(money-under-bed-platform PRIVATE GenericStartupProbe.cpp)
+endif()
+
+# 唯一实例锁同样按平台取舍：Windows 用命名互斥量，其余平台改由端点占用判断。
+if(WIN32)
+    target_sources(money-under-bed-platform PRIVATE WindowsInstanceLock.cpp)
+else()
+    target_sources(money-under-bed-platform PRIVATE GenericInstanceLock.cpp)
 endif()
 
 if(WIN32)

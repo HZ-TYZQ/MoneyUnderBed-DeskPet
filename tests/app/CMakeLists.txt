@@ -6,6 +6,8 @@ mub_add_test(tst_singleinstance
 target_include_directories(tst_singleinstance PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_singleinstance PRIVATE
     MUB::Core
+    # 唯一实例锁是平台窄接口的一部分（Windows 命名互斥量）。
+    MUB::Platform
     Qt6::Network
 )
 

@@ -428,7 +428,7 @@ core 不依赖 Widgets、Win32、XCB 或 D-Bus
 
 ### 12.3 单实例与唤回
 
-- [ ] Windows 使用命名 mutex 保证唯一实例，再用本地 IPC 发送唤回。**已改为两平台统一使用 Qt 本地套接字**，不引入命名互斥量；理由与竞态处理见 `docs/Plans/DevelopmentStatus.md` 阶段 7 的偏离记录，待项目所有者确认。
+- [x] Windows 使用命名 mutex 保证唯一实例，再用本地 IPC 发送唤回。锁在 `platform::InstanceLock` 后面，Windows 用 `Local\` 前缀的命名互斥量，其余平台明确回答不支持并改由端点占用判断。
 - [x] Linux 使用唯一 Unix socket 和本地 IPC，处理遗留 socket。端点名带用户区分后缀，`removeServer()` 只在连接失败之后调用。
 - [x] 二次启动显示已有角色，不创建新实例。副实例在建立任何窗口之前就退出。
 - [ ] Windows 托盘、Linux 应用菜单和再次运行 AppImage 都能唤回。三条通道都已实现（托盘、`.desktop` 入口、单实例唤回），Linux 侧再次启动唤回已实测；Windows 托盘与 AppImage 实际唤回待综合校验。

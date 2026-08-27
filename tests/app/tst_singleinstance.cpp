@@ -1,11 +1,16 @@
 #include "app/SingleInstance.h"
 #include "core/AppMetadata.h"
+#include "platform/InstanceLock.h"
 
 #include <QDir>
 #include <QFile>
+#include <QLocalSocket>
 #include <QSignalSpy>
 #include <QTest>
+#include <QThread>
 #include <QUuid>
+
+#include <memory>
 
 using mub::app::SingleInstance;
 using mub::app::singleInstanceName;
@@ -19,6 +24,32 @@ QString uniqueName()
         .arg(QUuid::createUuid().toString(QUuid::Id128).left(12));
 }
 
+// 可控的锁替身。产品在 Windows 上用命名互斥量，Linux 上没有锁，
+// 用替身才能在任何平台上都覆盖到两条分支。
+class ScriptedLock final : public mub::platform::InstanceLock
+{
+public:
+    explicit ScriptedLock(const mub::platform::InstanceLockResult result)
+        : result_(result)
+    {
+    }
+
+    mub::platform::InstanceLockResult tryAcquire(const QString &name) override
+    {
+        Q_UNUSED(name)
+        ++acquireCount;
+        return result_;
+    }
+
+    void release() override { ++releaseCount; }
+
+    int acquireCount = 0;
+    int releaseCount = 0;
+
+private:
+    mub::platform::InstanceLockResult result_;
+};
+
 } // namespace
 
 class TestSingleInstance final : public QObject
@@ -29,6 +60,8 @@ private slots:
     void endpointNameIsPerUserAndCarriesTheApplicationId();
     void firstInstanceBecomesPrimary();
     void secondInstanceRecallsTheFirstAndStepsAside();
+    void aHeldLockAloneMakesTheInstanceStepAside();
+    void anAcquiredLockStillOpensTheRecallChannel();
     void staleEndpointDoesNotBlockStartup();
     void endpointIsReusableAfterThePrimaryGoesAway();
 };
@@ -59,11 +92,53 @@ void TestSingleInstance::secondInstanceRecallsTheFirstAndStepsAside()
     QCOMPARE(first.acquire(), SingleInstance::Role::Primary);
     QSignalSpy recalls(&first, &SingleInstance::recallRequested);
 
-    // 第 3.3 节：已经运行时再次启动应唤回现有角色，不创建第二个实例。
-    SingleInstance second(name);
-    QCOMPARE(second.acquire(), SingleInstance::Role::Secondary);
+    // 副实例必须跑在另一个线程里。产品里它是另一个**进程**，主实例的事件循环
+    // 一直在转；同线程直接调用 acquire() 会把主实例的事件循环一起堵住，
+    // 服务端收不到连接，测的就不是真实时序了。
+    SingleInstance::Role role = SingleInstance::Role::Primary;
+    QThread *worker = QThread::create([&name, &role] {
+        SingleInstance second(name);
+        role = second.acquire();
+    });
+    worker->start();
 
-    QTRY_COMPARE_WITH_TIMEOUT(recalls.count(), 1, 2000);
+    // 第 3.3 节：已经运行时再次启动应唤回现有角色，不创建第二个实例。
+    QTRY_COMPARE_WITH_TIMEOUT(recalls.count(), 1, 5000);
+    QVERIFY(worker->wait(5000));
+    QCOMPARE(role, SingleInstance::Role::Secondary);
+    delete worker;
+}
+
+// 锁被占用就是确定的「已有实例」，即使唤回消息送不到也必须退让 ——
+// 送不到只说明对方忙或正在退出，不说明可以再开一个。
+void TestSingleInstance::aHeldLockAloneMakesTheInstanceStepAside()
+{
+    auto lock = std::make_unique<ScriptedLock>(
+        mub::platform::InstanceLockResult::AlreadyHeld);
+    ScriptedLock *observed = lock.get();
+
+    // 端点上没有任何服务端在监听，唤回必然失败。
+    SingleInstance instance(uniqueName(), std::move(lock));
+    QCOMPARE(instance.acquire(), SingleInstance::Role::Secondary);
+    QCOMPARE(observed->acquireCount, 1);
+}
+
+// 取得了锁就是主实例。锁与唤回通道是两件事：即使端点此刻空着，
+// 拿到锁的一方也必须建立起服务端，否则隐藏后就再也唤不回来。
+void TestSingleInstance::anAcquiredLockStillOpensTheRecallChannel()
+{
+    const QString name = uniqueName();
+
+    SingleInstance instance(
+        name,
+        std::make_unique<ScriptedLock>(mub::platform::InstanceLockResult::Acquired));
+    QCOMPARE(instance.acquire(), SingleInstance::Role::Primary);
+
+    // 端点确实在监听：另一个进程连得上，才谈得上唤回。
+    QLocalSocket probe;
+    probe.connectToServer(name);
+    QVERIFY(probe.waitForConnected(2000));
+    probe.abort();
 }
 
 // 上次异常退出留下的遗留端点不能让程序再也起不来。
