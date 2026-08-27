@@ -1,5 +1,6 @@
 #include "app/DiagnosticLog.h"
 #include "app/SelfTest.h"
+#include "app/SingleInstance.h"
 #include "app/StartupFailureReport.h"
 #include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
@@ -17,6 +18,7 @@
 #include "ui/CharacterWindow.h"
 #include "ui/DialogueController.h"
 #include "ui/SettingsWindow.h"
+#include "ui/TrayIcon.h"
 
 #include <QApplication>
 #include <QCommandLineOption>
@@ -24,6 +26,7 @@
 #include <QGuiApplication>
 #include <QLoggingCategory>
 #include <QRandomGenerator>
+#include <QIcon>
 #include <QSettings>
 #include <QString>
 
@@ -99,6 +102,17 @@ int main(int argc, char *argv[])
         return mub::app::runSelfTest();
     }
 
+    // 单实例判定必须早于任何窗口：副实例的职责只是把唤回消息递出去然后退出，
+    // 不应该先闪一个角色再消失（docs/Decisions.md 第 3.3 节）。
+    mub::app::SingleInstance instance(mub::app::singleInstanceName());
+    if (instance.acquire() == mub::app::SingleInstance::Role::Secondary) {
+        qCInfo(lcMain) << "recalled the running instance; exiting";
+        return 0;
+    }
+
+    // 应用图标同样取自作者头像素材（第 6 节）。
+    QApplication::setWindowIcon(QIcon(QStringLiteral(":/assets/face/natural.png")));
+
     // 设置走标准用户配置目录：默认构造的 QSettings 已经由 QStandardPaths
     // 决定位置，不会写在 EXE、AppImage 或当前工作目录旁边
     // （docs/Decisions.md 第 5.1 节）。
@@ -158,10 +172,14 @@ int main(int argc, char *argv[])
     mub::ui::SettingsWindow settingsWindow(
         backend->capabilities().workspacePinning);
 
+    mub::ui::TrayIcon *trayForSettings = nullptr;
     const auto applySettings = [&](const mub::core::Settings &next) {
         settings = mub::core::sanitized(next);
         presenter.applySettings(settings);
         dialogue.setScale(settings.scale);
+        if (trayForSettings != nullptr) {
+            trayForSettings->setMode(settings.mode);
+        }
     };
 
     // 修改后立即生效并保存，不设「应用」阶段（第 5.1 节）。
@@ -190,8 +208,47 @@ int main(int argc, char *argv[])
                          settingsWindow.raise();
                          settingsWindow.activateWindow();
                      });
-    // 托盘尚未实现，诊断信息里先如实报告为不可用。
-    mub::ui::AboutWindow aboutWindow(backend->capabilities().name, false);
+    // 第 3.3 节：托盘只作为备用入口，托盘不可用时不影响角色右键菜单。
+    mub::ui::TrayIcon tray;
+    trayForSettings = &tray;
+
+    // 隐藏后必须能唤回。托盘是一条通道，再次启动程序是另一条；
+    // 原生 GNOME 没有托盘时靠后者（第 3.3 节）。
+    const bool recallAvailable =
+        tray.isActive() || instance.role() == mub::app::SingleInstance::Role::Primary;
+    presenter.setRecallAvailable(recallAvailable);
+
+    const auto showCharacter = [&] {
+        window.show();
+        window.raise();
+        tray.setCharacterVisible(true);
+    };
+    const auto hideCharacter = [&] {
+        // 第 4.2 节：隐藏时立即结束当前对话，不保留待恢复的页面。
+        dialogue.stop();
+        window.hide();
+        tray.setCharacterVisible(false);
+    };
+
+    QObject::connect(&presenter, &mub::ui::CharacterPresenter::hideRequested,
+                     &application, hideCharacter);
+    QObject::connect(&tray, &mub::ui::TrayIcon::showCharacterRequested, &application,
+                     showCharacter);
+    // 第 2.3 节：用户主动启动程序时角色必须出现，因此唤回总是显示角色。
+    QObject::connect(&instance, &mub::app::SingleInstance::recallRequested,
+                     &application, showCharacter);
+    QObject::connect(&tray, &mub::ui::TrayIcon::modeChangeRequested, &application,
+                     [&](const mub::core::ActivityMode mode) {
+                         mub::core::Settings next = settings;
+                         next.mode = mode;
+                         applySettings(next);
+                         settingsStore.save(settings);
+                         settingsWindow.setSettings(settings);
+                     });
+    QObject::connect(&tray, &mub::ui::TrayIcon::quitRequested, &presenter,
+                     &mub::ui::CharacterPresenter::quitRequested);
+
+    mub::ui::AboutWindow aboutWindow(backend->capabilities().name, tray.isActive());
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::aboutRequested,
                      &aboutWindow, [&aboutWindow] {
                          aboutWindow.show();

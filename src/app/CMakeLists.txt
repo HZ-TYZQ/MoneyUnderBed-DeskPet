@@ -4,6 +4,8 @@ qt_add_executable(money-under-bed-deskpet
     DiagnosticLog.h
     SelfTest.cpp
     SelfTest.h
+    SingleInstance.cpp
+    SingleInstance.h
     StartupFailureReport.cpp
     StartupFailureReport.h
     main.cpp
@@ -16,6 +18,8 @@ target_link_libraries(money-under-bed-deskpet PRIVATE
     MUB::Platform
     MUB::Resources
     MUB::Warnings
+    # 单实例与唤回用 Qt 的本地套接字（Linux 是 Unix socket，Windows 是命名管道）。
+    Qt6::Network
     Qt6::Widgets
 )
 

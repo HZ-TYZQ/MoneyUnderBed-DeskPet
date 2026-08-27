@@ -20,6 +20,8 @@ target_sources(money-under-bed-deskpet PRIVATE
     DialogueFont.h
     SettingsWindow.cpp
     SettingsWindow.h
+    TrayIcon.cpp
+    TrayIcon.h
 )
 
 target_include_directories(money-under-bed-deskpet PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")

@@ -127,6 +127,11 @@ void CharacterPresenter::setBubbleHost(BubbleHost *host)
     bubbles_ = host;
 }
 
+void CharacterPresenter::setRecallAvailable(const bool available)
+{
+    recallAvailable_ = available;
+}
+
 void CharacterPresenter::setDialogueActive(const bool active)
 {
     if (dialogueFreeze_ == active) {
@@ -248,9 +253,6 @@ void CharacterPresenter::showContextMenu(const QPoint &globalPosition)
 {
     // 第 3.3 节：角色右键菜单是主要控制入口。菜单状态与当前模式同步；
     // 明确选择「退出」后直接结束，不再弹确认框。
-    //
-    // 「隐藏」尚未加入：第 3.3 节要求隐藏后必须有唤回通道（托盘或单实例唤回），
-    // 在唤回通道实现之前不提供只能藏起来、藏了就找不回来的入口。
     QMenu menu;
 
     QAction *feed = menu.addAction(tr("投喂"));
@@ -262,6 +264,9 @@ void CharacterPresenter::showContextMenu(const QPoint &globalPosition)
     QAction *pause = menu.addAction(tr("暂停"));
     pause->setCheckable(true);
     pause->setChecked(userPaused_);
+
+    // 只有存在唤回通道时才提供隐藏（第 3.3 节）。
+    QAction *hide = recallAvailable_ ? menu.addAction(tr("隐藏")) : nullptr;
 
     menu.addSeparator();
     QAction *settings = menu.addAction(tr("设置…"));
@@ -279,6 +284,8 @@ void CharacterPresenter::showContextMenu(const QPoint &globalPosition)
     } else if (chosen == pause) {
         // 第 2.2 节：暂停只对当前运行周期有效，不保存。
         setPaused(pause->isChecked());
+    } else if (hide != nullptr && chosen == hide) {
+        emit hideRequested();
     } else if (chosen == settings) {
         emit settingsRequested();
     } else if (chosen == about) {

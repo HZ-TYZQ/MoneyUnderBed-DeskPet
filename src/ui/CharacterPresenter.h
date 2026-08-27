@@ -62,6 +62,11 @@ public:
     // 本类不拥有它。
     void setBubbleHost(BubbleHost *host);
 
+    // 是否存在唤回通道（托盘或单实例唤回）。
+    // 第 3.3 节要求隐藏后必须能唤回，因此没有任何唤回通道时不提供「隐藏」
+    // 菜单项 —— 不给一个藏了就找不回来的入口。
+    void setRecallAvailable(bool available);
+
     // 连续对话正在显示。第 4.1 节：此期间暂停自主移动和自主行为，
     // 但继续播放当前朝向的待机动画。单页气泡不触发本状态。
     void setDialogueActive(bool active);
@@ -105,6 +110,8 @@ signals:
     // （第 3.3 节：角色右键菜单是主要控制入口）。
     void settingsRequested();
     void aboutRequested();
+    // 第 2.3 节：隐藏状态不保存，下次启动角色必须出现。
+    void hideRequested();
     void quitRequested();
 
 private:
@@ -135,6 +142,7 @@ private:
     bool userPaused_ = false;
     bool eventFreeze_ = false;
     bool dialogueFreeze_ = false;
+    bool recallAvailable_ = false;
     QHash<QString, character::SpriteSheet> sheets_;
     QString currentClipId_;
 };
