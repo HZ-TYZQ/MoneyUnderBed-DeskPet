@@ -16,7 +16,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | 3 | 运行时配置、生效快照与独立闲聊 | 已通过 | `18475a4` | CI-3 已通过 |
 | 4 | 四组设置界面与端到端整合 | 已通过 | `d03d46d` | CI-4 已通过 |
 | A | 人工检查点：KDE 集成功能与参数调优 | 已通过 | `d03d46d` | — |
-| 5 | 调优收敛、完整回归与候选准备 | 进行中 |  | CI-5 未开始 |
+| 5 | 调优收敛、完整回归与候选准备 | 已通过 | `605cad7` | CI-5 已通过 |
 | 6 | 正式标签、候选产物与发布验收 | 未开始 |  | CI-6 未开始 |
 | B | 人工检查点：正式候选验收 | 未开始 |  | — |
 
@@ -411,3 +411,42 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 
 全量 CTest **37/37** 通过（新增 `tst_releaseworkflows`），`--self-test` 退出码
 `0` 且六类检查全部报告通过，`MUB_WARNINGS_AS_ERRORS=ON` 下无警告。
+
+## CI-5（阶段 5 退出门）
+
+提交 `605cad7`。两个必需工作流在同一提交上全绿：
+
+| 工作流 | run | 结果 |
+| --- | --- | --- |
+| Build and test | `33157639170` | Linux 与 Windows 各 37/37 |
+| Package candidates | `33157639188` | metadata、Qt 对应源码、Linux AppImage、Windows 便携 ZIP 均通过；`Create draft GitHub Release` 按条件跳过 |
+
+`Windows window probe` 不再出现——该工作流已于本阶段删除。这也是标签触发改动
+之后第一次只有两条流水线的运行。
+
+新加的包内平台插件检查这次解析到了正确位置，两条都落在包内：
+
+```
+Windows: .../package/./platforms/qwindows.dll
+Linux:   /tmp/appimage_extracted_.../usr/bin/../../usr/plugins/platforms/libqxcb.so
+```
+
+### 候选前归档
+
+按退出门要求下载并校验了两个开发候选，仅作候选前归档，不要求在 Windows 上测试
+该开发包：
+
+| 产物 | SHA-256 |
+| --- | --- |
+| `MoneyUnderBed-DeskPet-linux-x86_64-dev-605cad7ad9f2.AppImage` | `98cfb07a99efc43b2e56512a879d2c62777836bc050e95a022ad6c5134ea7181` |
+| `MoneyUnderBed-DeskPet-windows-x86_64-dev-605cad7ad9f2.zip` | `4ff857d93d386ed5a95734ed8c0e866100f640f6a51a0c874a84531615ec6d56` |
+
+两份随包 `.sha256` 均本地校验通过。包内清单确认桌面平台插件实际存在：
+Windows 的 `platforms/qwindows.dll`、Linux 的 `./usr/plugins/platforms/libqxcb.so`。
+
+该 AppImage 在项目所有者的 Fedora 宿主上直接运行 `--self-test` 也通过，插件解析
+到 `/tmp/.mount_*/usr/bin/../../usr/plugins/platforms/libqxcb.so`——即包内路径，
+不是宿主的 Qt 安装目录。
+
+注意：本次归档的候选是**开发版本号**（`0.0.0-dev.<commit>`），不是 `1.1.0`。
+正式版本号由阶段 6 的 `v1.1.0` 标签推导，届时会重新构建一次候选产物。
