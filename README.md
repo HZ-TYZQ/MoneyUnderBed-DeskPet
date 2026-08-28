@@ -1,6 +1,7 @@
 # 《床下有罐钱》非官方桌宠
 
-**开发中，尚未发布正式版本。当前正在生成并验收首批双平台候选包。**
+**首个正式版本 [`v1.1.0`](https://github.com/HZ-TYZQ/MoneyUnderBed-DeskPet/releases/tag/v1.1.0)
+已于 2026-08-28 发布。**
 
 一个把《床下有罐钱》的女主放在桌面上陪伴用户的桌宠程序。
 
@@ -43,11 +44,15 @@
 下通过综合检查。Windows 窗口能力已通过首轮实测（见
 [`docs/WindowsFeasibilityResults.md`](docs/WindowsFeasibilityResults.md)）。
 
-截至 2026-08-28，`1.1.0` 的四组设置界面、应用生命周期与自主闲聊已在 KDE 上用
-CI 产出的 AppImage 完成人工检查，档位取值随之冻结。正式 Windows ZIP 的候选检查
-与 KDE 的连续三小时运行仍待候选产物验收；Windows 按
+`v1.1.0` 的正式候选已于 2026-08-28 在两个平台完成人工验收，两边都没有出现核心
+失败：KDE 侧完成连续三小时运行，Windows 侧覆盖 100%／125%／150%／200% 四档系统
+缩放、Explorer 重启与锁屏／睡眠恢复。Windows 按
 [`docs/Decisions.md`](docs/Decisions.md) 第 14.10 节不要求连续三小时。
-以上结果都不扩大上述支持范围。
+逐项结果见 [`docs/ReleaseChecklist-1.1.md`](docs/ReleaseChecklist-1.1.md)。
+
+验收同时如实记录了几处数据缺口：KDE 的三小时段只有首尾两次读数，Windows 侧未采集
+线程数与启动时间。这些不改变发布结论——本版按第 14.10 节不设性能数值门槛——但也
+不写成已完成。以上结果都不扩大上述支持范围。
 
 Windows 免安装包第一版不进行代码签名，可能触发 SmartScreen，也可能被
 Smart App Control 或企业策略阻止。
