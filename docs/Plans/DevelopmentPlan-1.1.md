@@ -364,17 +364,17 @@ SettingsStore ── 只负责 schema 1 编解码与配置后端
 
 ### 11.1 处理未发布的 1.0 候选历史
 
-- [ ] 确认 `v1.0.0` 指向的精确提交（`8356ff2`）和草稿 Release 身份，避免操作错误对象。
-- [ ] 按 `docs/Decisions.md` 第 14.1 节，**不新建任何预发布标签**。`package.yml` 的标签过滤是 `v*.*.*`，`v1.0.0-rc.1` 会匹配并触发整条打包流水线，而其 metadata 步骤只接受 `MAJOR.MINOR.PATCH`，只会留下一次注定失败的运行。
-- [ ] 先把该候选的提交哈希、Actions run 编号和 `docs/ReleaseChecklist-1.0.md` 中已完成的检查表结果写入 `DevelopmentStatus-1.1.md`，再删除标签与草稿；候选历史由文档保存，不依赖标签。
-- [ ] 删除 `v1.0.0` 标签与该草稿 Release。执行前确认删除引用的 push 不会启动 `package.yml`（GitHub 对删除引用的 push 不运行工作流）。
-- [ ] 记录旧标签原本指向的提交、删除时间和恢复方式：提交仍在 `main` 历史上，必要时可重新打标签。此项属于外部/破坏性操作，执行时再次取得项目所有者明确授权。
+- [x] 确认 `v1.0.0` 指向的精确提交（`8356ff2`）和草稿 Release 身份，避免操作错误对象。
+- [x] 按 `docs/Decisions.md` 第 14.1 节，**不新建任何预发布标签**。`package.yml` 的标签过滤是 `v*.*.*`，`v1.0.0-rc.1` 会匹配并触发整条打包流水线，而其 metadata 步骤只接受 `MAJOR.MINOR.PATCH`，只会留下一次注定失败的运行。
+- [x] 先把该候选的提交哈希、Actions run 编号和 `docs/ReleaseChecklist-1.0.md` 中已完成的检查表结果写入 `DevelopmentStatus-1.1.md`，再删除标签与草稿；候选历史由文档保存，不依赖标签。
+- [x] 删除 `v1.0.0` 标签与该草稿 Release。执行前确认删除引用的 push 不会启动 `package.yml`（GitHub 对删除引用的 push 不运行工作流）。
+- [x] 记录旧标签原本指向的提交、删除时间和恢复方式：提交仍在 `main` 历史上，必要时可重新打标签。此项属于外部/破坏性操作，执行时再次取得项目所有者明确授权。
 
 ### 11.2 创建正式候选
 
-- [ ] 在 CI-5 已通过的精确提交上创建并推送 `v1.1.0`，不从本地另行构建二进制。
-- [ ] 标签触发 CI-6：Build and test、Package candidates、对应源码收集、下载后哈希复核和 draft-release 必须全部通过。
-- [ ] 草稿 Release 只在首次创建时使用仓库中的说明模板；后续重跑不得覆盖人工填写的候选验收记录。
+- [x] 在 CI-5 已通过的精确提交上创建并推送 `v1.1.0`，不从本地另行构建二进制。
+- [x] 标签触发 CI-6：Build and test、Package candidates、对应源码收集、下载后哈希复核和 draft-release 必须全部通过。
+- [x] 草稿 Release 只在首次创建时使用仓库中的说明模板；后续重跑不得覆盖人工填写的候选验收记录。
 - [ ] 项目所有者下载草稿 Release 中的原始 AppImage、ZIP 和 `.sha256`，本地核对后进入检查点 B。
 
 ### 退出门：CI-6

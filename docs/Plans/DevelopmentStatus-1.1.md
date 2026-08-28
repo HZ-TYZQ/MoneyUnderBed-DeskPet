@@ -17,8 +17,8 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | 4 | 四组设置界面与端到端整合 | 已通过 | `d03d46d` | CI-4 已通过 |
 | A | 人工检查点：KDE 集成功能与参数调优 | 已通过 | `d03d46d` | — |
 | 5 | 调优收敛、完整回归与候选准备 | 已通过 | `605cad7` | CI-5 已通过 |
-| 6 | 正式标签、候选产物与发布验收 | 未开始 |  | CI-6 未开始 |
-| B | 人工检查点：正式候选验收 | 未开始 |  | — |
+| 6 | 正式标签、候选产物与发布验收 | 已通过 | `605cad7`（`v1.1.0`） | CI-6 已通过 |
+| B | 人工检查点：正式候选验收 | 进行中 |  | — |
 
 ## 1.0.0 候选历史
 
@@ -463,3 +463,65 @@ Windows 的 `platforms/qwindows.dll`、Linux 的 `./usr/plugins/platforms/libqxc
 
 注意：本次归档的候选是**开发版本号**（`0.0.0-dev.<commit>`），不是 `1.1.0`。
 正式版本号由阶段 6 的 `v1.1.0` 标签推导，届时会重新构建一次候选产物。
+
+## 阶段 6：正式标签与候选产物
+
+### v1.0.0 的删除
+
+经项目所有者确认后执行，删除前的候选身份已固定在本文件「1.0.0 候选历史」一节。
+删除引用的 push **没有触发任何工作流**，与计划第 11.1 节的预期一致。
+
+按第 14.1 节没有新建 `v1.0.0-rc.1` 之类的预发布标签：`package.yml` 的过滤是
+`v*.*.*`，它会匹配并触发整条打包流水线，而 metadata 步骤只接受
+`MAJOR.MINOR.PATCH`，结果只会是一次注定失败的运行。
+
+### v1.1.0
+
+附注标签，指向 `605cad7`——CI-5 通过的**那一个**提交。此后的两个提交
+（`7933bdb`、`dd4216b`）是纯文档，项目所有者选择严格按计划第 11.2 节的字面走，
+因此标签不含它们。已核对 `605cad7..HEAD` 排除 `docs/` 后的差异为空，
+标签树与 CI-5 验证过的代码逐字节一致。
+
+## CI-6（阶段 6 退出门）
+
+标签 `v1.1.0`。两个必需工作流**都由标签触发并全绿**：
+
+| 工作流 | run | 结果 |
+| --- | --- | --- |
+| Build and test | `33159175003` | Linux 与 Windows 各 37/37 |
+| Package candidates | `33159174982` | metadata、Qt 对应源码、Linux AppImage、Windows 便携 ZIP、`Create draft GitHub Release` 全部通过 |
+
+`Build and test` 由标签触发是阶段 5 新增标签过滤的直接效果。在此之前只有
+`package.yml` 监听标签，`v1.1.0` 只会跑打包不跑测试——这正是
+`tst_releaseworkflows` 守住的那件事。
+
+### 版本一致性
+
+| 位置 | 值 |
+| --- | --- |
+| 产物文件名 | `MoneyUnderBed-DeskPet-{linux-x86_64,windows-x86_64}-1.1.0.*` |
+| 两个包的 `BUILD_INFO.txt` | `version=1.1.0`，`commit=605cad7ad9f2dcb3437dc4b09e1a42179d0ac799` |
+| 运行时日志 | `version=1.1.0 qt=6.11.2` |
+
+`BUILD_INFO.txt` 的 commit 与标签指向的提交一致，两个平台的包出自同一次标签
+流水线。
+
+### 草稿 Release
+
+`MoneyUnderBed DeskPet 1.1.0`，创建于 `2026-08-28T09:23:31Z`，**保持草稿，未公开**。
+附有两平台产物、内容与依赖清单、`.sha256`、`SHA256SUMS`，以及 Qt／ICU／AppImage
+runtime／打包工具和 Ubuntu 源码包的完整对应源码归档。说明正文是
+`packaging/release-notes.md` 的模板，「候选验收记录」三项待检查点 B 填写。
+
+### 已完成的本地核对
+
+| 产物 | SHA-256 | 状态 |
+| --- | --- | --- |
+| `MoneyUnderBed-DeskPet-linux-x86_64-1.1.0.AppImage` | `3be928701267869d2d94ef26a48f9a0335a367b8d67aa7ddb582ba29ab7296a2` | 随包 `.sha256` 校验通过 |
+| `MoneyUnderBed-DeskPet-windows-x86_64-1.1.0.zip` | `fa1a9b9091d97e725cba41bda85e3f226b3dc53da1690812a0ced82f795b09b2` | 随包 `.sha256` 校验通过 |
+
+草稿中的 AppImage 在 Fedora 宿主上直接运行：`--self-test` 通过，平台插件解析到
+包内路径，`--version` 路径下 XCB 探针成功、实际平台为 `xcb`。
+
+这些只是产物身份与可启动性的核对，**不构成检查点 B 的任何一项**。检查点 B 必须
+按 `docs/ReleaseChecklist-1.1.md` 在两个平台上实测。
