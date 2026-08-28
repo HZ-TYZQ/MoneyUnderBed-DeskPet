@@ -375,7 +375,7 @@ SettingsStore ── 只负责 schema 1 编解码与配置后端
 - [x] 在 CI-5 已通过的精确提交上创建并推送 `v1.1.0`，不从本地另行构建二进制。
 - [x] 标签触发 CI-6：Build and test、Package candidates、对应源码收集、下载后哈希复核和 draft-release 必须全部通过。
 - [x] 草稿 Release 只在首次创建时使用仓库中的说明模板；后续重跑不得覆盖人工填写的候选验收记录。
-- [ ] 项目所有者下载草稿 Release 中的原始 AppImage、ZIP 和 `.sha256`，本地核对后进入检查点 B。
+- [x] 项目所有者下载草稿 Release 中的原始 AppImage、ZIP 和 `.sha256`，本地核对后进入检查点 B。
 
 ### 退出门：CI-6
 
