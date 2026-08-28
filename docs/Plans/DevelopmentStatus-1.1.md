@@ -348,6 +348,14 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
   `platforms/qwindows.dll` 存在。打包自检在 offscreen 下运行，漏掉桌面插件不会
   让自检失败——除非在这里显式检查。
 
+  查找方式必须用 `QCoreApplication::libraryPaths()`，不能用
+  `QLibraryInfo::path(QLibraryInfo::PluginsPath)`：三种布局的插件位置都不同——
+  windeployqt 把 `platforms/` 直接放在 exe 旁边，AppImage 放在 `usr/plugins/`
+  下，开发构建在 Qt 安装目录里。CI-5 的第一次运行就因为这个在 Windows 打包任务
+  上失败（`PluginsPath` 解析成 `package/plugins`，而实际插件在 `package/platforms`），
+  Linux 侧则正常通过。`libraryPaths()` 是 Qt 加载插件时实际查的那组目录，
+  因此改后检查的是真实加载路径，而不是猜一个目录。
+
 实现上没有用 `QSignalSpy`：它属于 `Qt6::Test`，产品二进制不链接测试模块，
 改用 `QObject::connect` 计数。
 

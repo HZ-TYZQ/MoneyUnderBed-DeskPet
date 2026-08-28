@@ -10,11 +10,11 @@
 #include "dialogue/DialogueData.h"
 #include "dialogue/DialogueSession.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QFontDatabase>
-#include <QLibraryInfo>
 #include <QLoggingCategory>
 #include <QSet>
 #include <QSettings>
@@ -312,16 +312,23 @@ bool checkPlatformPlugins(QStringList &failures)
         return true;
     }
 
-    const QString pluginsPath = QLibraryInfo::path(QLibraryInfo::PluginsPath);
-    const QString path = QDir(pluginsPath).filePath(QStringLiteral("platforms/") + required);
-    if (!QFileInfo::exists(path)) {
-        failures.append(QStringLiteral("%1: desktop platform plugin missing from %2")
-                            .arg(required, pluginsPath));
-        return false;
+    // 必须走 Qt 自己的插件搜索路径，不能只看 QLibraryInfo::PluginsPath：
+    // windeployqt 把 platforms/ 直接放在 exe 旁边，AppImage 放在 usr/plugins/ 下，
+    // 开发构建又在 Qt 安装目录里。libraryPaths() 正是 Qt 加载插件时实际查的那组
+    // 目录，因此这里检查的就是真实加载路径，而不是猜一个目录。
+    const QStringList searchPaths = QCoreApplication::libraryPaths();
+    for (const QString &searchPath : searchPaths) {
+        const QString path =
+            QDir(searchPath).filePath(QStringLiteral("platforms/") + required);
+        if (QFileInfo::exists(path)) {
+            qCInfo(lcSelfTest).noquote()
+                << QStringLiteral("desktop platform plugin ok %1").arg(path);
+            return true;
+        }
     }
-    qCInfo(lcSelfTest).noquote()
-        << QStringLiteral("desktop platform plugin ok %1").arg(path);
-    return true;
+    failures.append(QStringLiteral("%1: desktop platform plugin missing from %2")
+                        .arg(required, searchPaths.join(QLatin1Char(';'))));
+    return false;
 }
 
 bool checkKeyComponents(QStringList &failures)
