@@ -148,6 +148,15 @@ SettingsStore ── 只负责 schema 1 编解码与配置后端
 
 - 阶段 1 与 CI-1 已通过。
 
+> **阶段边界调整（2026-08-28，项目所有者确认）。** 新模型里没有气泡频率字段：
+> `docs/Decisions.md` 第 14.4 节规定「关闭」档由自主闲聊触发概率 `0%` 表达、不另存
+> 启用标志，第 14.2 节规定实际参数是唯一真相来源。而 `settings.bubble` 现有三个
+> 消费者分属后面的阶段（`ClickFeedbackSelector`、`CharacterPresenter` 的闲聊门、
+> `SettingsWindow` 的下拉框），替换 `core::Settings` 后它们无法编译。因此把原属
+> 第 7.3 节的「单击概率与说话频率解耦」并入本阶段，并在本阶段给 `CharacterPresenter`
+> 一个临时闲聊门，`SettingsWindow` 只做保持编译的机械改动。不引入过渡字段，
+> schema 1 一次成型。第 7.3 与 8.1 节对应条目已标注归属变化。
+
 ### 6.1 设置模型与档位映射
 
 - [ ] 把 `core::Settings` 拆成行为、对话、外观、窗口四个值类型，并保持整体可比较、可复制。
@@ -155,6 +164,13 @@ SettingsStore ── 只负责 schema 1 编解码与配置后端
 - [ ] 为活动节奏、移动速度、接近鼠标、说话频率、单击台词概率、打字速度和动画速度建立纯函数映射。
 - [ ] 预设选择只写入实际参数；反向匹配要求整组参数完全相等，否则返回“自定义”。
 - [ ] 尚待调优的低/中/高具体值集中在单一映射表中，不散落在 UI 或状态机。
+
+### 6.4 由阶段边界调整并入的改动
+
+- [ ] `ClickFeedbackSelector` 只使用一个 `clickTextChancePercent`，不再从说话频率二选一（原第 7.3 节第一条）。「在下一次单击读取」的生效边界仍由阶段 3 断言。
+- [ ] `CharacterPresenter` 的自主闲聊门改读 `chatterChancePercent > 0`，作为阶段 3 引入独立调度器之前的临时判定。这是过渡实现，阶段 3 必须删除它连同 `AutonomousBehavior` 里的闲聊职责。
+- [ ] `SettingsWindow` 只做保持编译所需的机械改动：仍然只暴露既有的四个设置项，读写新的分组字段。四组界面、普通/高级分层和滑块都仍属阶段 4。
+- [ ] `SelfTest` 的设置往返断言同步到新结构。
 
 ### 6.2 校验与 schema
 
@@ -211,7 +227,7 @@ SettingsStore ── 只负责 schema 1 编解码与配置后端
 
 ### 7.3 其他运行时消费者
 
-- [ ] `ClickFeedbackSelector` 只使用一个 `clickTextChancePercent`，在下一次单击读取，不再依赖说话频率。
+- [ ] `ClickFeedbackSelector` 在下一次单击读取 `clickTextChancePercent`。与说话频率的解耦已在阶段 2 完成（第 6.4 节），本阶段只断言生效边界。
 - [ ] `DialogueSession` 在下一次对话开始时快照 `typingMsPerChar` 与 `singlePageAutoHideMs`；`idleTimeoutMs` 保持冻结。
 - [ ] 动画定义把三个写死的帧时长移入可配置 timing policy；下一次启动对应动画时快照帧时长。
 - [ ] 更新 `CharacterPresenter` / `DialogueController` 的设置应用路径，不让 UI 直接操纵状态机。
@@ -239,7 +255,7 @@ SettingsStore ── 只负责 schema 1 编解码与配置后端
 
 ### 8.1 界面结构
 
-- [ ] 设置窗口按行为、对话、外观、窗口与桌面四组组织；高级控件在对应组内折叠展开。
+- [ ] 设置窗口按行为、对话、外观、窗口与桌面四组组织；高级控件在对应组内折叠展开。阶段 2 只让它保持编译（第 6.4 节），四组结构从本阶段才开始。
 - [ ] 普通层只显示简体中文档位；高级层使用自然单位和中文名称，不显示 C++ 变量名。
 - [ ] 单值和百分比使用滑块加数字框并双向绑定；成对时长只使用数字框。
 - [ ] 滑块释放、数字框完成编辑或键盘去抖后才提交设置；编辑中的非法/未完成文本不进入运行时和持久化。
