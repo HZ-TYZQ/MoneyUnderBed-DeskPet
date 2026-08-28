@@ -14,8 +14,8 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | 1 | 应用生命周期根因修复 | 已通过 | `50bfc02` | CI-1 已通过 |
 | 2 | 设置领域模型、schema 1 与应用控制器 | 已通过 | `d3640ac` | CI-2 已通过 |
 | 3 | 运行时配置、生效快照与独立闲聊 | 已通过 | `18475a4` | CI-3 已通过 |
-| 4 | 四组设置界面与端到端整合 | 进行中 |  | CI-4 未开始 |
-| A | 人工检查点：KDE 集成功能与参数调优 | 未开始 |  | — |
+| 4 | 四组设置界面与端到端整合 | 已通过 | `d03d46d` | CI-4 已通过 |
+| A | 人工检查点：KDE 集成功能与参数调优 | 进行中 |  | — |
 | 5 | 调优收敛、完整回归与候选准备 | 未开始 |  | CI-5 未开始 |
 | 6 | 正式标签、候选产物与发布验收 | 未开始 |  | CI-6 未开始 |
 | B | 人工检查点：正式候选验收 | 未开始 |  | — |
@@ -230,3 +230,27 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 `--scale` 通过 `applyForThisRunOnly()` 只覆盖本次运行，不写回配置文件。
 诊断信息新增一行设置摘要（活动模式、说话频率档位、显示倍率、置顶），
 不含配置路径、用户名或对话历史。
+
+## CI-4（阶段 4 退出门）
+
+提交 `d03d46d`。两个必需工作流在同一提交上全绿：
+
+| 工作流 | run | 结果 |
+| --- | --- | --- |
+| Build and test | `33146976111` | Linux (Ubuntu 22.04, GCC) 与 Windows (windows-2022, MSVC 2022) 均通过，各 36/36 |
+| Package candidates | `33146976117` | metadata、Qt 对应源码、Linux AppImage、Windows 便携 ZIP 均通过；`Create draft GitHub Release` 按条件跳过 |
+
+同一提交上的 `Windows window probe`（run `33146976066`）也通过。
+
+容器本地门：全量 CTest 36/36 通过（新增 `tst_settingsintegration`，`tst_settingswindow`
+重写为 21 个用例），`--self-test` 退出码 `0`，`MUB_WARNINGS_AS_ERRORS=ON` 下无警告。
+
+检查点 A 使用的 Linux 产物是该 run 的
+`MoneyUnderBed-DeskPet-linux-x86_64-dev-d03d46d513f9`。
+
+### 阶段 4 结束时的未决项
+
+- `src/core/SettingsPresets.cpp` 中除默认档位外的全部取值仍是原型值，须经检查点 A
+  实测冻结后写回 `docs/Decisions.md` 第 14.3 至 14.5 节，见本文件第 131 行起的表。
+- `probe-windows.yml` 的去留、`ReleaseChecklist-1.1.md` 的建立与旧清单改名、
+  `DesktopChecklist.md` 复核、`build.yml` 的标签触发，都在阶段 5。
