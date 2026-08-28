@@ -12,7 +12,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | 阶段 | 内容 | 状态 | 提交 | CI |
 | --- | --- | --- | --- | --- |
 | 1 | 应用生命周期根因修复 | 已通过 | `50bfc02` | CI-1 已通过 |
-| 2 | 设置领域模型、schema 1 与应用控制器 | 进行中 |  | CI-2 未开始 |
+| 2 | 设置领域模型、schema 1 与应用控制器 | 已通过 | `d3640ac` | CI-2 已通过 |
 | 3 | 运行时配置、生效快照与独立闲聊 | 未开始 |  | CI-3 未开始 |
 | 4 | 四组设置界面与端到端整合 | 未开始 |  | CI-4 未开始 |
 | A | 人工检查点：KDE 集成功能与参数调优 | 未开始 |  | — |
@@ -84,7 +84,31 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | Package candidates | `33138502673` | metadata、Qt 对应源码、Linux AppImage、Windows 便携 ZIP 均通过；`Create draft GitHub Release` 按条件跳过（非标签推送） |
 
 同一提交上的 `Windows window probe`（run `33138502624`）也通过。该工作流的去留按
-计划第 10 节在阶段 5 决定，不属于 CI-1 的必需门。
+计划第 10 节在阶段 5 决定，不属于任何阶段 CI 的必需门。
+
+## CI-2（阶段 2 退出门）
+
+提交 `d3640ac`。两个必需工作流在同一提交上全绿：
+
+| 工作流 | run | 结果 |
+| --- | --- | --- |
+| Build and test | `33139854317` | Linux (Ubuntu 22.04, GCC) 与 Windows (windows-2022, MSVC 2022) 均通过 |
+| Package candidates | `33139854258` | metadata、Qt 对应源码、Linux AppImage、Windows 便携 ZIP 均通过；`Create draft GitHub Release` 按条件跳过 |
+
+同一提交上的 `Windows window probe`（run `33139854382`）也通过。
+
+容器本地门：全量 CTest 34/34 通过（新增 `tst_settingspresets`、`tst_settingscontroller`），
+`--self-test` 退出码 `0`，`MUB_WARNINGS_AS_ERRORS=ON` 下无警告。
+
+### 阶段 2 结束时尚未接线的部分
+
+按计划的阶段划分，以下内容属于阶段 3 与阶段 4，阶段 2 结束时**新参数还不产生实际效果**：
+
+- `AutonomousBehaviorConfig`、打字速度、单页自动消失和三个帧时长尚未从设置接线到
+  运行时（第 7.1、7.3 节）。
+- `main.cpp` 仍在用自己的 lambda 套用并保存设置，`SettingsController` 尚未接入产品
+  路径（第 8.3 节）。
+- `CharacterPresenter` 的闲聊门是阶段 2 的临时实现，阶段 3 必须删除。
 
 容器本地门：全量 CTest 32/32 通过（新增 `tst_applifecycle`），
 `--self-test` 退出码 `0`，`MUB_WARNINGS_AS_ERRORS=ON` 下无警告。
