@@ -126,7 +126,7 @@ void TestCharacterPresenter::bubbleOffSuppressesAutonomousChatter()
     RecordingBubbleHost bubbles;
     presenter.setBubbleHost(&bubbles);
     presenter.setMode(mub::core::ActivityMode::Active);
-    presenter.setBubbleFrequency(mub::core::BubbleFrequency::Off);
+    presenter.setChatterChancePercent(0);
 
     // 与产品启动路径一致，先把角色放到屏幕底部，避免测试先进入返回底部状态。
     window.moveToCursorScreenBottom();
@@ -147,7 +147,7 @@ void TestCharacterPresenter::clickChangesTheVisibleFrameWhenBubbleIsOff()
     FakeWindowBackend backend;
     CharacterWindow window(loadIdleSheet(), 1, &backend);
     CharacterPresenter presenter(window, clock, random);
-    presenter.setBubbleFrequency(mub::core::BubbleFrequency::Off);
+    presenter.setChatterChancePercent(0);
 
     window.moveToCursorScreenBottom();
     presenter.start();

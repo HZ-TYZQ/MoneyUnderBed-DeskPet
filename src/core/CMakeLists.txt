@@ -13,7 +13,6 @@ add_library(money-under-bed-core STATIC
     ActivityMode.h
     AutonomousBehavior.cpp
     AutonomousBehavior.h
-    BubbleFrequency.h
     ClickFeedback.cpp
     ClickFeedback.h
     EventCoordinator.cpp
@@ -30,6 +29,8 @@ add_library(money-under-bed-core STATIC
     SessionSuspension.h
     Settings.cpp
     Settings.h
+    SettingsPresets.cpp
+    SettingsPresets.h
     SettingsStore.cpp
     SettingsStore.h
     TimeSource.cpp

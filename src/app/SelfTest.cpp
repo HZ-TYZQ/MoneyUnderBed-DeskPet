@@ -161,24 +161,37 @@ bool checkConfiguration(QStringList &failures)
     }
 
     core::Settings expected;
-    expected.mode = core::ActivityMode::Active;
-    expected.bubble = core::BubbleFrequency::Normal;
-    expected.alwaysOnTop = false;
-    expected.scale = 1;
+    expected.behavior.mode = core::ActivityMode::Active;
+    expected.dialogue.typingMsPerChar = 40;
+    expected.window.alwaysOnTop = false;
+    expected.appearance.scale = 1;
     store.save(expected);
     if (backend.status() != QSettings::NoError || store.load() != expected) {
         failures.append(QStringLiteral("configuration could not be saved and reloaded"));
         return false;
     }
 
-    backend.setValue(QStringLiteral("settings/scale"), 999);
-    backend.setValue(QStringLiteral("settings/mode"), QStringLiteral("damaged"));
+    // 逐字段恢复：坏掉的键回到默认值，没坏的键保持用户的取值。
+    backend.setValue(QStringLiteral("settings/appearance/scale"), 999);
+    backend.setValue(QStringLiteral("settings/behavior/mode"), QStringLiteral("damaged"));
     backend.sync();
     const core::Settings recovered = store.load();
-    if (recovered.scale != core::Settings{}.scale
-        || recovered.mode != core::Settings{}.mode
-        || recovered.bubble != expected.bubble) {
+    const core::Settings defaults;
+    if (recovered.appearance.scale != defaults.appearance.scale
+        || recovered.behavior.mode != defaults.behavior.mode
+        || recovered.dialogue.typingMsPerChar != expected.dialogue.typingMsPerChar) {
         failures.append(QStringLiteral("damaged configuration did not recover per field"));
+        return false;
+    }
+
+    // 成对约束：最小值大于最大值时整对回到默认值（第 14.8 节）。
+    backend.setValue(QStringLiteral("settings/behavior/idleMinMs"), 20000);
+    backend.setValue(QStringLiteral("settings/behavior/idleMaxMs"), 1000);
+    backend.sync();
+    const core::Settings pairRecovered = store.load();
+    if (pairRecovered.behavior.idleMinMs != defaults.behavior.idleMinMs
+        || pairRecovered.behavior.idleMaxMs != defaults.behavior.idleMaxMs) {
+        failures.append(QStringLiteral("invalid duration pair did not recover"));
         return false;
     }
     qCInfo(lcSelfTest) << "configuration initialization and recovery ok";

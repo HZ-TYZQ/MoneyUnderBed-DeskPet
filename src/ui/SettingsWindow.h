@@ -18,6 +18,11 @@ namespace mub::ui {
 //
 // 本窗口不自己读写配置文件，也不直接操作角色：改动通过 settingsChanged()
 // 上报，由上层负责套用和保存。这样设置界面可以脱离产品单独测试。
+//
+// **阶段 2 的过渡状态。** 第 14.2 节要求的四组结构、普通/高级分层、滑块与
+// 按组重置都属于阶段 4。本窗口目前只暴露 `1.0.0` 候选就有的四个设置项，
+// 其余新参数原样透传：`settings()` 以最近一次 `setSettings()` 的完整取值为底，
+// 只覆盖自己编辑的那几个字段，绝不把没显示的参数重置成默认值。
 class SettingsWindow final : public QDialog
 {
     Q_OBJECT
@@ -47,8 +52,11 @@ private:
 
     bool updating_ = false;
 
+    // 界面只编辑其中几个字段，其余字段从这里原样带回（见类注释）。
+    core::Settings current_;
+
     QComboBox *mode_ = nullptr;
-    QComboBox *bubble_ = nullptr;
+    QComboBox *speech_ = nullptr;
     QCheckBox *alwaysOnTop_ = nullptr;
     QComboBox *scale_ = nullptr;
     QPushButton *restoreDefaults_ = nullptr;

@@ -19,5 +19,9 @@ target_link_libraries(tst_feedback PRIVATE MUB::Core)
 mub_add_test(tst_settings tst_settings.cpp)
 target_link_libraries(tst_settings PRIVATE MUB::Core)
 
+# 档位映射是纯函数，不需要 Qt 事件循环。
+mub_add_test(tst_settingspresets tst_settingspresets.cpp)
+target_link_libraries(tst_settingspresets PRIVATE MUB::Core)
+
 mub_add_test(tst_sessionsuspension tst_sessionsuspension.cpp)
 target_link_libraries(tst_sessionsuspension PRIVATE MUB::Core)

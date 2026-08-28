@@ -53,3 +53,11 @@ mub_add_test(tst_applifecycle
 )
 target_include_directories(tst_applifecycle PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_applifecycle PRIVATE Qt6::Widgets)
+
+# 设置控制器：唯一运行时设置、领域通知，以及「接收」与「落盘」的分离。
+mub_add_test(tst_settingscontroller
+    tst_settingscontroller.cpp
+    "${CMAKE_SOURCE_DIR}/src/app/SettingsController.cpp"
+)
+target_include_directories(tst_settingscontroller PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_settingscontroller PRIVATE MUB::Core)

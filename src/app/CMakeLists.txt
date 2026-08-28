@@ -14,6 +14,8 @@ qt_add_executable(money-under-bed-deskpet
     RotatingLogWriter.h
     SelfTest.cpp
     SelfTest.h
+    SettingsController.cpp
+    SettingsController.h
     SingleInstance.cpp
     SingleInstance.h
     StartupFailureReport.cpp

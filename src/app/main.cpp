@@ -12,7 +12,6 @@
 #include "platform/StartupProbe.h"
 #include "platform/SessionMonitor.h"
 #include "platform/SessionMonitorFactory.h"
-#include "core/BubbleFrequency.h"
 #include "core/RandomSource.h"
 #include "core/Settings.h"
 #include "core/SettingsStore.h"
@@ -210,9 +209,9 @@ int main(int argc, char *argv[])
                        .arg(parser.value(scaleOption), allowedScaleList());
             return 2;
         }
-        settings.scale = requested;
+        settings.appearance.scale = requested;
     }
-    const int integerScale = settings.scale;
+    const int integerScale = settings.appearance.scale;
 
     const QString sheetPath =
         mub::character::clipAssetPath(kStartupClipId);
@@ -290,9 +289,9 @@ int main(int argc, char *argv[])
     const auto applySettings = [&](const mub::core::Settings &next) {
         settings = mub::core::sanitized(next);
         presenter.applySettings(settings);
-        dialogue.setScale(settings.scale);
+        dialogue.setScale(settings.appearance.scale);
         if (trayForSettings != nullptr) {
-            trayForSettings->setMode(settings.mode);
+            trayForSettings->setMode(settings.behavior.mode);
         }
     };
 
@@ -357,7 +356,7 @@ int main(int argc, char *argv[])
     QObject::connect(&tray, &mub::ui::TrayIcon::modeChangeRequested, &application,
                      [&](const mub::core::ActivityMode mode) {
                          mub::core::Settings next = settings;
-                         next.mode = mode;
+                         next.behavior.mode = mode;
                          applySettings(next);
                          settingsStore.save(settings);
                          settingsWindow.setSettings(settings);

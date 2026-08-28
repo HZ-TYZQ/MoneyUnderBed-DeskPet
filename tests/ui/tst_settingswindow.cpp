@@ -1,4 +1,5 @@
 #include "core/Settings.h"
+#include "core/SettingsPresets.h"
 #include "ui/AboutWindow.h"
 #include "ui/SettingsWindow.h"
 
@@ -11,7 +12,6 @@
 #include <QTest>
 
 using mub::core::ActivityMode;
-using mub::core::BubbleFrequency;
 using mub::core::Settings;
 using mub::ui::diagnosticsText;
 using mub::ui::SettingsWindow;
@@ -37,6 +37,7 @@ class TestSettingsWindow final : public QObject
 private slots:
     void workspaceControlIsNotPartOfTheFirstRelease();
     void loadingValuesDoesNotReportAChange();
+    void parametersTheWindowDoesNotShowArePassedThrough();
     void changingAControlReportsTheWholeSettings();
     void restoreDefaultsIsReportedSeparately();
     void diagnosticsCoverTheRequiredFields();
@@ -60,14 +61,41 @@ void TestSettingsWindow::loadingValuesDoesNotReportAChange()
     QSignalSpy changes(&window, &SettingsWindow::settingsChanged);
 
     Settings settings;
-    settings.mode = ActivityMode::Active;
-    settings.bubble = BubbleFrequency::Normal;
-    settings.alwaysOnTop = false;
-    settings.scale = 1;
+    settings.behavior.mode = ActivityMode::Active;
+    mub::core::applySpeechFrequency(settings.dialogue,
+                                    mub::core::SpeechFrequency::Normal);
+    settings.window.alwaysOnTop = false;
+    settings.appearance.scale = 1;
     window.setSettings(settings);
 
     QCOMPARE(changes.count(), 0);
     QCOMPARE(window.settings(), settings);
+}
+
+// 阶段 2 的设置窗口只显示四个设置项，但新模型有十几个参数。
+// 界面必须把没显示的参数原样带回，否则改一次活动模式就会把高级参数清成默认值。
+void TestSettingsWindow::parametersTheWindowDoesNotShowArePassedThrough()
+{
+    SettingsWindow window;
+
+    Settings settings;
+    settings.behavior.walkSpeedPxPerSec = 61;
+    settings.behavior.restChancePercent = 37;
+    settings.dialogue.clickTextChancePercent = 44;
+    settings.dialogue.typingMsPerChar = 33;
+    settings.appearance.idleFrameMs = 123;
+    window.setSettings(settings);
+
+    QCheckBox *alwaysOnTop = window.findChild<QCheckBox *>();
+    QVERIFY(alwaysOnTop != nullptr);
+    alwaysOnTop->setChecked(!alwaysOnTop->isChecked());
+
+    const Settings reported = window.settings();
+    QCOMPARE(reported.behavior.walkSpeedPxPerSec, 61);
+    QCOMPARE(reported.behavior.restChancePercent, 37);
+    QCOMPARE(reported.dialogue.clickTextChancePercent, 44);
+    QCOMPARE(reported.dialogue.typingMsPerChar, 33);
+    QCOMPARE(reported.appearance.idleFrameMs, 123);
 }
 
 // 第 5.1 节：修改后立即生效，不设额外「应用」阶段。
@@ -83,7 +111,8 @@ void TestSettingsWindow::changingAControlReportsTheWholeSettings()
     alwaysOnTop->setChecked(!before);
 
     QCOMPARE(changes.count(), 1);
-    QCOMPARE(changes.constFirst().constFirst().value<Settings>().alwaysOnTop, !before);
+    QCOMPARE(changes.constFirst().constFirst().value<Settings>().window.alwaysOnTop,
+             !before);
 }
 
 void TestSettingsWindow::restoreDefaultsIsReportedSeparately()

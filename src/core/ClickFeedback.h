@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/ActivityMode.h"
-#include "core/BubbleFrequency.h"
 
 namespace mub::core {
 
@@ -20,26 +19,20 @@ struct ClickFeedback
     bool hasText = false;
 };
 
-struct ClickFeedbackConfig
-{
-    // 低频与正常两档下附带台词的概率。属于待调优的内部参数。
-    int lowFrequencyTextChancePercent = 20;
-    int normalFrequencyTextChancePercent = 60;
-};
-
 // 决定一次单击给出什么反馈。
 //
 // 只做选择，不产生台词内容，也不接触任何素材。
 class ClickFeedbackSelector
 {
 public:
-    explicit ClickFeedbackSelector(ClickFeedbackConfig config = {});
-
-    ClickFeedback select(ActivityMode mode, BubbleFrequency bubble,
+    // `textChancePercent` 是 docs/Decisions.md 第 14.4 节的
+    // `clickTextChancePercent`：单击附带台词的**唯一**概率。
+    //
+    // `1.0.0` 候选按气泡频率在两个概率之间二选一，等于让「说话频率」决定
+    // 「单击带不带台词」。第 14.4 节要求二者解耦，因此这里只收一个概率，
+    // 由单击自己的设置驱动，不再看说话频率。
+    ClickFeedback select(ActivityMode mode, int textChancePercent,
                          RandomSource &random) const;
-
-private:
-    ClickFeedbackConfig config_;
 };
 
 } // namespace mub::core

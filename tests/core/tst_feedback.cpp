@@ -1,6 +1,6 @@
 #include "core/ActivityMode.h"
-#include "core/BubbleFrequency.h"
 #include "core/ClickFeedback.h"
+#include "core/SettingsPresets.h"
 #include "core/Feeding.h"
 #include "core/RandomSource.h"
 
@@ -9,7 +9,6 @@
 using namespace mub::core;
 
 Q_DECLARE_METATYPE(ActivityMode)
-Q_DECLARE_METATYPE(BubbleFrequency)
 Q_DECLARE_METATYPE(FeedingOutcome)
 
 class TestFeedback final : public QObject
@@ -27,10 +26,11 @@ private slots:
     void clickAlwaysGivesAReaction();
     void quietModeNeverAddsText_data();
     void quietModeNeverAddsText();
-    void bubbleOffNeverAddsText();
+    void zeroChanceNeverAddsText();
     void activeModeAddsTextWhenTheRollSucceeds_data();
     void activeModeAddsTextWhenTheRollSucceeds();
-    void normalFrequencyIsMoreTalkativeThanLow();
+    void clickChanceIsIndependentOfSpeechFrequency();
+    void clickChanceFollowsItsOwnPreset();
 };
 
 void TestFeedback::feedingHonoursTheInjectedProbability_data()
@@ -101,16 +101,14 @@ void TestFeedback::dropDialogueIdIsStable()
 void TestFeedback::clickAlwaysGivesAReaction_data()
 {
     QTest::addColumn<ActivityMode>("mode");
-    QTest::addColumn<BubbleFrequency>("bubble");
+    QTest::addColumn<int>("chancePercent");
 
     for (const ActivityMode mode : {ActivityMode::Quiet, ActivityMode::Active}) {
-        for (const BubbleFrequency bubble :
-             {BubbleFrequency::Off, BubbleFrequency::Low, BubbleFrequency::Normal}) {
-            QTest::newRow(qPrintable(
-                QStringLiteral("mode%1-bubble%2")
-                    .arg(static_cast<int>(mode))
-                    .arg(static_cast<int>(bubble))))
-                << mode << bubble;
+        for (const int chance : {0, 20, 100}) {
+            QTest::newRow(qPrintable(QStringLiteral("mode%1-chance%2")
+                                         .arg(static_cast<int>(mode))
+                                         .arg(chance)))
+                << mode << chance;
         }
     }
 }
@@ -118,83 +116,111 @@ void TestFeedback::clickAlwaysGivesAReaction_data()
 void TestFeedback::clickAlwaysGivesAReaction()
 {
     QFETCH(ActivityMode, mode);
-    QFETCH(BubbleFrequency, bubble);
+    QFETCH(int, chancePercent);
 
-    // docs/Decisions.md 第 3.1 节：即使气泡设置为关闭或被安静模式抑制，
+    // docs/Decisions.md 第 3.1 节：即使概率为 `0` 或被安静模式抑制，
     // 单击仍至少提供动作或表情反馈。
     const ClickFeedbackSelector selector;
     ScriptedRandomSource random({}, {0.0, 0.99});
-    QVERIFY(selector.select(mode, bubble, random).hasReaction);
+    QVERIFY(selector.select(mode, chancePercent, random).hasReaction);
 }
 
 void TestFeedback::quietModeNeverAddsText_data()
 {
-    QTest::addColumn<BubbleFrequency>("bubble");
-    QTest::newRow("off") << BubbleFrequency::Off;
-    QTest::newRow("low") << BubbleFrequency::Low;
-    QTest::newRow("normal") << BubbleFrequency::Normal;
+    QTest::addColumn<int>("chancePercent");
+    QTest::newRow("zero") << 0;
+    QTest::newRow("default") << 20;
+    QTest::newRow("certain") << 100;
 }
 
 void TestFeedback::quietModeNeverAddsText()
 {
-    QFETCH(BubbleFrequency, bubble);
+    QFETCH(int, chancePercent);
 
-    // 安静模式完全抑制气泡，与气泡频率设置无关。
+    // 安静模式完全抑制气泡，与单击台词概率无关。
     const ClickFeedbackSelector selector;
     // 随机值全部取 0，即「一定成功」，仍然不应出现文字。
     ScriptedRandomSource random({}, {0.0});
     const ClickFeedback feedback =
-        selector.select(ActivityMode::Quiet, bubble, random);
+        selector.select(ActivityMode::Quiet, chancePercent, random);
     QVERIFY(!feedback.hasText);
     QVERIFY(feedback.hasReaction);
 }
 
-void TestFeedback::bubbleOffNeverAddsText()
+void TestFeedback::zeroChanceNeverAddsText()
 {
+    // 第 14.4 节：「不带台词」由概率 `0%` 表达，不需要另一个开关。
     const ClickFeedbackSelector selector;
     ScriptedRandomSource random({}, {0.0});
-    const ClickFeedback feedback =
-        selector.select(ActivityMode::Active, BubbleFrequency::Off, random);
+    const ClickFeedback feedback = selector.select(ActivityMode::Active, 0, random);
     QVERIFY(!feedback.hasText);
     QVERIFY(feedback.hasReaction);
 }
 
 void TestFeedback::activeModeAddsTextWhenTheRollSucceeds_data()
 {
-    QTest::addColumn<BubbleFrequency>("bubble");
+    QTest::addColumn<int>("chancePercent");
     QTest::addColumn<double>("roll");
     QTest::addColumn<bool>("expectedText");
 
-    // 默认低频 20%、正常 60%。
-    QTest::newRow("low, roll below") << BubbleFrequency::Low << 0.10 << true;
-    QTest::newRow("low, roll above") << BubbleFrequency::Low << 0.50 << false;
-    QTest::newRow("normal, roll below") << BubbleFrequency::Normal << 0.50 << true;
-    QTest::newRow("normal, roll above") << BubbleFrequency::Normal << 0.80 << false;
+    // 第 14.4 节：单击台词低档默认 `20%`。
+    QTest::newRow("20%, roll below") << 20 << 0.10 << true;
+    QTest::newRow("20%, roll above") << 20 << 0.50 << false;
+    QTest::newRow("70%, roll below") << 70 << 0.50 << true;
+    QTest::newRow("70%, roll above") << 70 << 0.80 << false;
 }
 
 void TestFeedback::activeModeAddsTextWhenTheRollSucceeds()
 {
-    QFETCH(BubbleFrequency, bubble);
+    QFETCH(int, chancePercent);
     QFETCH(double, roll);
     QFETCH(bool, expectedText);
 
     const ClickFeedbackSelector selector;
     ScriptedRandomSource random({}, {roll});
-    QCOMPARE(selector.select(ActivityMode::Active, bubble, random).hasText,
+    QCOMPARE(selector.select(ActivityMode::Active, chancePercent, random).hasText,
              expectedText);
 }
 
-void TestFeedback::normalFrequencyIsMoreTalkativeThanLow()
+void TestFeedback::clickChanceIsIndependentOfSpeechFrequency()
 {
-    // 同一个随机值下，正常频率出文字而低频不出，
-    // 证明两档确实不同而不是共用一个阈值。
+    // 第 14.4 节：单击台词概率必须与说话频率解耦。选择器只收一个概率，
+    // 连说话频率这个概念都拿不到——同一个概率在任何说话频率下结果都一样。
     const ClickFeedbackSelector selector;
     constexpr double roll = 0.40;
 
+    for (const SpeechFrequency frequency :
+         {SpeechFrequency::Off, SpeechFrequency::Low, SpeechFrequency::Normal,
+          SpeechFrequency::High}) {
+        DialogueSettings dialogue;
+        applySpeechFrequency(dialogue, frequency);
+        applyClickTextFrequency(dialogue, ClickTextFrequency::Low);
+
+        ScriptedRandomSource random({}, {roll});
+        // 低档 20%，roll 0.40 不命中；说话频率换遍四档都不改变这个结果。
+        QVERIFY(!selector.select(ActivityMode::Active, dialogue.clickTextChancePercent,
+                                 random)
+                     .hasText);
+    }
+}
+
+void TestFeedback::clickChanceFollowsItsOwnPreset()
+{
+    // 反过来：只改单击档位，结果必须变。
+    const ClickFeedbackSelector selector;
+    constexpr double roll = 0.40;
+
+    DialogueSettings low;
+    applyClickTextFrequency(low, ClickTextFrequency::Low);
+    DialogueSettings high;
+    applyClickTextFrequency(high, ClickTextFrequency::High);
+
     ScriptedRandomSource lowRandom({}, {roll});
-    ScriptedRandomSource normalRandom({}, {roll});
-    QVERIFY(!selector.select(ActivityMode::Active, BubbleFrequency::Low, lowRandom).hasText);
-    QVERIFY(selector.select(ActivityMode::Active, BubbleFrequency::Normal, normalRandom).hasText);
+    ScriptedRandomSource highRandom({}, {roll});
+    QVERIFY(!selector.select(ActivityMode::Active, low.clickTextChancePercent, lowRandom)
+                 .hasText);
+    QVERIFY(selector.select(ActivityMode::Active, high.clickTextChancePercent, highRandom)
+                .hasText);
 }
 
 QTEST_APPLESS_MAIN(TestFeedback)

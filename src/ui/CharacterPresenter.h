@@ -5,7 +5,6 @@
 #include "character/SpriteSheet.h"
 #include "core/ActivityMode.h"
 #include "core/AutonomousBehavior.h"
-#include "core/BubbleFrequency.h"
 #include "core/ClickFeedback.h"
 #include "core/EventCoordinator.h"
 #include "core/Feeding.h"
@@ -63,8 +62,12 @@ public:
     void setHidden(bool hidden);
     bool isHidden() const;
 
-    void setBubbleFrequency(core::BubbleFrequency frequency);
-    core::BubbleFrequency bubbleFrequency() const;
+    // 自主闲聊的触发概率。第 14.4 节：「关闭」由 `0%` 表达，不另设开关。
+    //
+    // 阶段 2 的临时判定——`1.1.0` 的闲聊仍然搭在自主行为的状态切换上。
+    // 阶段 3 引入独立调度器后，这里连同 `AutonomousBehavior` 的闲聊职责一起删除。
+    void setChatterChancePercent(int percent);
+    int chatterChancePercent() const;
 
     // 一次性套用全部用户设置（docs/Decisions.md 第 5.1 节：修改后立即生效）。
     // 暂停不在设置里：第 2.2 节规定它只对当前运行周期有效。

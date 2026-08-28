@@ -72,7 +72,7 @@ void CharacterPresenter::stop()
 
 void CharacterPresenter::setMode(const core::ActivityMode mode)
 {
-    settings_.mode = mode;
+    settings_.behavior.mode = mode;
     behavior_.setMode(mode);
 }
 
@@ -135,25 +135,25 @@ bool CharacterPresenter::isHidden() const
     return hidden_;
 }
 
-void CharacterPresenter::setBubbleFrequency(const core::BubbleFrequency frequency)
+void CharacterPresenter::setChatterChancePercent(const int percent)
 {
-    settings_.bubble = frequency;
+    settings_.dialogue.chatterChancePercent = percent;
 }
 
-core::BubbleFrequency CharacterPresenter::bubbleFrequency() const
+int CharacterPresenter::chatterChancePercent() const
 {
-    return settings_.bubble;
+    return settings_.dialogue.chatterChancePercent;
 }
 
 void CharacterPresenter::applySettings(const core::Settings &settings)
 {
     settings_ = core::sanitized(settings);
 
-    behavior_.setMode(settings_.mode);
-    window_->setAlwaysOnTop(settings_.alwaysOnTop);
+    behavior_.setMode(settings_.behavior.mode);
+    window_->setAlwaysOnTop(settings_.window.alwaysOnTop);
 
-    if (window_->integerScale() != settings_.scale) {
-        window_->setIntegerScale(settings_.scale);
+    if (window_->integerScale() != settings_.appearance.scale) {
+        window_->setIntegerScale(settings_.appearance.scale);
         // 窗口尺寸变了，活动区域内的可移动范围随之改变。
         syncActivityArea();
         behavior_.setPosition(window_->pos());
@@ -289,7 +289,8 @@ void CharacterPresenter::handleClick()
     }
 
     const core::ClickFeedback feedback =
-        clickFeedback_.select(behavior_.mode(), settings_.bubble, *random_);
+        clickFeedback_.select(behavior_.mode(),
+                              settings_.dialogue.clickTextChancePercent, *random_);
 
     // 即使气泡关闭或处于安静模式，也必须给出动作或表情反馈
     // （docs/Decisions.md 第 3.1 节）。当前可用素材没有专门的反应动画，
@@ -324,7 +325,7 @@ void CharacterPresenter::showContextMenu(const QPoint &globalPosition)
 
     QAction *active = menu.addAction(tr("活跃模式"));
     active->setCheckable(true);
-    active->setChecked(settings_.mode == core::ActivityMode::Active);
+    active->setChecked(settings_.behavior.mode == core::ActivityMode::Active);
 
     QAction *pause = menu.addAction(tr("暂停"));
     pause->setCheckable(true);
@@ -458,7 +459,7 @@ void CharacterPresenter::tick()
     // 关闭气泡时仍要消费自主行为产生的请求，但不能申请事件或把它交给气泡；
     // 否则活跃模式会绕过点击反馈里的频率判断继续说话。
     const bool chatterRequested = behavior_.consumeChatterRequest();
-    if (chatterRequested && settings_.bubble != core::BubbleFrequency::Off
+    if (chatterRequested && settings_.dialogue.chatterChancePercent > 0
         && requestEvent(core::EventKind::AutonomousChatter)
             != core::EventDecision::Suppressed) {
         emit textFeedbackRequested(core::EventKind::AutonomousChatter);
