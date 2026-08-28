@@ -44,3 +44,12 @@ target_link_libraries(tst_selftest PRIVATE
     MUB::Resources
     Qt6::Widgets
 )
+
+# 生命周期是纯应用层策略：辅助窗口所有权与唯一退出路径。
+# 需要 QApplication，因此在 offscreen 下运行。
+mub_add_test(tst_applifecycle
+    tst_applifecycle.cpp
+    "${CMAKE_SOURCE_DIR}/src/app/AppLifecycle.cpp"
+)
+target_include_directories(tst_applifecycle PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_applifecycle PRIVATE Qt6::Widgets)

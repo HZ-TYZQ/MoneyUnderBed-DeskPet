@@ -1,5 +1,7 @@
 # QApplication 前后的启动、组装与命令行入口。
 qt_add_executable(money-under-bed-deskpet
+    AppLifecycle.cpp
+    AppLifecycle.h
     DesktopEntry.cpp
     DesktopEntry.h
     DesktopEnvironment.cpp

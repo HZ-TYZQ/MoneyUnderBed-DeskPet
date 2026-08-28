@@ -18,6 +18,7 @@
 #include "core/SettingsStore.h"
 #include "core/TimeSource.h"
 #include "dialogue/DialogueData.h"
+#include "app/AppLifecycle.h"
 #include "ui/AboutWindow.h"
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
@@ -104,6 +105,12 @@ int main(int argc, char *argv[])
     }
 
     QApplication application(argc, argv);
+
+    // 第 14.6 节：进程的生命周期由应用层显式管理。必须早于任何窗口——角色与
+    // 气泡是 Qt::Tool 不计入「最后一个窗口」，一旦设置或关于窗口被关闭，Qt 的
+    // 默认策略就会退出整个应用。
+    mub::app::AppLifecycle lifecycle;
+    lifecycle.takeOverQuitPolicy();
 
     qCInfo(lcMain).noquote()
         << QStringLiteral("version=%1 qt=%2 requested_platform=%3 actual_platform=%4 probe=%5")
@@ -276,6 +283,8 @@ int main(int argc, char *argv[])
     }
 
     mub::ui::SettingsWindow settingsWindow;
+    lifecycle.setAuxiliaryWindow(mub::app::AppLifecycle::AuxiliaryWindow::Settings,
+                                 &settingsWindow);
 
     mub::ui::TrayIcon *trayForSettings = nullptr;
     const auto applySettings = [&](const mub::core::Settings &next) {
@@ -309,9 +318,8 @@ int main(int argc, char *argv[])
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::settingsRequested,
                      &settingsWindow, [&] {
                          settingsWindow.setSettings(settings);
-                         settingsWindow.show();
-                         settingsWindow.raise();
-                         settingsWindow.activateWindow();
+                         lifecycle.showAuxiliaryWindow(
+                             mub::app::AppLifecycle::AuxiliaryWindow::Settings);
                      });
     // 第 3.3 节：托盘只作为备用入口，托盘不可用时不影响角色右键菜单。
     mub::ui::TrayIcon tray;
@@ -358,15 +366,19 @@ int main(int argc, char *argv[])
                      &mub::ui::CharacterPresenter::quitRequested);
 
     mub::ui::AboutWindow aboutWindow(backend->capabilities().name, tray.isActive());
+    lifecycle.setAuxiliaryWindow(mub::app::AppLifecycle::AuxiliaryWindow::About,
+                                 &aboutWindow);
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::aboutRequested,
-                     &aboutWindow, [&aboutWindow] {
-                         aboutWindow.show();
-                         aboutWindow.raise();
-                         aboutWindow.activateWindow();
+                     &aboutWindow, [&lifecycle] {
+                         lifecycle.showAuxiliaryWindow(
+                             mub::app::AppLifecycle::AuxiliaryWindow::About);
                      });
 
+    // 角色右键菜单与托盘都汇入同一条显式退出路径，清理只做一次。
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::quitRequested,
-                     &application, [&application, &dialogue] {
+                     &lifecycle, &mub::app::AppLifecycle::requestQuit);
+    QObject::connect(&lifecycle, &mub::app::AppLifecycle::quitting, &application,
+                     [&application, &dialogue] {
                          // 退出不保留待恢复的对话页面（第 4.2 节）。
                          dialogue.stop();
                          application.quit();
