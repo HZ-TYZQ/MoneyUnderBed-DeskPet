@@ -10,11 +10,12 @@ enum SelfTestFailureCode
     SelfTestDialogueFailure = 1 << 2,
     SelfTestConfigurationFailure = 1 << 3,
     SelfTestComponentFailure = 1 << 4,
+    SelfTestPlatformFailure = 1 << 5,
 };
 
 // 每一类失败占一个稳定比特，CI 和用户只需检查非零；日志给出具体条目。
 int selfTestExitCode(bool resourcesOk, bool fontOk, bool dialogueOk,
-                     bool configurationOk, bool componentsOk);
+                     bool configurationOk, bool componentsOk, bool platformOk);
 
 // 无交互自检。检查资源、字体和全部登记的精灵表后返回退出码。
 //

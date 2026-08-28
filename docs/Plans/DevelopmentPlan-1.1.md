@@ -327,18 +327,18 @@ SettingsStore ── 只负责 schema 1 编解码与配置后端
 
 ### 任务
 
-- [ ] 实现检查点 A 确认的映射、默认值和输入范围，删除所有“临时/待定”实现常量。
-- [ ] 把最终数值写回 `docs/Decisions.md`，更新帮助文本、测试期望和诊断说明。
-- [ ] 修复检查点 A 暴露的问题，并为每个缺陷增加可复现的自动回归测试；不能只改默认值绕过逻辑错误。
-- [ ] 更新 `--self-test`，覆盖 schema 1 读取、关键资源、设置控制器装配和运行平台依赖。
-- [ ] 复核 Linux runtime 审计覆盖整个随包 ELF 范围，确认平台插件进入审计；复核随包字节与归属来源的哈希校验仍生效。
-- [ ] 复核 Linux 包包含 `libqxcb.so`，Windows 包包含 `qwindows.dll`；offscreen 插件只用于发行包自检且在清单中明确。
-- [ ] 给 `.github/workflows/build.yml` 增加正式版本标签触发，并用自动断言保证 `v1.1.0` 标签同时运行 Build and test 与 Package candidates；当前工作流只监听 `main` 分支，不能原样进入 CI-6。
-- [ ] 新建 `docs/ReleaseChecklist-1.1.md`，覆盖 `1.1.0` 新增的设置、生命周期与闲聊项。现有 `docs/ReleaseChecklist.md` 标题、正文和第 6 节都写死 `v1.0.0`，且已经记有 1.0 候选的实际勾选结果，**不得就地改写**；把它改名为 `docs/ReleaseChecklist-1.0.md` 作为历史记录保留。
-- [ ] 复核 `docs/DesktopChecklist.md`（当前标题为「阶段 3–7」、对应提交 `00be5d4`）是否仍作为有效的 Linux 桌面检查依据；仅作历史记录时在文件头写明。
-- [ ] 决定 `.github/workflows/probe-windows.yml` 的去留并同步清单：该工作流只构建 `probes/window/`，只监听 `main`／PR／手动触发，标签推送不会运行它，而 1.0 清单第 1 节却把「Windows probe 全绿」列为产物门。文件自身的注释写明正式双平台 CI 建立后即可删除。**建议删除该工作流并同时删除清单中的这一项**；若保留则必须补标签触发。此项需项目所有者确认后执行。
-- [ ] 更新 README、发布说明模板和 `DevelopmentStatus-1.1.md`；GNOME、多显示器的未验证状态必须显式保留。
-- [ ] 准备 `1.1.0` 候选前版本信息，但此阶段不创建正式标签或 Release。
+- [x] 实现检查点 A 确认的映射、默认值和输入范围，删除所有“临时/待定”实现常量。
+- [x] 把最终数值写回 `docs/Decisions.md`，更新帮助文本、测试期望和诊断说明。
+- [x] 修复检查点 A 暴露的问题，并为每个缺陷增加可复现的自动回归测试；不能只改默认值绕过逻辑错误。
+- [x] 更新 `--self-test`，覆盖 schema 1 读取、关键资源、设置控制器装配和运行平台依赖。
+- [x] 复核 Linux runtime 审计覆盖整个随包 ELF 范围，确认平台插件进入审计；复核随包字节与归属来源的哈希校验仍生效。
+- [x] 复核 Linux 包包含 `libqxcb.so`，Windows 包包含 `qwindows.dll`；offscreen 插件只用于发行包自检且在清单中明确。
+- [x] 给 `.github/workflows/build.yml` 增加正式版本标签触发，并用自动断言保证 `v1.1.0` 标签同时运行 Build and test 与 Package candidates；当前工作流只监听 `main` 分支，不能原样进入 CI-6。
+- [x] 新建 `docs/ReleaseChecklist-1.1.md`，覆盖 `1.1.0` 新增的设置、生命周期与闲聊项。现有 `docs/ReleaseChecklist.md` 标题、正文和第 6 节都写死 `v1.0.0`，且已经记有 1.0 候选的实际勾选结果，**不得就地改写**；把它改名为 `docs/ReleaseChecklist-1.0.md` 作为历史记录保留。
+- [x] 复核 `docs/DesktopChecklist.md`（当前标题为「阶段 3–7」、对应提交 `00be5d4`）是否仍作为有效的 Linux 桌面检查依据；仅作历史记录时在文件头写明。
+- [x] 决定 `.github/workflows/probe-windows.yml` 的去留并同步清单：该工作流只构建 `probes/window/`，只监听 `main`／PR／手动触发，标签推送不会运行它，而 1.0 清单第 1 节却把「Windows probe 全绿」列为产物门。文件自身的注释写明正式双平台 CI 建立后即可删除。**建议删除该工作流并同时删除清单中的这一项**；若保留则必须补标签触发。此项需项目所有者确认后执行。
+- [x] 更新 README、发布说明模板和 `DevelopmentStatus-1.1.md`；GNOME、多显示器的未验证状态必须显式保留。
+- [x] 准备 `1.1.0` 候选前版本信息，但此阶段不创建正式标签或 Release。
 
 ### 自动检查
 

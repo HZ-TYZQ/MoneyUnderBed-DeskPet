@@ -1,15 +1,20 @@
 #include "app/SelfTest.h"
 
+#include "app/SettingsController.h"
 #include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
 #include "core/EventCoordinator.h"
+#include "core/SettingsPresets.h"
 #include "core/SettingsStore.h"
 #include "core/TimeSource.h"
 #include "dialogue/DialogueData.h"
 #include "dialogue/DialogueSession.h"
 
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QFontDatabase>
+#include <QLibraryInfo>
 #include <QLoggingCategory>
 #include <QSet>
 #include <QSettings>
@@ -194,7 +199,128 @@ bool checkConfiguration(QStringList &failures)
         failures.append(QStringLiteral("invalid duration pair did not recover"));
         return false;
     }
-    qCInfo(lcSelfTest) << "configuration initialization and recovery ok";
+    // schema 版本必须真的写进文件：没有它，1.0.0 的平铺键会被当成有效配置读，
+    // 而不是触发默认值重建（第 14.8 节）。
+    if (backend.value(QStringLiteral("settings/schemaVersion")).toInt()
+        != core::SettingsStore::kSchemaVersion) {
+        failures.append(QStringLiteral("saved configuration does not record schema %1")
+                            .arg(core::SettingsStore::kSchemaVersion));
+        return false;
+    }
+
+    // 未来 schema 只读：读到更高版本时用默认值运行，并且**不得回写**，
+    // 否则新版本写的配置会被旧版本降级覆盖。
+    backend.setValue(QStringLiteral("settings/schemaVersion"),
+                     core::SettingsStore::kSchemaVersion + 1);
+    backend.sync();
+    core::SettingsStore future(backend);
+    if (future.load() != core::Settings{}) {
+        failures.append(QStringLiteral("a future schema did not fall back to defaults"));
+        return false;
+    }
+    core::Settings attempted;
+    attempted.appearance.scale = 3;
+    future.save(attempted);
+    backend.sync();
+    if (backend.value(QStringLiteral("settings/schemaVersion")).toInt()
+        != core::SettingsStore::kSchemaVersion + 1) {
+        failures.append(QStringLiteral("a future schema was overwritten by this version"));
+        return false;
+    }
+    qCInfo(lcSelfTest) << "configuration initialization, recovery and schema"
+                       << core::SettingsStore::kSchemaVersion << "ok";
+    return true;
+}
+
+// 设置控制器的装配：产品路径上唯一的运行时设置持有者。自检要证明它确实把改动
+// 分发到了领域信号并落到了盘上——这两条断了，界面看起来正常但什么都不生效。
+bool checkSettingsController(QStringList &failures)
+{
+    QTemporaryDir directory;
+    if (!directory.isValid()) {
+        failures.append(QStringLiteral("could not create a temporary configuration directory"));
+        return false;
+    }
+
+    QSettings backend(directory.filePath(QStringLiteral("self-test-controller.ini")),
+                      QSettings::IniFormat);
+    core::SettingsStore store(backend);
+    SettingsController controller(store);
+
+    // 不用 QSignalSpy：那是 Qt6::Test 的设施，产品二进制不链接测试模块。
+    int behaviorNotices = 0;
+    int dialogueNotices = 0;
+    QObject::connect(&controller, &SettingsController::behaviorChanged,
+                     &controller, [&behaviorNotices] { ++behaviorNotices; });
+    QObject::connect(&controller, &SettingsController::dialogueChanged,
+                     &controller, [&dialogueNotices] { ++dialogueNotices; });
+
+    core::Settings changed = controller.settings();
+    core::applyActivityTempo(changed.behavior, core::ActivityTempo::High);
+    core::applySpeechFrequency(changed.dialogue, core::SpeechFrequency::High);
+    controller.applyAndPersist(changed);
+
+    if (behaviorNotices == 0 || dialogueNotices == 0) {
+        failures.append(QStringLiteral("settings controller did not notify its domains"));
+        return false;
+    }
+    if (controller.settings() != changed) {
+        failures.append(QStringLiteral("settings controller did not adopt the applied values"));
+        return false;
+    }
+    if (store.load() != changed) {
+        failures.append(QStringLiteral("settings controller did not persist the applied values"));
+        return false;
+    }
+
+    // 只进运行时的路径（`--scale`）不得回写配置文件。
+    core::Settings thisRunOnly = changed;
+    thisRunOnly.appearance.scale = changed.appearance.scale == 1 ? 2 : 1;
+    controller.applyForThisRunOnly(thisRunOnly);
+    controller.flush();
+    if (store.load().appearance.scale != changed.appearance.scale) {
+        failures.append(QStringLiteral("a run-only override leaked into the configuration file"));
+        return false;
+    }
+
+    // 档位必须能反向匹配回去，否则界面会把刚写进去的值显示成「自定义」。
+    if (core::matchActivityTempo(controller.settings().behavior)
+            != core::ActivityTempo::High
+        || core::matchSpeechFrequency(controller.settings().dialogue)
+            != core::SpeechFrequency::High) {
+        failures.append(QStringLiteral("preset values do not match back to their level"));
+        return false;
+    }
+    qCInfo(lcSelfTest) << "settings controller assembly ok";
+    return true;
+}
+
+// 运行平台依赖：发行包必须带上桌面平台插件。打包自检在 offscreen 下运行，
+// 因此漏掉 xcb/windows 插件不会让自检失败——除非在这里显式检查
+// （第 8.2 节、计划第 10 节）。
+bool checkPlatformPlugins(QStringList &failures)
+{
+#if defined(Q_OS_WIN)
+    const QString required = QStringLiteral("qwindows.dll");
+#elif defined(Q_OS_LINUX)
+    const QString required = QStringLiteral("libqxcb.so");
+#else
+    const QString required;
+#endif
+    if (required.isEmpty()) {
+        qCInfo(lcSelfTest) << "no desktop platform plugin requirement on this platform";
+        return true;
+    }
+
+    const QString pluginsPath = QLibraryInfo::path(QLibraryInfo::PluginsPath);
+    const QString path = QDir(pluginsPath).filePath(QStringLiteral("platforms/") + required);
+    if (!QFileInfo::exists(path)) {
+        failures.append(QStringLiteral("%1: desktop platform plugin missing from %2")
+                            .arg(required, pluginsPath));
+        return false;
+    }
+    qCInfo(lcSelfTest).noquote()
+        << QStringLiteral("desktop platform plugin ok %1").arg(path);
     return true;
 }
 
@@ -233,7 +359,7 @@ bool checkKeyComponents(QStringList &failures)
 
 int selfTestExitCode(const bool resourcesOk, const bool fontOk,
                      const bool dialogueOk, const bool configurationOk,
-                     const bool componentsOk)
+                     const bool componentsOk, const bool platformOk)
 {
     int code = SelfTestSuccess;
     if (!resourcesOk) {
@@ -251,6 +377,9 @@ int selfTestExitCode(const bool resourcesOk, const bool fontOk,
     if (!componentsOk) {
         code |= SelfTestComponentFailure;
     }
+    if (!platformOk) {
+        code |= SelfTestPlatformFailure;
+    }
     return code;
 }
 
@@ -261,10 +390,13 @@ int runSelfTest()
     resourcesOk = checkFaceResources(failures) && resourcesOk;
     const bool fontOk = checkDialogueFont(failures);
     const bool dialogueOk = checkDialogues(failures);
-    const bool configurationOk = checkConfiguration(failures);
+    bool configurationOk = checkConfiguration(failures);
+    configurationOk = checkSettingsController(failures) && configurationOk;
     const bool componentsOk = checkKeyComponents(failures);
+    const bool platformOk = checkPlatformPlugins(failures);
     const int exitCode = selfTestExitCode(resourcesOk, fontOk, dialogueOk,
-                                         configurationOk, componentsOk);
+                                         configurationOk, componentsOk,
+                                         platformOk);
 
     if (exitCode == SelfTestSuccess) {
         qCInfo(lcSelfTest) << "self-test passed";

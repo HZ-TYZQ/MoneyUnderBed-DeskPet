@@ -34,9 +34,11 @@ mub_add_test(tst_rotatinglogwriter
 target_include_directories(tst_rotatinglogwriter PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_rotatinglogwriter PRIVATE Qt6::Core)
 
+# 自检覆盖设置控制器的装配，因此要一并编译控制器本身。
 mub_add_test(tst_selftest
     tst_selftest.cpp
     "${CMAKE_SOURCE_DIR}/src/app/SelfTest.cpp"
+    "${CMAKE_SOURCE_DIR}/src/app/SettingsController.cpp"
 )
 target_include_directories(tst_selftest PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_selftest PRIVATE

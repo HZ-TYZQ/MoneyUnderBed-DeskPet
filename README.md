@@ -40,8 +40,14 @@
 
 截至 2026-08-27，正式产品的 KDE 开发构建已在 Fedora 44、KDE Plasma
 6.7.4、Wayland 会话与 XWayland、单屏 2560×1600@240 Hz、系统缩放 125%
-下通过综合检查。Windows 探针已通过首轮实测；正式 Windows ZIP、Actions
-AppImage 和双平台三小时运行仍待候选产物验收。这些结果不扩大上述支持范围。
+下通过综合检查。Windows 窗口能力已通过首轮实测（见
+[`docs/WindowsFeasibilityResults.md`](docs/WindowsFeasibilityResults.md)）。
+
+截至 2026-08-28，`1.1.0` 的四组设置界面、应用生命周期与自主闲聊已在 KDE 上用
+CI 产出的 AppImage 完成人工检查，档位取值随之冻结。正式 Windows ZIP 的候选检查
+与 KDE 的连续三小时运行仍待候选产物验收；Windows 按
+[`docs/Decisions.md`](docs/Decisions.md) 第 14.10 节不要求连续三小时。
+以上结果都不扩大上述支持范围。
 
 Windows 免安装包第一版不进行代码签名，可能触发 SmartScreen，也可能被
 Smart App Control 或企业策略阻止。
@@ -51,8 +57,11 @@ Smart App Control 或企业策略阻止。
 | 文档 | 内容 |
 | --- | --- |
 | [`docs/Decisions.md`](docs/Decisions.md) | 唯一产品需求基线 |
-| [`docs/Plans/DevelopmentPlan.md`](docs/Plans/DevelopmentPlan.md) | 分阶段执行计划 |
-| [`docs/Plans/DevelopmentStatus.md`](docs/Plans/DevelopmentStatus.md) | 各阶段实际状态 |
+| [`docs/Plans/DevelopmentPlan-1.1.md`](docs/Plans/DevelopmentPlan-1.1.md) | `1.1.0` 的分阶段执行计划 |
+| [`docs/Plans/DevelopmentStatus-1.1.md`](docs/Plans/DevelopmentStatus-1.1.md) | `1.1.0` 各阶段实际状态 |
+| [`docs/ReleaseChecklist-1.1.md`](docs/ReleaseChecklist-1.1.md) | `1.1.0` 正式候选验收清单 |
+| [`docs/Plans/DevelopmentPlan.md`](docs/Plans/DevelopmentPlan.md) | `1.0` 的分阶段执行计划（历史） |
+| [`docs/Plans/DevelopmentStatus.md`](docs/Plans/DevelopmentStatus.md) | `1.0` 各阶段实际状态（历史） |
 | [`docs/FeasibilityResults.md`](docs/FeasibilityResults.md) | Linux 窗口可行性结果 |
 | [`docs/WindowsFeasibilityResults.md`](docs/WindowsFeasibilityResults.md) | Windows 窗口可行性结果 |
 

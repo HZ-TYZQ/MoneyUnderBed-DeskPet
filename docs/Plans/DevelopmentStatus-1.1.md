@@ -16,7 +16,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | 3 | 运行时配置、生效快照与独立闲聊 | 已通过 | `18475a4` | CI-3 已通过 |
 | 4 | 四组设置界面与端到端整合 | 已通过 | `d03d46d` | CI-4 已通过 |
 | A | 人工检查点：KDE 集成功能与参数调优 | 已通过 | `d03d46d` | — |
-| 5 | 调优收敛、完整回归与候选准备 | 未开始 |  | CI-5 未开始 |
+| 5 | 调优收敛、完整回归与候选准备 | 进行中 |  | CI-5 未开始 |
 | 6 | 正式标签、候选产物与发布验收 | 未开始 |  | CI-6 未开始 |
 | B | 人工检查点：正式候选验收 | 未开始 |  | — |
 
@@ -32,7 +32,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | 草稿 Release | 存在，未发布，阶段 6 删除 |
 | 候选包审计 run | `33096110820`（AppDir 55 条 ELF 记录，25 个 Ubuntu 源包） |
 
-已完成的候选检查（`docs/ReleaseChecklist.md`，阶段 5 改名为 `ReleaseChecklist-1.0.md`）：
+已完成的候选检查（`docs/ReleaseChecklist-1.0.md`，阶段 5 由 `ReleaseChecklist.md` 改名）：
 
 - 第 1 节产物身份与自动门：全部通过。
 - 第 2 节 KDE Plasma + XCB/XWayland：除连续三小时运行外全部通过。
@@ -253,7 +253,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 - `src/core/SettingsPresets.cpp` 中除默认档位外的全部取值仍是原型值，须经检查点 A
   实测冻结后写回 `docs/Decisions.md` 第 14.3 至 14.5 节，见本文件第 131 行起的表。
 - `probe-windows.yml` 的去留、`ReleaseChecklist-1.1.md` 的建立与旧清单改名、
-  `DesktopChecklist.md` 复核、`build.yml` 的标签触发，都在阶段 5。
+  `DesktopChecklist.md` 复核、`build.yml` 的标签触发，都在阶段 5。**均已完成。**
 
 ## 人工检查点 A（KDE 集成功能与参数调优）
 
@@ -299,3 +299,89 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 更长时间的连续均值测量放到发布阶段执行，并按上述两条改用能取瞬时 CPU 的采集
 方式。该项不改变第 11.3 节对 KDE 正式验证环境连续运行时长的要求，本次 5 分钟
 采样也不替代它。
+
+## 阶段 5 的收敛结果
+
+### 档位取值
+
+检查点 A 判定原样冻结，因此 `src/core/SettingsPresets.cpp` 一个数字都没有改动。
+本阶段做的是把「这些还是原型值」的注释改为「已冻结，以决策文档为准」，涉及
+`src/core/SettingsPresets.h` 与 `src/core/Settings.h`。全仓库已无「原型值」
+「待定」一类的实现常量注释。
+
+### 退役的窗口探针工作流
+
+`.github/workflows/probe-windows.yml` 已删除，经项目所有者确认。它只构建
+`probes/window/`，只监听 `main`／PR／手动触发，标签推送不会运行它，而 1.0 清单
+第 1 节却把它列为产物门——这个组合在 CI-6 会变成一个永远无法满足的检查项。
+
+`probes/window/` 的源码保留：它是 `docs/WindowsFeasibilityResults.md` 的证据
+来源，删掉工作流不等于删掉证据。保留的代价是这部分源码此后不再由 CI 构建，
+这一点写在 `tst_releaseworkflows` 的注释里。
+
+### 标签触发与自动断言
+
+`build.yml` 增加了 `tags: v*.*.*`，与 `package.yml` 逐字一致。新增
+`tests/release/tst_releaseworkflows.cpp` 断言四件事：
+
+| 断言 | 防的是什么 |
+| --- | --- |
+| 两条工作流都有标签触发 | 只打包不跑测试的标签进入发布 |
+| 两条的过滤式逐字一致 | 两条流水线在标签上漂移，一条跑一条不跑 |
+| 过滤式能匹配 `v1.1.0`、`v1.2.3` | 过滤式写错但看起来正常 |
+| `probe-windows.yml` 不存在，且 1.1 清单的勾选项不依赖它 | 退役工作流被清单重新变成门 |
+
+这些事实此前只存在于 YAML 里，没有任何编译期约束，改坏了要等真正打标签时才
+发现——而那时标签已经推出去了。
+
+### 自检扩充
+
+`--self-test` 从五类检查扩到六类，新增 `SelfTestPlatformFailure = 1 << 5`：
+
+- **schema 版本**：断言保存后 `settings/schemaVersion` 确实写进了文件；再写一个
+  更高的 schema，断言读到时回落默认值**且不回写**。少了后一条，新版本写的配置会
+  被旧版本降级覆盖。
+- **设置控制器装配**：领域信号是否真的发出、`applyAndPersist` 是否真的落盘、
+  `applyForThisRunOnly` 是否真的没落盘、写进去的档位能否反向匹配回来。这四条
+  断了任何一条，界面看起来都正常但设置不生效。
+- **桌面平台插件**：Linux 断言 `platforms/libqxcb.so`、Windows 断言
+  `platforms/qwindows.dll` 存在。打包自检在 offscreen 下运行，漏掉桌面插件不会
+  让自检失败——除非在这里显式检查。
+
+实现上没有用 `QSignalSpy`：它属于 `Qt6::Test`，产品二进制不链接测试模块，
+改用 `QObject::connect` 计数。
+
+### 打包审计的复核结论（未改动）
+
+两项都已生效，本阶段只复核，没有改动工作流：
+
+- `packaging/CollectLinuxRuntime.sh` 遍历整个 AppDir 的 `-type f` 并以
+  `readelf -h` 筛出全部 ELF，平台插件在审计范围内；`usr/plugins/` 下有显式
+  白名单，出现未复核插件即 `exit 1`。
+- 每个随包 ELF 都经 `verify_binary_identity` 与来源比对完整哈希，
+  linuxdeploy 用 patchelf 改写 RPATH 后哈希会变，此时改比对 GNU Build ID。
+- 发行包必需文件已经断言：Linux 是 `usr/plugins/platforms/libqxcb.so` 与
+  `libqoffscreen.so`，Windows 是 `platforms/qwindows.dll` 与 `qoffscreen.dll`。
+  offscreen 插件只服务包内自检，两处 `PACKAGE_REQUIRED_FILES` 都写明了。
+
+### 文档
+
+- `docs/ReleaseChecklist.md` → `docs/ReleaseChecklist-1.0.md`，正文一字未改，
+  只在开头加了停用说明。它记的是 1.0 候选 2026-08 的实际勾选结果。
+- 新建 `docs/ReleaseChecklist-1.1.md`，新增第 2.2 节（应用生命周期）、
+  第 2.3 节（设置界面与生效边界）、第 2.4 节（自主闲聊），第 4 节写明采样方式的
+  两个坑，第 1 节去掉了窗口探针那一项。
+- `docs/DesktopChecklist.md` 加了停用说明：它对应 1.0 的阶段 3–7 与提交
+  `00be5d4`，其设置一节覆盖的是当时的四项设置，不含 1.1 的四组结构。
+- `README.md` 更新验证边界与文档表；`packaging/release-notes.md` 的验收记录一节
+  补上 Windows 的三小时放宽与资源占用的人工判定。
+
+### 版本信息
+
+`MUB_VERSION` 默认 `0.0.0`，正式值由 CI 从标签推导，代码里无需预置。按计划本阶段
+**不创建**任何标签或 Release。
+
+### 容器本地门
+
+全量 CTest **37/37** 通过（新增 `tst_releaseworkflows`），`--self-test` 退出码
+`0` 且六类检查全部报告通过，`MUB_WARNINGS_AS_ERRORS=ON` 下无警告。

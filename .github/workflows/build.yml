@@ -11,6 +11,11 @@ on:
   push:
     branches:
       - main
+    # 正式版本标签必须同时跑本工作流与 Package candidates：CI-6 的退出门要求
+    # 同一标签上两条流水线都有结果，只打包不跑测试的标签不能进入发布。
+    # 过滤式与 package.yml 保持一致，由 tst_releaseworkflows 断言两者不漂移。
+    tags:
+      - "v*.*.*"
   pull_request:
 
 permissions:

@@ -14,17 +14,19 @@ private slots:
 void TestSelfTest::everyFailureClassHasADistinctNonzeroCode()
 {
     using namespace mub::app;
-    QCOMPARE(selfTestExitCode(true, true, true, true, true), SelfTestSuccess);
-    QCOMPARE(selfTestExitCode(false, true, true, true, true),
+    QCOMPARE(selfTestExitCode(true, true, true, true, true, true), SelfTestSuccess);
+    QCOMPARE(selfTestExitCode(false, true, true, true, true, true),
              SelfTestResourceFailure);
-    QCOMPARE(selfTestExitCode(true, false, true, true, true), SelfTestFontFailure);
-    QCOMPARE(selfTestExitCode(true, true, false, true, true),
+    QCOMPARE(selfTestExitCode(true, false, true, true, true, true), SelfTestFontFailure);
+    QCOMPARE(selfTestExitCode(true, true, false, true, true, true),
              SelfTestDialogueFailure);
-    QCOMPARE(selfTestExitCode(true, true, true, false, true),
+    QCOMPARE(selfTestExitCode(true, true, true, false, true, true),
              SelfTestConfigurationFailure);
-    QCOMPARE(selfTestExitCode(true, true, true, true, false),
+    QCOMPARE(selfTestExitCode(true, true, true, true, false, true),
              SelfTestComponentFailure);
-    QCOMPARE(selfTestExitCode(false, false, false, false, false), 31);
+    QCOMPARE(selfTestExitCode(true, true, true, true, true, false),
+             SelfTestPlatformFailure);
+    QCOMPARE(selfTestExitCode(false, false, false, false, false, false), 63);
 }
 
 void TestSelfTest::bundledProductPasses()
