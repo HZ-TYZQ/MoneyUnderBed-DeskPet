@@ -659,11 +659,64 @@ jobs:
           (cd dist/source && sha256sum -c ./*.sha256)
           (cd dist/linux-source && sha256sum -c SHA256SUMS)
 
-      - name: Create or refresh draft release
+      # 对应源码单独成一个 Release，正式 Release 只留二进制与校验文件。
+      #
+      # 源码 Release **直接公开**，不走草稿：草稿对外不可访问，如果二进制先转公开
+      # 而源码还是草稿，那一刻就是不合规的 GPL 分发。让源码先在，这个窗口就不存在。
+      #
+      # 标签用 `sources-<version>`，**不能**用 `v<version>-sources` 之类：
+      # 本工作流与 build.yml 的过滤都是 `v*.*.*`，那种名字会匹配并触发整条流水线，
+      # 而 metadata 只接受 MAJOR.MINOR.PATCH，结果是一次注定失败的运行
+      # （docs/Decisions.md 第 14.1 节记录的同一个陷阱）。
+      # tst_releaseworkflows 对此有断言。
+      - name: Publish corresponding-source release
+        id: sources
         shell: bash
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
         run: |
           set -euo pipefail
-          mapfile -t files < <(find dist -type f -print | sort)
+          tag="sources-$VERSION"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          mapfile -t files < <(find dist/source dist/linux-source -type f -print | sort)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "::error::No corresponding-source files were collected"
+            exit 1
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            # 源码归档按定义不该变。同一标签重跑时不覆盖，只核对完整性——
+            # 数量对不上说明上一次上传残缺或内容被改过，那是必须报错的事，
+            # 不能默默接受一个不完整的源码 Release。
+            existing="$(gh release view "$tag" --json assets --jq '[.assets[]] | length')"
+            if [[ "$existing" -ne ${#files[@]} ]]; then
+              echo "::error::$tag already exists with $existing assets, expected ${#files[@]}"
+              exit 1
+            fi
+            echo "$tag already exists with all ${#files[@]} assets; leaving it untouched"
+          else
+            sed -e "s/@VERSION@/$VERSION/g" \
+                -e "s/@SOURCES_TAG@/$tag/g" \
+                -e "s/@COMMIT@/$GITHUB_SHA/g" \
+                -e "s/@RUN_ID@/$GITHUB_RUN_ID/g" \
+                packaging/sources-release-notes.md > sources-notes.md
+            # --latest=false：源码 Release 不该抢走 Latest 标记。
+            gh release create "$tag" \
+              --target "$GITHUB_SHA" \
+              --latest=false \
+              --title "v$VERSION 的对应源码（无可执行文件）" \
+              --notes-file sources-notes.md \
+              "${files[@]}"
+          fi
+
+      - name: Create or refresh draft release
+        shell: bash
+        env:
+          SOURCES_TAG: ${{ steps.sources.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # 只有二进制与其校验/清单文件进正式 Release，源码在上一步的 Release 里。
+          mapfile -t files < <(find dist/linux dist/windows -type f -print | sort)
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             is_draft="$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)"
             if [[ "$is_draft" != true ]]; then
@@ -678,10 +731,12 @@ jobs:
               --title "MoneyUnderBed DeskPet ${{ needs.metadata.outputs.version }}"
             gh release upload "$GITHUB_REF_NAME" --clobber "${files[@]}"
           else
+            sed "s/@SOURCES_TAG@/$SOURCES_TAG/g" \
+              packaging/release-notes.md > release-notes.md
             gh release create "$GITHUB_REF_NAME" \
               --verify-tag \
               --draft \
               --title "MoneyUnderBed DeskPet ${{ needs.metadata.outputs.version }}" \
-              --notes-file packaging/release-notes.md \
+              --notes-file release-notes.md \
               "${files[@]}"
           fi

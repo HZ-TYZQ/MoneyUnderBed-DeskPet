@@ -21,6 +21,8 @@ private slots:
     void theTagFilterMatchesTheReleaseTag();
     void theRetiredProbeWorkflowIsGone();
     void theCurrentChecklistDoesNotDependOnTheProbe();
+    void theSourceReleaseTagCannotTriggerThePipeline();
+    void theBinaryReleaseNotesPointAtTheSourceRelease();
 };
 
 namespace {
@@ -139,6 +141,63 @@ void TestReleaseWorkflows::theCurrentChecklistDoesNotDependOnTheProbe()
                                            "retired window probe: %1")
                                 .arg(trimmed)));
     }
+}
+
+// 对应源码单独成一个 Release，其标签**不得**匹配发布流水线的标签过滤。
+// `v1.1.0-sources` 之类的名字会匹配 `v*.*.*` 并触发整条打包流水线，而 metadata
+// 只接受 MAJOR.MINOR.PATCH，结果是一次注定失败的运行——与 docs/Decisions.md
+// 第 14.1 节记录的 rc 标签陷阱是同一个。
+void TestReleaseWorkflows::theSourceReleaseTagCannotTriggerThePipeline()
+{
+    const QString yaml = readFile(workflowRoot() + QStringLiteral("package.yml"));
+    QVERIFY2(!yaml.isEmpty(), "package.yml is missing");
+
+    // 从工作流里取出源码 Release 的标签构造式，避免测试和实现各写一份。
+    const QRegularExpression assignment(
+        // 自定义分隔符：正则里本身含有 `)"`，默认的 R"( )" 会提前结束。
+        QStringLiteral(R"RX(tag="([^"]*)\$VERSION([^"]*)")RX"));
+    const QRegularExpressionMatch match = assignment.match(yaml);
+    QVERIFY2(match.hasMatch(),
+             "package.yml no longer builds the source release tag as tag=\"...$VERSION...\"");
+
+    const QStringList filters = tagFilters(yaml);
+    QVERIFY(!filters.isEmpty());
+
+    // 用真实版本号代入，确认成品标签落不进过滤式。
+    for (const QString &version : {QStringLiteral("1.1.0"), QStringLiteral("2.0.0"),
+                                   QStringLiteral("10.20.30")}) {
+        const QString tag = match.captured(1) + version + match.captured(2);
+        for (const QString &filter : filters) {
+            QVERIFY2(!globMatches(filter, tag),
+                     qPrintable(QStringLiteral("source release tag %1 matches the "
+                                               "release filter %2 and would trigger "
+                                               "a doomed pipeline run")
+                                    .arg(tag, filter)));
+        }
+    }
+}
+
+// GPLv3 §6(d)：源码指引必须与目标代码放在一起。源码拆到另一个 Release 之后，
+// 二进制 Release 的说明模板里必须留有指向它的链接，否则拆分本身就制造了
+// 一次不合规的分发。
+void TestReleaseWorkflows::theBinaryReleaseNotesPointAtTheSourceRelease()
+{
+    const QString notes =
+        readFile(QStringLiteral(MUB_SOURCE_ROOT "/packaging/release-notes.md"));
+    QVERIFY2(!notes.isEmpty(), "packaging/release-notes.md is missing");
+    QVERIFY2(notes.contains(QStringLiteral("@SOURCES_TAG@")),
+             "the binary release notes no longer link the corresponding-source release");
+
+    const QString sourceNotes =
+        readFile(QStringLiteral(MUB_SOURCE_ROOT "/packaging/sources-release-notes.md"));
+    QVERIFY2(!sourceNotes.isEmpty(), "packaging/sources-release-notes.md is missing");
+
+    // 工作流必须真的把占位符替换掉，否则发出去的说明里会留下 `@SOURCES_TAG@`。
+    const QString yaml = readFile(workflowRoot() + QStringLiteral("package.yml"));
+    QVERIFY2(yaml.contains(QStringLiteral("s/@SOURCES_TAG@/")),
+             "package.yml does not substitute @SOURCES_TAG@ before publishing");
+    QVERIFY2(yaml.contains(QStringLiteral("s/@VERSION@/")),
+             "package.yml does not substitute @VERSION@ before publishing");
 }
 
 QTEST_APPLESS_MAIN(TestReleaseWorkflows)

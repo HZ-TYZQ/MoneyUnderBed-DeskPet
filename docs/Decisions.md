@@ -553,7 +553,9 @@ README 和发行说明必须同时展示正式支持目标、实际验证配置�
 
 - 正式候选精确使用 Qt `6.11.2`，选择 `GPL-3.0-only` 开源许可路径并动态链接，不禁止用户替换 Qt 动态库。
 - 每个发行包携带 GPLv3 完整文本与项目生成的 SPDX 2.3 元数据，明确记录实际使用的 Qt Base、许可路径和对应源码哈希。SVG 图标／图像插件已从两平台候选中明确排除，成品不含 Qt SVG。
-- 每批 Actions 候选保存 Qt 官方 `qtbase-everywhere-src-6.11.2.tar.xz`；正式标签构建把同一归档附到草稿 Release。固定 SHA-256 为 `5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22`。
+- 每批 Actions 候选保存 Qt 官方 `qtbase-everywhere-src-6.11.2.tar.xz`；正式标签构建把同一归档随同次流水线发布。固定 SHA-256 为 `5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22`。
+- **对应源码自 `1.1.0` 起单独成一个 Release**，标签 `sources-<version>`，与二进制 Release 指向同一提交、产自同一次流水线。拆分只为让正式 Release 的资产列表可读，不改变分发义务：源码 Release 直接公开（不走草稿——草稿对外不可访问，二进制先公开而源码仍是草稿即为不合规分发），二进制 Release 的说明中必须保留指向它的链接（GPLv3 §6(d) 要求源码指引与目标代码放在一起）。只要二进制 Release 公开，源码 Release 必须保持公开且内容不变。
+- 源码 Release 的标签**不得**匹配 `v*.*.*`。`v<version>-sources` 之类会匹配打包流水线的标签过滤并触发一次注定失败的运行，与第 14.1 节记录的 rc 标签陷阱相同。`tests/release/tst_releaseworkflows.cpp` 对此有断言。
 - Qt 以外的 ICU、AppImage runtime、平台运行库和打包工具同样按实际成品收集许可与对应源码；正式标签必须重新产出并核对这些材料，不能沿用开发候选的清单。
 
 ### 12.3 角色素材来源

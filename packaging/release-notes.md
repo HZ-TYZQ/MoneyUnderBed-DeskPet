@@ -2,9 +2,19 @@
 
 本 Release 的二进制由标签对应的 GitHub Actions 自动构建。候选验收期间保持为草稿；请核对随附的 `.sha256` 文件后再测试，验收通过时发布同一份产物，不重新构建。
 
-草稿同时附带 Qt／ICU／AppImage runtime／打包工具的固定源码归档，以及 Linux
-AppImage 实际随包系统库对应的 Ubuntu 源码包。二进制内的 `licenses/` 目录记录
-逐组件许可和版本映射；源码与二进制属于同一次 Actions 构建，不从 runner 清单猜测。
+## 对应源码
+
+**本版的对应源码（Corresponding Source）在
+[`@SOURCES_TAG@`](https://github.com/HZ-TYZQ/MoneyUnderBed-DeskPet/releases/tag/@SOURCES_TAG@)。**
+
+它包含 Qt Base、ICU、AppImage runtime 与打包工具的固定源码归档，以及 Linux
+AppImage 实际随包系统库对应的 Ubuntu 源码包。拆成独立 Release 只是为了让本页的
+资产列表可读；两者产自同一次 Actions 流水线，只要本 Release 公开，源码 Release
+就保持公开且内容不变。
+
+二进制内的 `licenses/` 目录记录逐组件许可和版本映射，其中
+`licenses/linux-runtime.tsv` 给出每个随包 ELF 的部署哈希、来源哈希与 Build ID，
+可据此核对源码与二进制的对应关系——不从 runner 清单猜测。
 
 ## 授权与身份
 
