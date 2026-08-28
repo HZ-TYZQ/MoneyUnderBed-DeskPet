@@ -348,13 +348,31 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
   `platforms/qwindows.dll` 存在。打包自检在 offscreen 下运行，漏掉桌面插件不会
   让自检失败——除非在这里显式检查。
 
-  查找方式必须用 `QCoreApplication::libraryPaths()`，不能用
-  `QLibraryInfo::path(QLibraryInfo::PluginsPath)`：三种布局的插件位置都不同——
-  windeployqt 把 `platforms/` 直接放在 exe 旁边，AppImage 放在 `usr/plugins/`
-  下，开发构建在 Qt 安装目录里。CI-5 的第一次运行就因为这个在 Windows 打包任务
-  上失败（`PluginsPath` 解析成 `package/plugins`，而实际插件在 `package/platforms`），
-  Linux 侧则正常通过。`libraryPaths()` 是 Qt 加载插件时实际查的那组目录，
-  因此改后检查的是真实加载路径，而不是猜一个目录。
+  这条检查在 CI 上错了两次，两次的教训不同，都记在这里：
+
+  1. 第一版用 `QLibraryInfo::path(QLibraryInfo::PluginsPath)` 拼路径，在 Windows
+     打包任务上失败——它解析成 `package/plugins`，而 windeployqt 把插件放在
+     `package/platforms`。Linux 侧因布局恰好对得上而通过，所以本地和 AppImage
+     自检都没能暴露它。
+  2. 第二版改用 `QCoreApplication::libraryPaths()` 遍历，两条流水线都变绿，
+     **但绿得不对**：两个平台都命中了 runner 自己的 Qt 安装目录
+     （`.../Qt/6.11.2/msvc2022_64/plugins/platforms/qwindows.dll` 与
+     `.../gcc_64/plugins/platforms/libqxcb.so`）。`libraryPaths()` 含有构建期烙进
+     二进制的 Qt 安装路径，在装了 Qt 的机器上永远命中；把包里的插件全删掉，
+     这个检查照样通过。它证明的只是「这台机器装了 Qt」。
+
+  现在的实现检查的是**插件是否在包里**：以包根目录的 `BUILD_INFO.txt` 作为
+  「这是不是发行包」的判据（只有打包工作流会写这个文件），找到后要求
+  Windows 的 `platforms/qwindows.dll`、Linux 的
+  `usr/plugins/platforms/libqxcb.so` 存在于包内的确定位置；没有 `BUILD_INFO.txt`
+  的开发构建明确跳过并写日志说明跳过原因，不假装通过。
+
+  两条分支都在本地用伪造的 AppDir 布局实测过：缺插件时报
+  `desktop platform plugin missing from the package at <包根>` 并置位
+  `SelfTestPlatformFailure`；补上插件后通过。
+
+  这条与 `PACKAGE_REQUIRED_FILES` 的重复是有意的：后者只在 CI 里跑，前者随二进制
+  发给用户，用户在自己机器上跑 `--self-test` 就能判定包是否残缺。
 
 实现上没有用 `QSignalSpy`：它属于 `Qt6::Test`，产品二进制不链接测试模块，
 改用 `QObject::connect` 计数。

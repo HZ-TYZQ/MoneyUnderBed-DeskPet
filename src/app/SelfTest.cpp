@@ -298,37 +298,55 @@ bool checkSettingsController(QStringList &failures)
 // 运行平台依赖：发行包必须带上桌面平台插件。打包自检在 offscreen 下运行，
 // 因此漏掉 xcb/windows 插件不会让自检失败——除非在这里显式检查
 // （第 8.2 节、计划第 10 节）。
+//
+// 检查的是**插件是否在包里**，不是「这台机器上能不能找到一个插件」。
+// 不能用 QCoreApplication::libraryPaths()：它包含构建期烙进二进制的 Qt 安装
+// 路径，在装了 Qt 的机器上永远命中，把插件全删掉也照样通过。
 bool checkPlatformPlugins(QStringList &failures)
 {
 #if defined(Q_OS_WIN)
-    const QString required = QStringLiteral("qwindows.dll");
+    // windeployqt 的布局：exe、BUILD_INFO.txt 和 platforms/ 都在包根目录。
+    const QString packageRelativePlugin = QStringLiteral("platforms/qwindows.dll");
+    const QStringList rootsRelativeToBinary{QStringLiteral(".")};
 #elif defined(Q_OS_LINUX)
-    const QString required = QStringLiteral("libqxcb.so");
+    // AppImage 的布局：exe 在 usr/bin/，插件在 usr/plugins/，BUILD_INFO.txt 在根。
+    const QString packageRelativePlugin =
+        QStringLiteral("usr/plugins/platforms/libqxcb.so");
+    const QStringList rootsRelativeToBinary{QStringLiteral("../..")};
 #else
-    const QString required;
+    const QString packageRelativePlugin;
+    const QStringList rootsRelativeToBinary;
 #endif
-    if (required.isEmpty()) {
+    if (packageRelativePlugin.isEmpty()) {
         qCInfo(lcSelfTest) << "no desktop platform plugin requirement on this platform";
         return true;
     }
 
-    // 必须走 Qt 自己的插件搜索路径，不能只看 QLibraryInfo::PluginsPath：
-    // windeployqt 把 platforms/ 直接放在 exe 旁边，AppImage 放在 usr/plugins/ 下，
-    // 开发构建又在 Qt 安装目录里。libraryPaths() 正是 Qt 加载插件时实际查的那组
-    // 目录，因此这里检查的就是真实加载路径，而不是猜一个目录。
-    const QStringList searchPaths = QCoreApplication::libraryPaths();
-    for (const QString &searchPath : searchPaths) {
-        const QString path =
-            QDir(searchPath).filePath(QStringLiteral("platforms/") + required);
-        if (QFileInfo::exists(path)) {
-            qCInfo(lcSelfTest).noquote()
-                << QStringLiteral("desktop platform plugin ok %1").arg(path);
-            return true;
+    // BUILD_INFO.txt 只由打包工作流写入，因此它是「这是不是发行包」的判据。
+    // 开发构建里没有它，此时跳过——开发构建本来就不带插件。
+    const QDir binaryDir(QCoreApplication::applicationDirPath());
+    for (const QString &relativeRoot : rootsRelativeToBinary) {
+        const QDir root(binaryDir.filePath(relativeRoot));
+        if (!QFileInfo::exists(root.filePath(QStringLiteral("BUILD_INFO.txt")))) {
+            continue;
         }
+        const QString path = root.filePath(packageRelativePlugin);
+        if (!QFileInfo::exists(path)) {
+            failures.append(
+                QStringLiteral("%1: desktop platform plugin missing from the package at %2")
+                    .arg(packageRelativePlugin, root.absolutePath()));
+            return false;
+        }
+        qCInfo(lcSelfTest).noquote()
+            << QStringLiteral("packaged desktop platform plugin ok %1").arg(path);
+        return true;
     }
-    failures.append(QStringLiteral("%1: desktop platform plugin missing from %2")
-                        .arg(required, searchPaths.join(QLatin1Char(';'))));
-    return false;
+
+    qCInfo(lcSelfTest).noquote()
+        << QStringLiteral("not a packaged build (no BUILD_INFO.txt near %1); "
+                          "skipping the packaged platform plugin check")
+               .arg(binaryDir.absolutePath());
+    return true;
 }
 
 bool checkKeyComponents(QStringList &failures)
