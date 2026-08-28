@@ -40,6 +40,7 @@ mub_add_test(tst_settingswindow
     tst_settingswindow.cpp
     "${CMAKE_SOURCE_DIR}/src/ui/AboutWindow.cpp"
     "${CMAKE_SOURCE_DIR}/src/ui/SettingsWindow.cpp"
+    "${CMAKE_SOURCE_DIR}/src/ui/ValueEditor.cpp"
 )
 target_include_directories(tst_settingswindow PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_settingswindow PRIVATE

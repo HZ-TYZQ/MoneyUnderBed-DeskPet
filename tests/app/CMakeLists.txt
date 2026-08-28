@@ -61,3 +61,14 @@ mub_add_test(tst_settingscontroller
 )
 target_include_directories(tst_settingscontroller PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_settingscontroller PRIVATE MUB::Core)
+
+# 设置的端到端装配：界面、控制器、存储与生命周期接在一起。
+mub_add_test(tst_settingsintegration
+    tst_settingsintegration.cpp
+    "${CMAKE_SOURCE_DIR}/src/app/AppLifecycle.cpp"
+    "${CMAKE_SOURCE_DIR}/src/app/SettingsController.cpp"
+    "${CMAKE_SOURCE_DIR}/src/ui/SettingsWindow.cpp"
+    "${CMAKE_SOURCE_DIR}/src/ui/ValueEditor.cpp"
+)
+target_include_directories(tst_settingsintegration PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_settingsintegration PRIVATE MUB::Core Qt6::Widgets)

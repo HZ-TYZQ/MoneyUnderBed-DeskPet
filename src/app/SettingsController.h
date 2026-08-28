@@ -29,14 +29,6 @@ class SettingsController final : public QObject
     Q_OBJECT
 
 public:
-    enum class Group
-    {
-        Behavior,
-        Dialogue,
-        Appearance,
-        Window,
-    };
-
     // 构造时从 `store` 读入一次，之后 `settings()` 就是唯一真相。
     explicit SettingsController(core::SettingsStore &store, QObject *parent = nullptr);
 
@@ -49,6 +41,10 @@ public:
     // 下拉框选择、复选框切换）。
     void applyAndPersist(const core::Settings &next);
 
+    // 只作用于本次运行，**不落盘**。用于 `--scale` 这类命令行覆盖：
+    // 第 5.1 节规定它覆盖本次运行，不写回配置文件。
+    void applyForThisRunOnly(const core::Settings &next);
+
     // 把等待中的去抖落盘立刻写掉。退出前调用，避免丢掉最后一次修改。
     void flush();
 
@@ -56,7 +52,7 @@ public:
     bool hasPendingWrite() const;
 
     // 按组恢复默认值。界面必须先取得用户确认，控制器收到即执行（第 14.2 节）。
-    void resetGroup(Group group);
+    void resetGroup(core::SettingsGroup group);
     // 全部恢复默认值。
     void resetAll();
 

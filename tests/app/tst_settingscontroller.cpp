@@ -233,7 +233,7 @@ void TestSettingsController::resetGroupOnlyAffectsThatGroup()
     changed.window.alwaysOnTop = false;
     controller.applyAndPersist(changed);
 
-    controller.resetGroup(SettingsController::Group::Behavior);
+    controller.resetGroup(mub::core::SettingsGroup::Behavior);
 
     const Settings defaults;
     const Settings after = controller.settings();

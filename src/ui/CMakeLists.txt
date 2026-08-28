@@ -22,6 +22,8 @@ target_sources(money-under-bed-deskpet PRIVATE
     FirstRunWindow.h
     SettingsWindow.cpp
     SettingsWindow.h
+    ValueEditor.cpp
+    ValueEditor.h
     TrayIcon.cpp
     TrayIcon.h
 )

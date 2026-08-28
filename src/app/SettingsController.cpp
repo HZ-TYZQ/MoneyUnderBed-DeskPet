@@ -84,6 +84,12 @@ bool SettingsController::adopt(const core::Settings &valid)
     return true;
 }
 
+void SettingsController::applyForThisRunOnly(const core::Settings &next)
+{
+    // 只进运行时，不排队落盘：命令行覆盖不该悄悄改掉用户保存的配置。
+    adopt(core::sanitized(next));
+}
+
 void SettingsController::persistNow()
 {
     store_->save(settings_);
@@ -104,21 +110,21 @@ bool SettingsController::hasPendingWrite() const
     return persistTimer_.isActive();
 }
 
-void SettingsController::resetGroup(const Group group)
+void SettingsController::resetGroup(const core::SettingsGroup group)
 {
     const core::Settings defaults;
     core::Settings next = settings_;
     switch (group) {
-    case Group::Behavior:
+    case core::SettingsGroup::Behavior:
         next.behavior = defaults.behavior;
         break;
-    case Group::Dialogue:
+    case core::SettingsGroup::Dialogue:
         next.dialogue = defaults.dialogue;
         break;
-    case Group::Appearance:
+    case core::SettingsGroup::Appearance:
         next.appearance = defaults.appearance;
         break;
-    case Group::Window:
+    case core::SettingsGroup::Window:
         next.window = defaults.window;
         break;
     }

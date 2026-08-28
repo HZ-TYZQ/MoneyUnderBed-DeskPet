@@ -1,5 +1,7 @@
 #include "ui/AboutWindow.h"
 
+#include "core/SettingsPresets.h"
+
 #include "core/AppMetadata.h"
 
 #include <QClipboard>
@@ -34,7 +36,8 @@ QLabel *richLabel(const QString &text, QWidget *parent)
 
 } // namespace
 
-QString diagnosticsText(const QString &backendName, const bool trayAvailable)
+QString diagnosticsText(const QString &backendName, const bool trayAvailable,
+                        const core::Settings &settings)
 {
     QStringList lines;
     lines.append(QStringLiteral("version: %1").arg(metadata::versionString()));
@@ -48,6 +51,18 @@ QString diagnosticsText(const QString &backendName, const bool trayAvailable)
     lines.append(QStringLiteral("tray: %1")
                      .arg(trayAvailable ? QStringLiteral("available")
                                         : QStringLiteral("unavailable")));
+
+    // 设置摘要只取解释常见报告所必需的四项，不写配置路径与用户名。
+    const std::optional<core::SpeechFrequency> speech =
+        core::matchSpeechFrequency(settings.dialogue);
+    lines.append(
+        QStringLiteral("settings: mode=%1 speech=%2 scale=%3 always_on_top=%4")
+            .arg(core::activityModeId(settings.behavior.mode),
+                 speech ? QString::number(static_cast<int>(*speech))
+                        : QStringLiteral("custom"))
+            .arg(settings.appearance.scale)
+            .arg(settings.window.alwaysOnTop ? QStringLiteral("yes")
+                                             : QStringLiteral("no")));
 
     // 屏幕信息只取几何、DPR 和刷新率，不取显示器序列号一类可识别信息。
     const QList<QScreen *> screens = QGuiApplication::screens();
@@ -121,13 +136,18 @@ AboutWindow::AboutWindow(QString backendName, const bool trayAvailable, QWidget 
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::close);
 }
 
+void AboutWindow::setSettings(const core::Settings &settings)
+{
+    settings_ = settings;
+}
+
 void AboutWindow::copyDiagnostics()
 {
     QClipboard *clipboard = QGuiApplication::clipboard();
     if (clipboard == nullptr) {
         return;
     }
-    clipboard->setText(diagnosticsText(backendName_, trayAvailable_));
+    clipboard->setText(diagnosticsText(backendName_, trayAvailable_, settings_));
 }
 
 } // namespace mub::ui

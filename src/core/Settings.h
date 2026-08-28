@@ -109,6 +109,15 @@ struct WindowSettings
     friend bool operator==(const WindowSettings &, const WindowSettings &) = default;
 };
 
+// 设置的四个领域。界面按它分区，控制器按它做「恢复本组默认值」。
+enum class SettingsGroup
+{
+    Behavior,
+    Dialogue,
+    Appearance,
+    Window,
+};
+
 struct Settings
 {
     BehaviorSettings behavior;

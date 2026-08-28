@@ -18,6 +18,7 @@
 #include "core/TimeSource.h"
 #include "dialogue/DialogueData.h"
 #include "app/AppLifecycle.h"
+#include "app/SettingsController.h"
 #include "ui/AboutWindow.h"
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
@@ -198,7 +199,9 @@ int main(int argc, char *argv[])
     // （docs/Decisions.md 第 5.1 节）。
     QSettings settingsBackend;
     mub::core::SettingsStore settingsStore(settingsBackend);
-    mub::core::Settings settings = settingsStore.load();
+
+    // 第 14.2 节：应用层统一持有唯一运行时设置，负责校验、套用和自动保存。
+    mub::app::SettingsController controller(settingsStore);
 
     if (parser.isSet(scaleOption)) {
         bool scaleOk = false;
@@ -209,9 +212,12 @@ int main(int argc, char *argv[])
                        .arg(parser.value(scaleOption), allowedScaleList());
             return 2;
         }
-        settings.appearance.scale = requested;
+        // 第 5.1 节：命令行倍率只覆盖本次运行，不写回配置文件。
+        mub::core::Settings overridden = controller.settings();
+        overridden.appearance.scale = requested;
+        controller.applyForThisRunOnly(overridden);
     }
-    const int integerScale = settings.appearance.scale;
+    const int integerScale = controller.settings().appearance.scale;
 
     const QString sheetPath =
         mub::character::clipAssetPath(kStartupClipId);
@@ -286,38 +292,47 @@ int main(int argc, char *argv[])
                                  &settingsWindow);
 
     mub::ui::TrayIcon *trayForSettings = nullptr;
-    const auto applySettings = [&](const mub::core::Settings &next) {
-        settings = mub::core::sanitized(next);
-        presenter.applySettings(settings);
-        dialogue.applyDialogueSettings(settings.dialogue);
-        dialogue.setScale(settings.appearance.scale);
-        if (trayForSettings != nullptr) {
-            trayForSettings->setMode(settings.behavior.mode);
-        }
-    };
+    mub::ui::AboutWindow *aboutWindowForSettings = nullptr;
 
-    // 修改后立即生效并保存，不设「应用」阶段（第 5.1 节）。
-    QObject::connect(&settingsWindow, &mub::ui::SettingsWindow::settingsChanged,
+    // 运行时消费者按领域订阅（第 6.3 节）。
+    // 这里不再手工拼「套用并保存」的 lambda，也不再有第二份运行时设置。
+    QObject::connect(&controller, &mub::app::SettingsController::settingsChanged,
                      &application, [&](const mub::core::Settings &next) {
-                         applySettings(next);
-                         settingsStore.save(settings);
+                         presenter.applySettings(next);
+                         if (aboutWindowForSettings != nullptr) {
+                             aboutWindowForSettings->setSettings(next);
+                         }
+                         if (trayForSettings != nullptr) {
+                             trayForSettings->setMode(next.behavior.mode);
+                         }
+                         settingsWindow.setSettings(next);
                      });
+    QObject::connect(&controller, &mub::app::SettingsController::dialogueChanged,
+                     &application, [&](const mub::core::DialogueSettings &next) {
+                         dialogue.applyDialogueSettings(next);
+                     });
+    QObject::connect(&controller, &mub::app::SettingsController::appearanceChanged,
+                     &application, [&](const mub::core::AppearanceSettings &next) {
+                         dialogue.setScale(next.scale);
+                     });
+
+    // 第 14.8 节：拖动过程中立即生效但不逐帧落盘；一次编辑完成才写一次。
+    QObject::connect(&settingsWindow, &mub::ui::SettingsWindow::settingsEdited,
+                     &controller, &mub::app::SettingsController::apply);
+    QObject::connect(&settingsWindow, &mub::ui::SettingsWindow::settingsCommitted,
+                     &controller, &mub::app::SettingsController::applyAndPersist);
+    // 界面已经取得用户确认，控制器收到即执行（第 14.2 节）。
+    QObject::connect(&settingsWindow, &mub::ui::SettingsWindow::groupResetRequested,
+                     &controller, &mub::app::SettingsController::resetGroup);
+    QObject::connect(&settingsWindow, &mub::ui::SettingsWindow::resetAllRequested,
+                     &controller, &mub::app::SettingsController::resetAll);
+
+    // 角色右键菜单的活动模式切换走同一个控制器，设置窗口打开时看到的是同一份真相。
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::settingsChanged,
-                     &application, [&](const mub::core::Settings &next) {
-                         applySettings(next);
-                         settingsStore.save(settings);
-                         settingsWindow.setSettings(settings);
-                     });
-    QObject::connect(&settingsWindow,
-                     &mub::ui::SettingsWindow::restoreDefaultsRequested, &application,
-                     [&] {
-                         settingsStore.restoreDefaults();
-                         applySettings(settingsStore.load());
-                         settingsWindow.setSettings(settings);
-                     });
+                     &controller, &mub::app::SettingsController::applyAndPersist);
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::settingsRequested,
                      &settingsWindow, [&] {
-                         settingsWindow.setSettings(settings);
+                         settingsWindow.setSettings(controller.settings());
                          lifecycle.showAuxiliaryWindow(
                              mub::app::AppLifecycle::AuxiliaryWindow::Settings);
                      });
@@ -356,16 +371,15 @@ int main(int argc, char *argv[])
                      &application, showCharacter);
     QObject::connect(&tray, &mub::ui::TrayIcon::modeChangeRequested, &application,
                      [&](const mub::core::ActivityMode mode) {
-                         mub::core::Settings next = settings;
+                         mub::core::Settings next = controller.settings();
                          next.behavior.mode = mode;
-                         applySettings(next);
-                         settingsStore.save(settings);
-                         settingsWindow.setSettings(settings);
+                         controller.applyAndPersist(next);
                      });
     QObject::connect(&tray, &mub::ui::TrayIcon::quitRequested, &presenter,
                      &mub::ui::CharacterPresenter::quitRequested);
 
     mub::ui::AboutWindow aboutWindow(backend->capabilities().name, tray.isActive());
+    aboutWindowForSettings = &aboutWindow;
     lifecycle.setAuxiliaryWindow(mub::app::AppLifecycle::AuxiliaryWindow::About,
                                  &aboutWindow);
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::aboutRequested,
@@ -378,9 +392,11 @@ int main(int argc, char *argv[])
     QObject::connect(&presenter, &mub::ui::CharacterPresenter::quitRequested,
                      &lifecycle, &mub::app::AppLifecycle::requestQuit);
     QObject::connect(&lifecycle, &mub::app::AppLifecycle::quitting, &application,
-                     [&application, &dialogue] {
+                     [&application, &dialogue, &controller] {
                          // 退出不保留待恢复的对话页面（第 4.2 节）。
                          dialogue.stop();
+                         // 去抖窗口里还没落盘的最后一次修改不能因为退出而丢掉。
+                         controller.flush();
                          application.quit();
                      });
 
@@ -421,8 +437,13 @@ int main(int argc, char *argv[])
         desktopEntry.install(appImagePath, entryIcon);
     }
 
-    applySettings(settings);
-    settingsWindow.setSettings(settings);
+    // 启动时把已保存的设置送到全部运行时消费者。
+    presenter.applySettings(controller.settings());
+    dialogue.applyDialogueSettings(controller.settings().dialogue);
+    dialogue.setScale(controller.settings().appearance.scale);
+    tray.setMode(controller.settings().behavior.mode);
+    settingsWindow.setSettings(controller.settings());
+    aboutWindow.setSettings(controller.settings());
     refreshDesktopEntryState();
     presenter.start();
     qCInfo(lcMain) << "startup ready elapsed_ms=" << startupTimer.elapsed();
