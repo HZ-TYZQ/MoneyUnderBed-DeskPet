@@ -9,8 +9,10 @@ using mub::core::ManualTimeSource;
 
 namespace {
 
-constexpr AnimationClip kLoop{"test-loop", ":/none", 4, 100, LoopMode::Loop};
-constexpr AnimationClip kOnce{"test-once", ":/none", 3, 100, LoopMode::HoldLast};
+constexpr AnimationClip kLoop{"test-loop", ":/none", 4, AnimationCategory::Idle,
+                              LoopMode::Loop};
+constexpr AnimationClip kOnce{"test-once", ":/none", 3, AnimationCategory::Idle,
+                              LoopMode::HoldLast};
 
 } // namespace
 
@@ -32,6 +34,8 @@ private slots:
     void largeTimeJumpAdvancesOnlyOneFrame();
     void everyRegisteredClipHasSaneParameters_data();
     void everyRegisteredClipHasSaneParameters();
+    void timingAppliesToTheNextClipNotTheCurrentOne();
+    void frameDurationFollowsTheClipCategory();
 };
 
 void TestAnimationPlayer::startsAtTheFirstFrame()
@@ -213,7 +217,8 @@ void TestAnimationPlayer::everyRegisteredClipHasSaneParameters_data()
     QTest::addColumn<int>("frameDurationMs");
 
     for (const AnimationClip &clip : registeredClips()) {
-        QTest::newRow(clip.id) << clip.frameCount << clip.frameDurationMs;
+        QTest::newRow(clip.id)
+            << clip.frameCount << frameDurationFor(clip, AnimationTiming{});
     }
 }
 
@@ -224,6 +229,58 @@ void TestAnimationPlayer::everyRegisteredClipHasSaneParameters()
 
     QVERIFY(frameCount >= 1);
     QVERIFY(frameDurationMs >= 1);
+}
+
+// 第 14.8 节：帧时长在启动动画时快照，改设置不影响正在播放的这一段。
+void TestAnimationPlayer::timingAppliesToTheNextClipNotTheCurrentOne()
+{
+    ManualTimeSource clock;
+    AnimationPlayer player(clock);
+
+    const AnimationClip *idle = findClip(QStringLiteral("idle-up-left"));
+    QVERIFY(idle != nullptr);
+    const AnimationClip *run = findClip(QStringLiteral("run-up-left"));
+    QVERIFY(run != nullptr);
+
+    player.restart(*idle);
+    QCOMPARE(player.activeFrameDurationMs(), AnimationTiming{}.idleFrameMs);
+
+    // 播放途中把待机帧时长改慢一倍。
+    AnimationTiming slower;
+    slower.idleFrameMs = AnimationTiming{}.idleFrameMs * 2;
+    slower.runFrameMs = AnimationTiming{}.runFrameMs * 2;
+    player.setTiming(slower);
+
+    // 当前这一段仍按原来的帧时长推进。
+    QCOMPARE(player.activeFrameDurationMs(), AnimationTiming{}.idleFrameMs);
+    clock.advance(AnimationTiming{}.idleFrameMs);
+    QVERIFY(player.update());
+    QCOMPARE(player.frameIndex(), 1);
+
+    // 下一次启动动画才采用新值。
+    player.restart(*run);
+    QCOMPARE(player.activeFrameDurationMs(), slower.runFrameMs);
+    clock.advance(AnimationTiming{}.runFrameMs);
+    QVERIFY(!player.update());
+    clock.advance(slower.runFrameMs - AnimationTiming{}.runFrameMs);
+    QVERIFY(player.update());
+    QCOMPARE(player.frameIndex(), 1);
+}
+
+// 动画速度对三个帧时长施加统一倍率，类别在登记表里显式写出。
+void TestAnimationPlayer::frameDurationFollowsTheClipCategory()
+{
+    AnimationTiming timing;
+    timing.idleFrameMs = 111;
+    timing.runFrameMs = 222;
+    timing.icecreamFrameMs = 333;
+
+    for (const AnimationClip &clip : registeredClips()) {
+        const int expected = clip.category == AnimationCategory::Idle ? 111
+            : clip.category == AnimationCategory::Run                 ? 222
+                                                                      : 333;
+        QCOMPARE(frameDurationFor(clip, timing), expected);
+    }
 }
 
 QTEST_APPLESS_MAIN(TestAnimationPlayer)

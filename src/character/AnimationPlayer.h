@@ -25,6 +25,13 @@ public:
 
     explicit AnimationPlayer(const core::TimeSource &timeSource);
 
+    // 帧时长策略。第 14.8 节：新值在**下一次启动对应动画**时生效，
+    // 正在播放的这一段保持开始时的帧时长快照，不重算已经走过的时间。
+    void setTiming(const AnimationTiming &timing);
+    const AnimationTiming &timing() const;
+    // 当前正在播放的这一段实际使用的每帧毫秒数。
+    int activeFrameDurationMs() const;
+
     // 开始播放。同一段动画重复调用不会重新开始。
     void play(const AnimationClip &clip);
 
@@ -53,6 +60,8 @@ public:
 private:
     const core::TimeSource *timeSource_;
     const AnimationClip *clip_ = nullptr;
+    AnimationTiming timing_;
+    int activeFrameDurationMs_ = AnimationTiming{}.idleFrameMs;
     qint64 lastAdvanceMs_ = 0;
     qint64 accumulatedMs_ = 0;
     int frameIndex_ = 0;

@@ -11,6 +11,22 @@ AnimationPlayer::AnimationPlayer(const core::TimeSource &timeSource)
 {
 }
 
+void AnimationPlayer::setTiming(const AnimationTiming &timing)
+{
+    // 只换策略，不碰正在播放的这一段：它的帧时长在启动时就已经取好。
+    timing_ = timing;
+}
+
+const AnimationTiming &AnimationPlayer::timing() const
+{
+    return timing_;
+}
+
+int AnimationPlayer::activeFrameDurationMs() const
+{
+    return activeFrameDurationMs_;
+}
+
 void AnimationPlayer::play(const AnimationClip &clip)
 {
     if (clip_ != nullptr && clip_->id == clip.id) {
@@ -28,6 +44,8 @@ void AnimationPlayer::restartFromFrame(const AnimationClip &clip,
                                        const int frameIndex)
 {
     clip_ = &clip;
+    // 帧时长在这里快照一次，之后整段播放都用它。
+    activeFrameDurationMs_ = frameDurationFor(clip, timing_);
     frameIndex_ = std::clamp(frameIndex, 0, std::max(1, clip.frameCount) - 1);
     loopCount_ = 0;
     accumulatedMs_ = 0;
@@ -40,7 +58,7 @@ bool AnimationPlayer::update()
     if (clip_ == nullptr || paused_ || finished_) {
         return false;
     }
-    const int frameDuration = std::max(1, clip_->frameDurationMs);
+    const int frameDuration = std::max(1, activeFrameDurationMs_);
     const int frameCount = std::max(1, clip_->frameCount);
 
     const qint64 now = timeSource_->nowMs();

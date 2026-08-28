@@ -13,6 +13,10 @@ target_link_libraries(tst_autonomousbehavior PRIVATE MUB::Core)
 mub_add_test(tst_eventcoordinator tst_eventcoordinator.cpp)
 target_link_libraries(tst_eventcoordinator PRIVATE MUB::Core)
 
+# 自主闲聊的独立调度：完整间隔、一轮一判、不排队不补播。
+mub_add_test(tst_chatterscheduler tst_chatterscheduler.cpp)
+target_link_libraries(tst_chatterscheduler PRIVATE MUB::Core)
+
 mub_add_test(tst_feedback tst_feedback.cpp)
 target_link_libraries(tst_feedback PRIVATE MUB::Core)
 

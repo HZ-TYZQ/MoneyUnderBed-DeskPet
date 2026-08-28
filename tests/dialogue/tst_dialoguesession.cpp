@@ -55,6 +55,8 @@ class TestDialogueSession final : public QObject
 private slots:
     void startsIdle();
     void defaultTypingSpeedMatchesTheFrozenDecision();
+    void pacingAppliesToTheNextDialogueNotTheCurrentOne();
+    void pacingNeverTouchesTheIdleTimeout();
     void startBeginsTypingTheFirstPage();
     void textAppearsOneCharacterAtATime();
     void typingEndsAtPageComplete();
@@ -152,7 +154,62 @@ void TestDialogueSession::defaultTypingSpeedMatchesTheFrozenDecision()
     QVERIFY(session.visibleText().isEmpty());
     clock.advance(1);
     QVERIFY(session.update());
-    QCOMPARE(session.visibleText().size(), 1);
+    QCOMPARE(session.visibleText().size(), qsizetype{1});
+}
+
+// 第 14.8 节：打字速度与单页自动消失时间在下一次对话开始时生效，
+// 正在进行的打字不被重启，也不会中途换速度。
+void TestDialogueSession::pacingAppliesToTheNextDialogueNotTheCurrentOne()
+{
+    ManualTimeSource clock;
+    DialogueSession session(clock, config());
+    session.start(multiPage());
+    QCOMPARE(session.activePacing().typingMsPerChar, kMsPerChar);
+
+    // 打了两个字之后把速度改慢一倍。
+    clock.advance(kMsPerChar * 2);
+    session.update();
+    const qsizetype typedBefore = session.visibleText().size();
+    QVERIFY(typedBefore >= 2);
+
+    session.setPacing({kMsPerChar * 4, 9000});
+    QCOMPARE(session.pendingPacing().typingMsPerChar, kMsPerChar * 4);
+    // 当前这一段仍按原速度。
+    QCOMPARE(session.activePacing().typingMsPerChar, kMsPerChar);
+
+    clock.advance(kMsPerChar * 2);
+    session.update();
+    QCOMPARE(session.visibleText().size(), typedBefore + 2);
+
+    // 下一次对话开始才采用新值。
+    session.stop();
+    session.start(multiPage());
+    QCOMPARE(session.activePacing().typingMsPerChar, kMsPerChar * 4);
+    QCOMPARE(session.activePacing().singlePageAutoHideMs, 9000);
+
+    clock.advance(kMsPerChar * 4);
+    session.update();
+    QCOMPARE(session.visibleText().size(), qsizetype{1});
+}
+
+// 第 14.7 节：连续对话的无操作超时保持冻结，不随对话节奏一起变。
+void TestDialogueSession::pacingNeverTouchesTheIdleTimeout()
+{
+    ManualTimeSource clock;
+    DialogueSession session(clock, config());
+    session.setPacing({5, 1000});
+    session.start(multiPage());
+    typeOutCurrentPage(clock, session);
+    QCOMPARE(session.state(), DialogueState::PageComplete);
+
+    // 20 s 之前不超时。
+    clock.advance(19000);
+    session.update();
+    QCOMPARE(session.state(), DialogueState::PageComplete);
+
+    clock.advance(1500);
+    session.update();
+    QCOMPARE(session.state(), DialogueState::Finished);
 }
 
 void TestDialogueSession::startBeginsTypingTheFirstPage()

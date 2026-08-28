@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/EventCoordinator.h"
+#include "core/Settings.h"
 #include "dialogue/DialogueSession.h"
 #include "ui/BubbleHost.h"
 
@@ -45,6 +46,10 @@ public:
                        platform::DeskPetWindowBackend *backend,
                        QObject *parent = nullptr);
     ~DialogueController() override;
+
+    // 对话参数。第 14.8 节：打字速度与单页自动消失时间在下一次对话开始时生效，
+    // 正在进行的打字与自动消失计时不被重启。
+    void applyDialogueSettings(const core::DialogueSettings &settings);
 
     // 气泡与角色使用同一整数倍率（第 4.8 节）。
     void setScale(int scale);

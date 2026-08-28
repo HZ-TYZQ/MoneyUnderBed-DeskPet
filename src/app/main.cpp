@@ -289,6 +289,7 @@ int main(int argc, char *argv[])
     const auto applySettings = [&](const mub::core::Settings &next) {
         settings = mub::core::sanitized(next);
         presenter.applySettings(settings);
+        dialogue.applyDialogueSettings(settings.dialogue);
         dialogue.setScale(settings.appearance.scale);
         if (trayForSettings != nullptr) {
             trayForSettings->setMode(settings.behavior.mode);

@@ -13,7 +13,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 | --- | --- | --- | --- | --- |
 | 1 | 应用生命周期根因修复 | 已通过 | `50bfc02` | CI-1 已通过 |
 | 2 | 设置领域模型、schema 1 与应用控制器 | 已通过 | `d3640ac` | CI-2 已通过 |
-| 3 | 运行时配置、生效快照与独立闲聊 | 未开始 |  | CI-3 未开始 |
+| 3 | 运行时配置、生效快照与独立闲聊 | 进行中 |  | CI-3 未开始 |
 | 4 | 四组设置界面与端到端整合 | 未开始 |  | CI-4 未开始 |
 | A | 人工检查点：KDE 集成功能与参数调优 | 未开始 |  | — |
 | 5 | 调优收敛、完整回归与候选准备 | 未开始 |  | CI-5 未开始 |
@@ -108,7 +108,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
   运行时（第 7.1、7.3 节）。
 - `main.cpp` 仍在用自己的 lambda 套用并保存设置，`SettingsController` 尚未接入产品
   路径（第 8.3 节）。
-- `CharacterPresenter` 的闲聊门是阶段 2 的临时实现，阶段 3 必须删除。
+- `CharacterPresenter` 的闲聊门是阶段 2 的临时实现，阶段 3 必须删除。**已于阶段 3 删除。**
 
 容器本地门：全量 CTest 32/32 通过（新增 `tst_applifecycle`），
 `--self-test` 退出码 `0`，`MUB_WARNINGS_AS_ERRORS=ON` 下无警告。
@@ -149,3 +149,37 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 
 说话频率的默认档是「低」，与第 4 节「气泡默认低频」一致；最高档一次判定的期望
 间隔仍在分钟量级，符合第 4 节「不做高频陪聊」。
+
+## 阶段 3 的接线结果
+
+阶段 2 遗留的两项临时实现都已清除：
+
+- `AutonomousBehavior` 不再有 `consumeChatterRequest()` 与 `chatterRequested_`，
+  `chooseNextFromIdle()` 里也没有任何闲聊概念。`tst_autonomousbehavior` 直接扫描
+  头文件断言这两个名字不再出现，防止旧耦合被重新引回来。
+- `CharacterPresenter` 的 `chatterChancePercent > 0` 临时门已由 `ChatterScheduler`
+  取代。
+
+新的生效边界：
+
+| 参数 | 生效时机 | 实现方式 |
+| --- | --- | --- |
+| 待机／行走／休息时长 | 下一次进入对应状态 | 截止时间在进入状态时算好，不重算 |
+| 移动与返回速度 | 下一次开始对应移动 | `activeSpeedPxPerSec_` 在进入移动状态时快照 |
+| 休息／接近鼠标概率 | 下一次行为选择 | `chooseNextFromIdle()` 读当前配置 |
+| 自主闲聊间隔与概率 | 下一轮调度 | 一轮开始时把间隔与概率一起定下来 |
+| 单击台词概率 | 下一次单击 | 单击时读当前设置 |
+| 打字速度、单页自动消失 | 下一次对话开始 | `DialogueSession::start()` 快照 |
+| 动画帧时长 | 下一次启动对应动画 | `AnimationPlayer` 在 `restartFromFrame()` 快照 |
+| 活动模式 | 当前行为结束后 | 状态机不因改模式而中断（切安静时停止接近鼠标除外） |
+| 显示倍率、始终置顶 | 立即 | 窗口属性，没有「下一次行为」 |
+
+`AnimationClip` 的 `frameDurationMs` 字段替换为显式的 `AnimationCategory`，帧时长
+统一由 `AnimationTiming` 提供，符合本文件既有的「运行时使用显式映射，不从文件名
+推断语义」约束。
+
+`bottomTolerancePx` 与 `timeJumpThresholdMs` 由 `behaviorConfigFrom()` 固定取内部
+默认值，不经过用户设置（第 14.7 节）。
+
+`ChatterScheduler` 的第一轮从第一次 `update()` 起算，因此首次可能说话的时刻是
+「启动 + 一整轮间隔」，不会一启动就说话。

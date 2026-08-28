@@ -35,6 +35,7 @@ CharacterPresenter::CharacterPresenter(CharacterWindow &window,
     : QObject(parent)
     , window_(&window)
     , behavior_(timeSource, random)
+    , chatter_(timeSource, random)
     , animation_(timeSource)
     , random_(&random)
 {
@@ -74,6 +75,7 @@ void CharacterPresenter::setMode(const core::ActivityMode mode)
 {
     settings_.behavior.mode = mode;
     behavior_.setMode(mode);
+    updateFreeze();
 }
 
 core::ActivityMode CharacterPresenter::mode() const
@@ -135,23 +137,24 @@ bool CharacterPresenter::isHidden() const
     return hidden_;
 }
 
-void CharacterPresenter::setChatterChancePercent(const int percent)
-{
-    settings_.dialogue.chatterChancePercent = percent;
-}
-
-int CharacterPresenter::chatterChancePercent() const
-{
-    return settings_.dialogue.chatterChancePercent;
-}
-
 void CharacterPresenter::applySettings(const core::Settings &settings)
 {
     settings_ = core::sanitized(settings);
 
     behavior_.setMode(settings_.behavior.mode);
-    window_->setAlwaysOnTop(settings_.window.alwaysOnTop);
+    // 第 14.8 节：行为参数只作用于下一次对应行为，当前动作不重算。
+    behavior_.setConfig(core::behaviorConfigFrom(settings_.behavior));
+    // 闲聊参数在下一轮调度生效，不缩短正在计时的这一轮。
+    chatter_.setConfig({settings_.dialogue.chatterMinIntervalMs,
+                        settings_.dialogue.chatterChancePercent});
+    // 帧时长在下一次启动对应动画时生效。
+    animation_.setTiming({settings_.appearance.idleFrameMs,
+                          settings_.appearance.runFrameMs,
+                          settings_.appearance.icecreamFrameMs});
+    updateFreeze();
 
+    // 置顶与显示倍率是窗口属性，没有「下一次行为」，立即生效。
+    window_->setAlwaysOnTop(settings_.window.alwaysOnTop);
     if (window_->integerScale() != settings_.appearance.scale) {
         window_->setIntegerScale(settings_.appearance.scale);
         // 窗口尺寸变了，活动区域内的可移动范围随之改变。
@@ -235,6 +238,10 @@ void CharacterPresenter::updateFreeze()
     const bool frozen = userPaused_ || sessionSuspended_ || hidden_ || eventFreeze_
         || dialogueFreeze_;
     behavior_.setPaused(frozen);
+    // 第 14.4 节：安静模式停止自主闲聊。暂停、系统会话暂停与隐藏期间同样停止，
+    // 恢复后从一整轮间隔重新开始，不积累「欠下的」闲聊。
+    chatter_.setEnabled(!userPaused_ && !sessionSuspended_ && !hidden_
+                        && behavior_.mode() == core::ActivityMode::Active);
     // 事件动画期间时钟必须继续走，否则投喂动画不会推进；
     // 用户暂停、系统会话暂停与隐藏冻结动画；事件与连续对话只冻结自主行为，
     // 否则投喂动画无法推进、对话期间待机动画也会停住。
@@ -456,10 +463,9 @@ void CharacterPresenter::tick()
         window_->setFrameIndex(animation_.frameIndex());
     }
 
-    // 关闭气泡时仍要消费自主行为产生的请求，但不能申请事件或把它交给气泡；
-    // 否则活跃模式会绕过点击反馈里的频率判断继续说话。
-    const bool chatterRequested = behavior_.consumeChatterRequest();
-    if (chatterRequested && settings_.dialogue.chatterChancePercent > 0
+    // 第 14.4 节：闲聊由独立调度器判定，一轮只判定一次。命中后仍要经过事件
+    // 协调器；被更高优先级事件拒绝时不排队也不补播——调度器已经开始下一轮。
+    if (chatter_.update()
         && requestEvent(core::EventKind::AutonomousChatter)
             != core::EventDecision::Suppressed) {
         emit textFeedbackRequested(core::EventKind::AutonomousChatter);

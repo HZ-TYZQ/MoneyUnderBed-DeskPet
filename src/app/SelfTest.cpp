@@ -48,7 +48,7 @@ bool checkSpriteSheets(QStringList &failures)
             ok = false;
             continue;
         }
-        if (entry.frameDurationMs <= 0) {
+        if (character::frameDurationFor(entry, character::AnimationTiming{}) <= 0) {
             failures.append(QStringLiteral("%1: frame duration must be positive").arg(path));
             ok = false;
             continue;

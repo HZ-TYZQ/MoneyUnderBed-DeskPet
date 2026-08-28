@@ -179,7 +179,7 @@ bool AutonomousBehavior::update()
         break;
     case BehaviorState::Walking:
     case BehaviorState::ApproachingCursor:
-        if (moveTowardsTarget(config_.walkSpeedPxPerSec, seconds)
+        if (moveTowardsTarget(activeSpeedPxPerSec_, seconds)
             || now >= stateDeadlineMs_) {
             enterIdle();
         }
@@ -188,7 +188,7 @@ bool AutonomousBehavior::update()
         // 先停留，到点后再开始返回。
         if (now >= stateDeadlineMs_) {
             target_ = QPointF(bottomAnchorFor(position_.toPoint().x()));
-            if (moveTowardsTarget(config_.returnSpeedPxPerSec, seconds)) {
+            if (moveTowardsTarget(activeSpeedPxPerSec_, seconds)) {
                 enterIdle();
             }
         }
@@ -211,11 +211,22 @@ QPointF AutonomousBehavior::velocity() const
     return velocity_;
 }
 
-bool AutonomousBehavior::consumeChatterRequest()
+void AutonomousBehavior::setConfig(const AutonomousBehaviorConfig &config)
 {
-    const bool requested = chatterRequested_;
-    chatterRequested_ = false;
-    return requested;
+    // 立即替换：新值从下一次决策和下一次进入状态开始使用。正在进行的移动
+    // 用的是 `activeSpeedPxPerSec_` 快照，当前状态的截止时间早已算好，
+    // 因此这里不需要、也不允许重算任何进行中的东西（第 14.8 节）。
+    config_ = config;
+}
+
+const AutonomousBehaviorConfig &AutonomousBehavior::config() const
+{
+    return config_;
+}
+
+void AutonomousBehavior::snapshotSpeed(const double speedPxPerSec)
+{
+    activeSpeedPxPerSec_ = speedPxPerSec;
 }
 
 void AutonomousBehavior::enterIdle()
@@ -244,6 +255,7 @@ void AutonomousBehavior::enterRest()
 void AutonomousBehavior::enterWalk()
 {
     state_ = BehaviorState::Walking;
+    snapshotSpeed(config_.walkSpeedPxPerSec);
     const int leftBound = activityArea_.x();
     const int rightBound = std::max(leftBound,
                                     activityArea_.x() + activityArea_.width()
@@ -257,6 +269,7 @@ void AutonomousBehavior::enterWalk()
 void AutonomousBehavior::enterApproachCursor()
 {
     state_ = BehaviorState::ApproachingCursor;
+    snapshotSpeed(config_.walkSpeedPxPerSec);
 
     // 停在安全距离外，不直接覆盖鼠标位置（docs/Decisions.md 第 2.1 节）。
     const QPointF characterCentre =
@@ -287,6 +300,7 @@ void AutonomousBehavior::enterReturnToBottom()
 {
     state_ = BehaviorState::ReturningToBottom;
     velocity_ = QPointF();
+    snapshotSpeed(config_.returnSpeedPxPerSec);
     target_ = QPointF(bottomAnchorFor(position_.toPoint().x()));
     // 先停留一段时间再返回。
     stateDeadlineMs_ = timeSource_->nowMs() + config_.returnDelayMs;
@@ -300,16 +314,36 @@ void AutonomousBehavior::chooseNextFromIdle()
         return;
     }
 
-    if (mode_ == ActivityMode::Active) {
-        // 安静模式不主动接近鼠标，也不主动显示气泡
-        // （docs/Decisions.md 第 2.2 节）。
-        if (random_->chance(config_.approachCursorChancePercent)) {
-            enterApproachCursor();
-            return;
-        }
-        chatterRequested_ = true;
+    // 安静模式不主动接近鼠标（docs/Decisions.md 第 2.2 节）。
+    //
+    // 自主闲聊**不在这里**。第 14.4 节要求它由独立的时间调度驱动，不依赖待机、
+    // 行走或休息之间的状态切换；`1.0.0` 候选把它挂在这次状态切换上，结果是
+    // 「说话频率」实际由活动节奏决定。现在由 `ChatterScheduler` 负责。
+    if (mode_ == ActivityMode::Active
+        && random_->chance(config_.approachCursorChancePercent)) {
+        enterApproachCursor();
+        return;
     }
     enterWalk();
+}
+
+AutonomousBehaviorConfig behaviorConfigFrom(const BehaviorSettings &settings)
+{
+    AutonomousBehaviorConfig config;
+    config.idleMinMs = settings.idleMinMs;
+    config.idleMaxMs = settings.idleMaxMs;
+    config.walkMinMs = settings.walkMinMs;
+    config.walkMaxMs = settings.walkMaxMs;
+    config.restMinMs = settings.restMinMs;
+    config.restMaxMs = settings.restMaxMs;
+    config.restChancePercent = settings.restChancePercent;
+    config.approachCursorChancePercent = settings.approachCursorChancePercent;
+    config.walkSpeedPxPerSec = settings.walkSpeedPxPerSec;
+    config.returnSpeedPxPerSec = settings.returnSpeedPxPerSec;
+    config.returnDelayMs = settings.returnDelayMs;
+    config.cursorSafeDistancePx = settings.cursorSafeDistancePx;
+    // bottomTolerancePx 与 timeJumpThresholdMs 保持默认值：第 14.7 节不开放。
+    return config;
 }
 
 QPoint AutonomousBehavior::bottomAnchorFor(const int x) const

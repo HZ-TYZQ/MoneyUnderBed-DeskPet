@@ -24,6 +24,24 @@ DialogueSession::DialogueSession(const core::TimeSource &timeSource,
     config_.typingMsPerChar = std::max(1, config_.typingMsPerChar);
     config_.idleTimeoutMs = std::max(0, config_.idleTimeoutMs);
     config_.singlePageAutoHideMs = std::max(0, config_.singlePageAutoHideMs);
+    pendingPacing_ = activePacing();
+}
+
+void DialogueSession::setPacing(const DialoguePacing &pacing)
+{
+    // 只记下来。正在进行的对话继续用它开始时的取值（第 14.8 节）。
+    pendingPacing_.typingMsPerChar = std::max(1, pacing.typingMsPerChar);
+    pendingPacing_.singlePageAutoHideMs = std::max(0, pacing.singlePageAutoHideMs);
+}
+
+const DialoguePacing &DialogueSession::pendingPacing() const
+{
+    return pendingPacing_;
+}
+
+DialoguePacing DialogueSession::activePacing() const
+{
+    return {config_.typingMsPerChar, config_.singlePageAutoHideMs};
 }
 
 void DialogueSession::start(const Dialogue &dialogue)
@@ -33,6 +51,10 @@ void DialogueSession::start(const Dialogue &dialogue)
         return;
     }
     dialogue_ = &dialogue;
+    // 第 14.8 节：打字速度与单页自动消失时间在这里取一次快照，整段对话都用它。
+    // `idleTimeoutMs` 不在其中，第 14.7 节保持冻结。
+    config_.typingMsPerChar = pendingPacing_.typingMsPerChar;
+    config_.singlePageAutoHideMs = pendingPacing_.singlePageAutoHideMs;
     lastInteractionMs_ = timeSource_->nowMs();
     if (suspended_) {
         suspendedStartedMs_ = lastInteractionMs_;

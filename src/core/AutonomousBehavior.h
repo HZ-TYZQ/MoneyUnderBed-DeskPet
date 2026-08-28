@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/ActivityMode.h"
+#include "core/Settings.h"
 
 #include <QPoint>
 #include <QPointF>
@@ -27,8 +28,8 @@ enum class BehaviorState
 
 struct AutonomousBehaviorConfig
 {
-    // 以下全部是 docs/Decisions.md 第 2.1 节所说的内部参数：
-    // 在原型阶段调优，第一版不在设置界面暴露。当前取值尚未定稿。
+    // 第 14.3 节把以下参数开放为用户设置，由 `behaviorConfigFrom()` 填入。
+    // `bottomTolerancePx` 与 `timeJumpThresholdMs` 除外，见其各自的注释。
     int idleMinMs = 2000;
     int idleMaxMs = 6000;
     int walkMinMs = 1500;
@@ -46,7 +47,7 @@ struct AutonomousBehaviorConfig
 
     // 被拖离底部后先停留多久再返回。
     int returnDelayMs = 1500;
-    // 距底部多近算作「在底部」。
+    // 距底部多近算作「在底部」。第 14.7 节：判定阈值，不是体验参数，不开放。
     int bottomTolerancePx = 8;
     // 接近鼠标时停在多远之外，避免直接覆盖鼠标位置。
     int cursorSafeDistancePx = 60;
@@ -96,9 +97,10 @@ public:
     BehaviorState state() const;
     QPointF velocity() const;
 
-    // 活跃模式下本步是否请求了一次自主闲聊。读取后清除。
-    // 阶段 6 的对话系统接管该请求；安静模式永远不会置位。
-    bool consumeChatterRequest();
+    // 更新行为参数。第 14.8 节：新值只作用于**下一次**对应行为——正在进行的
+    // 移动保持开始时的速度快照，当前状态的截止时间也不重算。
+    void setConfig(const AutonomousBehaviorConfig &config);
+    const AutonomousBehaviorConfig &config() const;
 
 private:
     void enterIdle();
@@ -112,6 +114,7 @@ private:
     bool isNearBottom() const;
     // 朝 target_ 移动。返回是否已经到达。
     bool moveTowardsTarget(double speedPxPerSec, double deltaSeconds);
+    void snapshotSpeed(double speedPxPerSec);
     void clampPosition();
 
     const TimeSource *timeSource_;
@@ -127,7 +130,8 @@ private:
     BehaviorState state_ = BehaviorState::Idle;
     ActivityMode mode_ = ActivityMode::Quiet;
     bool paused_ = false;
-    bool chatterRequested_ = false;
+    // 当前移动开始时取的速度快照。改设置不影响正在进行的这一次移动。
+    double activeSpeedPxPerSec_ = 0.0;
 
     QPointF target_;
     qint64 lastUpdateMs_ = 0;
@@ -135,5 +139,12 @@ private:
     qint64 pauseStartedMs_ = 0;
     bool started_ = false;
 };
+
+// 用户设置到行为参数的映射。
+//
+// 第 14.7 节：`bottomTolerancePx` 与 `timeJumpThresholdMs` 不开放为设置，
+// 因此这里始终取内部默认值——前者是判定阈值不是体验参数，后者支撑第 2.3 节
+// 「恢复会话后不补算离开期间的行为」，用户改动会破坏会话恢复语义。
+AutonomousBehaviorConfig behaviorConfigFrom(const BehaviorSettings &settings);
 
 } // namespace mub::core

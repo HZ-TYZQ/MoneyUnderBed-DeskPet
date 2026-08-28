@@ -57,6 +57,8 @@ private slots:
     void droppedIcecreamDoesNotAcquireAnUnownedDialogueEvent();
     void replacingAnEventNotifiesItsOwner();
     void bubbleOffSuppressesAutonomousChatter();
+    void chatterNeedsAFullIntervalNotAStateChange();
+    void chatterFiresAfterItsInterval();
     void clickChangesTheVisibleFrameWhenBubbleIsOff();
     void sessionSuspensionDoesNotClearUserPause();
     void hiddenCharacterDoesNotChatterOnItsOwn();
@@ -126,7 +128,13 @@ void TestCharacterPresenter::bubbleOffSuppressesAutonomousChatter()
     RecordingBubbleHost bubbles;
     presenter.setBubbleHost(&bubbles);
     presenter.setMode(mub::core::ActivityMode::Active);
-    presenter.setChatterChancePercent(0);
+    {
+        // 关掉自主闲聊，本用例只关心行为本身（第 14.4 节：关闭档即概率 0%）。
+        mub::core::Settings quiet;
+        quiet.behavior.mode = presenter.settings().behavior.mode;
+        quiet.dialogue.chatterChancePercent = 0;
+        presenter.applySettings(quiet);
+    }
 
     // 与产品启动路径一致，先把角色放到屏幕底部，避免测试先进入返回底部状态。
     window.moveToCursorScreenBottom();
@@ -140,6 +148,76 @@ void TestCharacterPresenter::bubbleOffSuppressesAutonomousChatter()
     presenter.stop();
 }
 
+// 第 14.4 节：闲聊由独立调度驱动，不再搭在行为状态切换上。
+// `1.0.0` 候选每次待机结束都可能说话，于是「说话频率」实际由活动节奏决定。
+void TestCharacterPresenter::chatterNeedsAFullIntervalNotAStateChange()
+{
+    ManualTimeSource clock;
+    // 休息与接近鼠标判定都为假，因此角色不断在待机与行走之间切换。
+    ScriptedRandomSource random(QList<int>{0}, QList<double>{0.99, 0.99});
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+    CharacterPresenter presenter(window, clock, random);
+    RecordingBubbleHost bubbles;
+    presenter.setBubbleHost(&bubbles);
+
+    mub::core::Settings settings;
+    settings.behavior.mode = mub::core::ActivityMode::Active;
+    // 一定命中，但间隔很长：状态切换本身不得产生任何闲聊。
+    settings.dialogue.chatterChancePercent = 100;
+    settings.dialogue.chatterMinIntervalMs = 600000;
+    settings.behavior.idleMinMs = 500;
+    settings.behavior.idleMaxMs = 500;
+    settings.behavior.walkMinMs = 500;
+    settings.behavior.walkMaxMs = 500;
+    presenter.applySettings(settings);
+
+    window.moveToCursorScreenBottom();
+    presenter.start();
+
+    // 推进 30 秒，其间发生几十次待机／行走切换。
+    for (int step = 0; step < 30; ++step) {
+        clock.advance(1000);
+        QTest::qWait(20);
+    }
+
+    QCOMPARE(bubbles.chatterCount, 0);
+    presenter.stop();
+}
+
+void TestCharacterPresenter::chatterFiresAfterItsInterval()
+{
+    ManualTimeSource clock;
+    ScriptedRandomSource random(QList<int>{0}, QList<double>{0.99, 0.99});
+    FakeWindowBackend backend;
+    CharacterWindow window(loadIdleSheet(), 1, &backend);
+    CharacterPresenter presenter(window, clock, random);
+    RecordingBubbleHost bubbles;
+    presenter.setBubbleHost(&bubbles);
+
+    mub::core::Settings settings;
+    settings.behavior.mode = mub::core::ActivityMode::Active;
+    settings.dialogue.chatterChancePercent = 100;
+    // 第 14.3 节允许的最短间隔。
+    settings.dialogue.chatterMinIntervalMs = 10000;
+    presenter.applySettings(settings);
+
+    window.moveToCursorScreenBottom();
+    presenter.start();
+    // 第一轮从第一次 tick 起算，先让它开始计时。
+    QTest::qWait(50);
+
+    // 一整轮间隔之前不说话。
+    clock.advance(9000);
+    QTest::qWait(50);
+    QCOMPARE(bubbles.chatterCount, 0);
+
+    clock.advance(2000);
+    QTest::qWait(50);
+    QCOMPARE(bubbles.chatterCount, 1);
+    presenter.stop();
+}
+
 void TestCharacterPresenter::clickChangesTheVisibleFrameWhenBubbleIsOff()
 {
     ManualTimeSource clock;
@@ -147,7 +225,13 @@ void TestCharacterPresenter::clickChangesTheVisibleFrameWhenBubbleIsOff()
     FakeWindowBackend backend;
     CharacterWindow window(loadIdleSheet(), 1, &backend);
     CharacterPresenter presenter(window, clock, random);
-    presenter.setChatterChancePercent(0);
+    {
+        // 关掉自主闲聊，本用例只关心行为本身（第 14.4 节：关闭档即概率 0%）。
+        mub::core::Settings quiet;
+        quiet.behavior.mode = presenter.settings().behavior.mode;
+        quiet.dialogue.chatterChancePercent = 0;
+        presenter.applySettings(quiet);
+    }
 
     window.moveToCursorScreenBottom();
     presenter.start();

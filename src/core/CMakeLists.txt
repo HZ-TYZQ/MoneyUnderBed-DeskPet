@@ -13,6 +13,8 @@ add_library(money-under-bed-core STATIC
     ActivityMode.h
     AutonomousBehavior.cpp
     AutonomousBehavior.h
+    ChatterScheduler.cpp
+    ChatterScheduler.h
     ClickFeedback.cpp
     ClickFeedback.h
     EventCoordinator.cpp

@@ -69,6 +69,11 @@ DialogueController::~DialogueController()
     delete bubble_;
 }
 
+void DialogueController::applyDialogueSettings(const core::DialogueSettings &settings)
+{
+    session_.setPacing({settings.typingMsPerChar, settings.singlePageAutoHideMs});
+}
+
 void DialogueController::setScale(const int scale)
 {
     bubble_->renderer().setScale(scale);

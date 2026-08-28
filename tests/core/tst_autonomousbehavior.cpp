@@ -3,7 +3,10 @@
 #include "core/RandomSource.h"
 #include "core/TimeSource.h"
 
+#include <QFile>
 #include <QTest>
+
+#include <cmath>
 
 using namespace mub::core;
 
@@ -53,7 +56,11 @@ private slots:
     void neverLeavesTheActivityArea();
     void pausedFreezesEverything();
     void resumePreservesTheRemainingStateTime();
-    void quietModeNeverApproachesTheCursorOrAsksForChatter();
+    void quietModeNeverApproachesTheCursor();
+    void activityModeChangeWaitsForTheCurrentBehaviour();
+    void behaviourNoLongerCarriesChatter();
+    void speedChangesOnlyAffectTheNextMovement();
+    void durationChangesOnlyAffectTheNextState();
     void activeModeCanApproachTheCursor();
     void approachStopsOutsideTheSafeDistance();
     void switchingToQuietStopsAnApproachInProgress();
@@ -160,9 +167,10 @@ void TestAutonomousBehavior::resumePreservesTheRemainingStateTime()
     QCOMPARE(behavior.state(), BehaviorState::Walking);
 }
 
-void TestAutonomousBehavior::quietModeNeverApproachesTheCursorOrAsksForChatter()
+void TestAutonomousBehavior::quietModeNeverApproachesTheCursor()
 {
-    // docs/Decisions.md 第 2.2 节：安静模式不主动接近鼠标，也不主动显示气泡。
+    // docs/Decisions.md 第 2.2 节：安静模式不主动接近鼠标。
+    // 「不主动显示气泡」现在由 ChatterScheduler 保证，见 tst_chatterscheduler。
     ManualTimeSource clock;
     SeededRandomSource random(11);
     AutonomousBehavior behavior(clock, random, fastConfig());
@@ -176,8 +184,122 @@ void TestAutonomousBehavior::quietModeNeverApproachesTheCursorOrAsksForChatter()
         clock.advance(16);
         behavior.update();
         QVERIFY(behavior.state() != BehaviorState::ApproachingCursor);
-        QVERIFY(!behavior.consumeChatterRequest());
     }
+}
+
+// 第 14.4 节：闲聊不再挂在行为状态切换上，状态机里没有任何闲聊概念。
+void TestAutonomousBehavior::behaviourNoLongerCarriesChatter()
+{
+    const QString source =
+        QStringLiteral(MUB_SOURCE_ROOT "/src/core/AutonomousBehavior.h");
+    QFile header(source);
+    QVERIFY2(header.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(source));
+    const QString text = QString::fromUtf8(header.readAll());
+
+    // `1.0.0` 候选靠 consumeChatterRequest() 把闲聊搭在待机结束上，结果是
+    // 「说话频率」实际由活动节奏决定。这条断言防止它被重新引回来。
+    QVERIFY(!text.contains(QStringLiteral("consumeChatterRequest")));
+    QVERIFY(!text.contains(QStringLiteral("chatterRequested")));
+}
+
+// 第 14.8 节：移动速度在下一次开始对应移动时生效，不改变正在进行的这一次。
+void TestAutonomousBehavior::speedChangesOnlyAffectTheNextMovement()
+{
+    ManualTimeSource clock;
+    // nextInt 恒取 0 并夹取到区间下界：待机与行走各 1000 ms，行走目标是最左端。
+    // 两个 0.99 使休息与接近鼠标判定都为假，于是待机结束后必定进入行走。
+    ScriptedRandomSource random({0}, {0.99, 0.99});
+    AutonomousBehaviorConfig config = fastConfig();
+    config.walkSpeedPxPerSec = 50.0;
+    AutonomousBehavior behavior(clock, random, config);
+    behavior.setActivityArea(kArea);
+    behavior.setCharacterSize(kCharacter);
+    // 起点放在右侧，走向最左端的目标才会真正产生位移。
+    behavior.setPosition(QPoint(1000, bottomY()));
+    behavior.setMode(ActivityMode::Active);
+    behavior.update();
+
+    run(clock, behavior, 1008);
+    QCOMPARE(behavior.state(), BehaviorState::Walking);
+
+    const QPoint beforeChange = behavior.position();
+    run(clock, behavior, 160);
+    const int movedAtOldSpeed = std::abs(behavior.position().x() - beforeChange.x());
+    QVERIFY(movedAtOldSpeed > 0);
+
+    // 移动途中把速度提到四倍：这一次移动必须保持开始时的速度快照。
+    config.walkSpeedPxPerSec = 200.0;
+    behavior.setConfig(config);
+    QCOMPARE(behavior.state(), BehaviorState::Walking);
+    QCOMPARE(behavior.config().walkSpeedPxPerSec, 200.0);
+
+    const QPoint afterChange = behavior.position();
+    run(clock, behavior, 160);
+    const int movedAfterChange = std::abs(behavior.position().x() - afterChange.x());
+
+    // 同样的时长走出同样的距离，说明用的还是快照而不是新值。
+    QVERIFY2(std::abs(movedAfterChange - movedAtOldSpeed) <= 1,
+             qPrintable(QStringLiteral("%1 vs %2")
+                            .arg(movedAtOldSpeed)
+                            .arg(movedAfterChange)));
+}
+
+// 第 14.8 节：待机时长在下一次进入待机时生效，不重算当前这一次的截止时间。
+void TestAutonomousBehavior::durationChangesOnlyAffectTheNextState()
+{
+    ManualTimeSource clock;
+    ScriptedRandomSource random({0}, {0.99, 0.99});
+    AutonomousBehaviorConfig config = fastConfig();
+    AutonomousBehavior behavior(clock, random, config);
+    behavior.setActivityArea(kArea);
+    behavior.setCharacterSize(kCharacter);
+    behavior.setPosition(QPoint(1000, bottomY()));
+    behavior.setMode(ActivityMode::Active);
+    behavior.update();
+    QCOMPARE(behavior.state(), BehaviorState::Idle);
+
+    // 待机刚开始就把待机时长改成十倍。当前这一次仍应在原定的 1000 ms 结束。
+    config.idleMinMs = 10000;
+    config.idleMaxMs = 10000;
+    behavior.setConfig(config);
+
+    run(clock, behavior, 960);
+    QCOMPARE(behavior.state(), BehaviorState::Idle);
+    run(clock, behavior, 96);
+    QCOMPARE(behavior.state(), BehaviorState::Walking);
+
+    // 下一次进入待机才用新值：行走 1000 ms 结束后回到待机，
+    // 这一次的待机要到 10000 ms 才结束。
+    run(clock, behavior, 1008);
+    QCOMPARE(behavior.state(), BehaviorState::Idle);
+    run(clock, behavior, 2000);
+    QCOMPARE(behavior.state(), BehaviorState::Idle);
+}
+
+// 第 14.8 节：活动模式在当前行为结束后生效。
+// 唯一的例外是切到安静时立刻停止正在进行的接近鼠标（第 2.2 节），
+// 由 switchingToQuietStopsAnApproachInProgress 覆盖。
+void TestAutonomousBehavior::activityModeChangeWaitsForTheCurrentBehaviour()
+{
+    ManualTimeSource clock;
+    ScriptedRandomSource random({0}, {0.99, 0.99});
+    AutonomousBehavior behavior(clock, random, fastConfig());
+    behavior.setActivityArea(kArea);
+    behavior.setCharacterSize(kCharacter);
+    behavior.setPosition(QPoint(1000, bottomY()));
+    behavior.setMode(ActivityMode::Active);
+    behavior.update();
+
+    run(clock, behavior, 1008);
+    QCOMPARE(behavior.state(), BehaviorState::Walking);
+    const QPoint before = behavior.position();
+
+    // 行走途中切到安静：这一次行走不被打断，位置继续按原计划推进。
+    behavior.setMode(ActivityMode::Quiet);
+    QCOMPARE(behavior.state(), BehaviorState::Walking);
+    run(clock, behavior, 160);
+    QVERIFY(behavior.position() != before);
+    QCOMPARE(behavior.state(), BehaviorState::Walking);
 }
 
 void TestAutonomousBehavior::activeModeCanApproachTheCursor()
