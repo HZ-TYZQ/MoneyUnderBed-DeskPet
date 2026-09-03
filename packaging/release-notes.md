@@ -1,46 +1,39 @@
-## 候选产物
+## 《床下有罐钱》非官方桌宠
 
-本 Release 的二进制由标签对应的 GitHub Actions 自动构建。候选验收期间保持为草稿；请核对随附的 `.sha256` 文件后再测试，验收通过时发布同一份产物，不重新构建。
+女主会在桌面上走动、休息和说话，也可以被点击、拖动和投喂。设置中可以调整活动、
+对话、动画、显示倍率与窗口行为。
 
-## 对应源码
+## 下载
 
-**本版的对应源码（Corresponding Source）在
-[`@SOURCES_TAG@`](https://github.com/HZ-TYZQ/MoneyUnderBed-DeskPet/releases/tag/@SOURCES_TAG@)。**
+- **Windows 11 x86-64**：下载 ZIP，完整解压后运行
+  `money-under-bed-deskpet.exe`。程序未签名，可能触发 SmartScreen、Smart App
+  Control 或企业策略。
+- **Linux x86-64**：下载 AppImage，添加执行权限后运行。正式支持 KDE Plasma 的
+  XCB/XWayland 环境。
+- 下载后可用同名 `.sha256` 文件核对产物。
 
-它包含 Qt Base、ICU、AppImage runtime 与打包工具的固定源码归档，以及 Linux
-AppImage 实际随包系统库对应的 Ubuntu 源码包。拆成独立 Release 只是为了让本页的
-资产列表可读；两者产自同一次 Actions 流水线，只要本 Release 公开，源码 Release
-就保持公开且内容不变。
+## 支持与验收
 
-二进制内的 `licenses/` 目录记录逐组件许可和版本映射，其中
-`licenses/linux-runtime.tsv` 给出每个随包 ELF 的部署哈希、来源哈希与 Build ID，
-可据此核对源码与二进制的对应关系——不从 runner 清单猜测。
+- KDE Plasma + XCB/XWayland：发布前填写实际发行版、Plasma、缩放与连续运行结果。
+- Windows 11 x86-64：发布前填写实际版本、缩放档位与检查结果。
+- GNOME：实验性／未验证，等待社区测试。
+- 多显示器、热插拔和混合 DPI：尚未实测，按 best-effort 处理。
+- niri 与原生 Qt Wayland 后端：不支持。
 
-## 授权与身份
+发布前必须用实际验收结果替换上面的两条占位说明；验收使用本 Release 的原始文件，
+不重新构建或替换二进制。
 
-- 本项目是《床下有罐钱》的非官方、非商业二次创作，与原作开发者没有隶属关系，也不由其发布或背书。
-- 角色素材来自作者 `_U5B_` 发布的[二创素材包](https://www.bilibili.com/video/BV1XwhV6TEXQ/)，仅供二次创作、不可商用、禁止 R18、禁止用于 AI 训练。
-- 程序代码采用 GPL-3.0-or-later；Ark Pixel 字体采用 OFL-1.1。各自完整文本和素材清单均包含在发行物中。
-- Qt 6.11.2 采用 GPLv3 动态链接路径；Qt／ICU 与其他需提供的对应源码及校验文件随本 Release 提供。
-- Windows 包未签名，可能触发 SmartScreen，也可能被 Smart App Control 或企业策略阻止。
+## 对应源码与许可
 
-## 支持与验证边界
+本版的对应源码在
+[`@SOURCES_TAG@`](https://github.com/HZ-TYZQ/MoneyUnderBed-DeskPet/releases/tag/@SOURCES_TAG@)，
+与本 Release 指向同一提交并产自同一次流水线。包内 `licenses/` 记录各组件的许可、
+版本和运行库来源。
 
-- 正式支持目标：Windows 11 x86-64；KDE Plasma 上的 Linux XCB/XWayland。
-- GNOME 在获得合格社区候选测试前标为实验性／未验证。
-- niri 不支持；原生 Qt Wayland 后端不属于第一版支持范围。
-- 多显示器、热插拔和混合 DPI 多显示器尚未实测，按 best-effort 处理。
+本项目是《床下有罐钱》的**非官方、非商业二次创作**，与原作开发者没有隶属关系，
+也不由其发布或背书。角色素材来自作者 `_U5B_` 发布的
+[二创素材包](https://www.bilibili.com/video/BV1XwhV6TEXQ/)，仅供二次创作：
+**不可商用、禁止 R18、禁止用于 AI 训练**。
 
-## 候选验收记录（发布前更新）
-
-验收清单是 `docs/ReleaseChecklist-1.1.md`。
-
-- KDE Plasma + XCB/XWayland：待填写候选 AppImage 的精确环境、检查表与三小时结果。
-- Windows 11 x86-64：待填写候选 ZIP 的系统缩放档位与检查表结果。本平台不要求连续
-  运行三小时（`docs/Decisions.md` 第 14.10 节的显式放宽，只针对运行时长，检查表
-  其余项目一项不减）。
-- 资源占用：待填写项目所有者的「通过／不通过」结论。按第 14.10 节本版**不冻结**
-  CPU、内存、启动时间和长期增长的数值门槛；如实记录实测数据，由项目所有者判定。
-- GNOME：没有合格社区结果时保留“实验性／未验证”，不得改写为已支持。
-
-发布草稿前必须把上述“待填写”替换为实际结果；只编辑 Release 说明，不重新构建或替换已经验收的二进制。
+程序代码采用 GPL-3.0-or-later，Ark Pixel 字体采用 OFL-1.1，角色素材遵循作者的
+独立条款。源码 Release 必须在二进制 Release 公开期间保持公开且内容不变。
