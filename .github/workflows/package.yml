@@ -305,7 +305,8 @@ jobs:
           sudo apt-get update
           mkdir -p linux-system-source
           while IFS=$'\t' read -r package version; do
-            (cd linux-system-source && apt-get source --download-only "$package=$version")
+            packaging/DownloadUbuntuSource.sh \
+              "$package" "$version" linux-system-source
           done < linux-source-packages.tsv
           cp linux-source-packages.tsv linux-system-source/SOURCE_PACKAGES.tsv
           (

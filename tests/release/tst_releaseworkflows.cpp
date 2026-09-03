@@ -23,6 +23,7 @@ private slots:
     void theCurrentChecklistDoesNotDependOnTheProbe();
     void theSourceReleaseTagCannotTriggerThePipeline();
     void theBinaryReleaseNotesPointAtTheSourceRelease();
+    void theUbuntuSourceArchiveHasLaunchpadFallback();
 };
 
 namespace {
@@ -198,6 +199,28 @@ void TestReleaseWorkflows::theBinaryReleaseNotesPointAtTheSourceRelease()
              "package.yml does not substitute @SOURCES_TAG@ before publishing");
     QVERIFY2(yaml.contains(QStringLiteral("s/@VERSION@/")),
              "package.yml does not substitute @VERSION@ before publishing");
+}
+
+// GitHub 的 Ubuntu runner 镜像与实时 apt 镜像不是同时更新的。安全更新刚替换旧包时，
+// runner 可能仍携带旧二进制，而 apt 镜像已经删掉其精确源码版本。对应源码归档不能
+// 因这个时间窗口随机失败，也不能退而下载与随包二进制不匹配的新版本。
+void TestReleaseWorkflows::theUbuntuSourceArchiveHasLaunchpadFallback()
+{
+    const QString yaml = readFile(workflowRoot() + QStringLiteral("package.yml"));
+    QVERIFY2(yaml.contains(QStringLiteral("packaging/DownloadUbuntuSource.sh")),
+             "package.yml bypasses the exact Ubuntu source downloader");
+
+    const QString downloader = readFile(
+        QStringLiteral(MUB_SOURCE_ROOT "/packaging/DownloadUbuntuSource.sh"));
+    QVERIFY2(!downloader.isEmpty(), "the exact Ubuntu source downloader is missing");
+    QVERIFY2(downloader.contains(QStringLiteral("apt-get source")),
+             "the downloader no longer prefers authenticated APT sources");
+    QVERIFY2(downloader.contains(QStringLiteral("api.launchpad.net"))
+                 && downloader.contains(QStringLiteral("sourceFileUrls")),
+             "the downloader has no Ubuntu Launchpad fallback");
+    QVERIFY2(downloader.contains(QStringLiteral("Checksums-Sha256"))
+                 && downloader.contains(QStringLiteral("sha256sum -c")),
+             "the Launchpad fallback does not verify the .dsc payload hashes");
 }
 
 QTEST_APPLESS_MAIN(TestReleaseWorkflows)
