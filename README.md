@@ -1,5 +1,7 @@
 # 《床下有罐钱》非官方桌宠
 
+中文 | [English](README.en.md)
+
 把《床下有罐钱》的女主放到桌面上：她会自己走动、休息、说几句话，也可以被点击、
 拖动和投喂。
 
@@ -41,7 +43,7 @@ chmod +x MoneyUnderBed-DeskPet-*.AppImage
 | --- | --- | --- |
 | Windows 11 x86-64 | 正式支持 | 100%／125%／150%／200% 缩放、Explorer 重启、锁屏与睡眠恢复 |
 | KDE Plasma + XCB/XWayland | 正式支持 | Fedora 44、Plasma 6.7.4、125% 缩放；候选包连续运行三小时 |
-| GNOME | 实验性／未验证 | 等待社区测试 |
+| GNOME | 实验性 | GNOME 50.5 实测正常（1.2.0） |
 | 多显示器、热插拔、混合 DPI | best-effort | 尚未实测 |
 | niri、原生 Qt Wayland | 不支持 | — |
 
