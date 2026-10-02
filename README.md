@@ -75,6 +75,8 @@ cmake --build --preset dev
 ctest --preset dev
 ```
 
-产品决策、开发记录和发布验收分别见 [Decisions](docs/Decisions.md)、
+产品决策、开发记录和发布验收分别见 [Decisions](docs/Decisions.md)（最初版本已存档为
+[legacy/Decisions](docs/legacy/Decisions.md)）、
 [DevelopmentStatus-1.1](docs/Plans/DevelopmentStatus-1.1.md) 与
-[ReleaseChecklist-1.1](docs/ReleaseChecklist-1.1.md)。
+[ReleaseChecklist-1.1](docs/ReleaseChecklist-1.1.md)。已知但暂不修复的问题见
+[known_issue](docs/known_issue.md)。
