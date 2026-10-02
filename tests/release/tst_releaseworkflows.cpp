@@ -146,7 +146,7 @@ void TestReleaseWorkflows::theCurrentChecklistDoesNotDependOnTheProbe()
 
 // 对应源码单独成一个 Release，其标签**不得**匹配发布流水线的标签过滤。
 // `v1.1.0-sources` 之类的名字会匹配 `v*.*.*` 并触发整条打包流水线，而 metadata
-// 只接受 MAJOR.MINOR.PATCH，结果是一次注定失败的运行——与 docs/Decisions.md
+// 只接受 MAJOR.MINOR.PATCH，结果是一次注定失败的运行——与 docs/legacy/Decisions.md
 // 第 14.1 节记录的 rc 标签陷阱是同一个。
 void TestReleaseWorkflows::theSourceReleaseTagCannotTriggerThePipeline()
 {

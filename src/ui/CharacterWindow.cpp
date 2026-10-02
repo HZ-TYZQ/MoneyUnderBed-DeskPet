@@ -145,7 +145,7 @@ void CharacterWindow::moveToBottomOf(const QRect &availableGeometry,
 
 void CharacterWindow::moveToCursorScreenBottom()
 {
-    // docs/Decisions.md 第 2.1 节：程序启动时角色出现在鼠标所在屏幕的底部，
+    // docs/legacy/Decisions.md 第 2.1 节：程序启动时角色出现在鼠标所在屏幕的底部，
     // 不恢复上次退出位置。
     const QPoint cursor = QCursor::pos();
     const QScreen *target = QGuiApplication::screenAt(cursor);
@@ -161,7 +161,7 @@ void CharacterWindow::moveToCursorScreenBottom()
 
 void CharacterWindow::contextMenuEvent(QContextMenuEvent *event)
 {
-    // 角色右键菜单是主要控制入口（docs/Decisions.md 第 3.3 节）。
+    // 角色右键菜单是主要控制入口（docs/legacy/Decisions.md 第 3.3 节）。
     // 菜单本身由上层构建，窗口只负责报告位置。
     emit contextMenuRequested(event->globalPos());
     event->accept();
@@ -196,7 +196,7 @@ void CharacterWindow::mouseMoveEvent(QMouseEvent *event)
     if (gesture_.isDragging()) {
         // 产品使用手动移动而不是 startSystemDrag。
         // 由窗口管理器接管拖动后程序收不到松开事件，也就无法按
-        // docs/Decisions.md 第 3.1 节判断松手位置离屏幕底部有多远。
+        // docs/legacy/Decisions.md 第 3.1 节判断松手位置离屏幕底部有多远。
         // 平台接口仍保留 startSystemDrag，供后续确有需要时使用。
         move(global - dragOffset_);
     }
@@ -240,7 +240,7 @@ void CharacterWindow::paintEvent(QPaintEvent *event)
     painter.setCompositionMode(QPainter::CompositionMode_Source);
     painter.fillRect(rect(), Qt::transparent);
     painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-    // 像素画必须用最近邻放大，禁止平滑插值（docs/Decisions.md 第 5.1 节）。
+    // 像素画必须用最近邻放大，禁止平滑插值（docs/legacy/Decisions.md 第 5.1 节）。
     painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
     painter.drawPixmap(rect(), cachedFrame_);
 }
@@ -298,7 +298,7 @@ void CharacterWindow::applyHitMask()
         return;
     }
 
-    // 可见像素接收交互，透明区域穿透（docs/Decisions.md 第 3.4 节）。
+    // 可见像素接收交互，透明区域穿透（docs/legacy/Decisions.md 第 3.4 节）。
     hitRegion_ = character::opaqueRegion(sheet_.frame(frameIndex_), integerScale_);
     if (backend_ == nullptr) {
         return;

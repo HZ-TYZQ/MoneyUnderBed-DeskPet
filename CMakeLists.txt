@@ -13,7 +13,7 @@ project(MoneyUnderBedDeskPet
     HOMEPAGE_URL "https://github.com/HZ-TYZQ/MoneyUnderBed-DeskPet"
     LANGUAGES CXX)
 
-# 版本编号方案尚未冻结，见 docs/Decisions.md 第 13 节。
+# 版本编号方案尚未冻结，见 docs/legacy/Decisions.md 第 13 节。
 # 在冻结前使用 0.0.0，并附加构建标识用于日志和诊断。
 set(PROJECT_VERSION_SUFFIX "dev" CACHE STRING "Version suffix for pre-release builds")
 
@@ -34,7 +34,7 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-# API 基线为 Qt 6.11（docs/Decisions.md 第 9.1 节）。
+# API 基线为 Qt 6.11（docs/legacy/Decisions.md 第 9.1 节）。
 # CI 另行断言实际版本为 6.11.2；此处不写 EXACT，否则本地 6.11.1 无法配置。
 set(MUB_QT_API_BASELINE 6.11)
 find_package(Qt6 ${MUB_QT_API_BASELINE} REQUIRED COMPONENTS Core Gui Widgets Network)

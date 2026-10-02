@@ -15,7 +15,7 @@ enum class LoopMode
 
 // 帧时长归属的类别。
 //
-// docs/Decisions.md 第 14.5 节把三个帧时长开放为设置，「动画速度」档位对三者
+// docs/legacy/Decisions.md 第 14.5 节把三个帧时长开放为设置，「动画速度」档位对三者
 // 施加统一倍率。类别在登记表里**显式写出**，不从素材文件名或标识前缀推断——
 // 这与本文件既有的「运行时使用显式映射」约束一致。
 enum class AnimationCategory
@@ -37,7 +37,7 @@ struct AnimationTiming
 
 // 一段动画的显式登记项。
 //
-// docs/Decisions.md 第 7 节与计划第 9.1 节要求运行时使用显式映射，
+// docs/legacy/Decisions.md 第 7 节与计划第 9.1 节要求运行时使用显式映射，
 // 不根据原始文件名推断语义。`id` 是逻辑标识，与素材文件名分开维护；
 // 改名素材必须同时改这张表和 assets/MANIFEST.md。
 struct AnimationClip

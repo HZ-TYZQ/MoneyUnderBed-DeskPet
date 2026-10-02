@@ -63,7 +63,7 @@ void TestResources::embeddedFontMatchesFrozenHash()
 
 void TestResources::fontSourceIsTheSingleCopy()
 {
-    // docs/Decisions.md 第 4.7 节：不能在 Qt 资源和发行目录中重复放置同一字体。
+    // docs/legacy/Decisions.md 第 4.7 节：不能在 Qt 资源和发行目录中重复放置同一字体。
     // 仓库里只允许存在一份 TTF。
     const QDir root(sourceRoot());
     QStringList found;
@@ -121,7 +121,7 @@ void TestResources::characterAssetsExist_data()
     QTest::addColumn<QString>("fileName");
     QTest::addColumn<int>("frameCount");
 
-    // 四个逻辑方向来自 docs/Decisions.md 第 7 节。
+    // 四个逻辑方向来自 docs/legacy/Decisions.md 第 7 节。
     for (const QString &direction : {QStringLiteral("up-left"),
                                      QStringLiteral("down-left"),
                                      QStringLiteral("up-right"),
@@ -181,7 +181,7 @@ void TestResources::faceAssetsExist_data()
 {
     QTest::addColumn<QString>("fileName");
 
-    // 表情文件名由 docs/Decisions.md 第 4.4、4.5 节引用；改名必须同步这两处。
+    // 表情文件名由 docs/legacy/Decisions.md 第 4.4、4.5 节引用；改名必须同步这两处。
     const QStringList faces{
         QStringLiteral("natural.png"),
         QStringLiteral("natural-lower-eyes-brow.png"),
@@ -221,7 +221,7 @@ void TestResources::faceAssetsExist()
 
 void TestResources::assetManifestCoversEveryAsset()
 {
-    // docs/Decisions.md 第 12.6 节：assets/ 内文件都要登记在 MANIFEST 中。
+    // docs/legacy/Decisions.md 第 12.6 节：assets/ 内文件都要登记在 MANIFEST 中。
     // 未登记或哈希不一致的素材不能随仓库分发。衍生素材行同时包含来源
     // 和产物路径，最后一个 assets/*.png 才是该行哈希对应的文件。
     QFile manifest(QDir(sourceRoot()).filePath(QStringLiteral("assets/MANIFEST.md")));

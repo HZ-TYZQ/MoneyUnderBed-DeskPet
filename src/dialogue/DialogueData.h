@@ -7,7 +7,7 @@
 
 namespace mub::dialogue {
 
-// 台词来源。docs/Decisions.md 第 4.3 节要求原作 demo 台词与项目新增文案
+// 台词来源。docs/legacy/Decisions.md 第 4.3 节要求原作 demo 台词与项目新增文案
 // 分组保存，逐条标记来源，不能混为同一来源。
 enum class LineSource
 {
@@ -17,7 +17,7 @@ enum class LineSource
 
 // 一个显示页面。
 //
-// docs/Decisions.md 第 4 节：所有显示台词的页面都必须同时显示该页经过
+// docs/legacy/Decisions.md 第 4 节：所有显示台词的页面都必须同时显示该页经过
 // 人工审核的对应表情。因此表情不是可选项，每页都有。
 struct DialoguePage
 {
@@ -45,7 +45,7 @@ std::span<const Dialogue> registeredDialogues();
 // 按标识查找。找不到时返回 nullptr。
 const Dialogue *findDialogue(QStringView id);
 
-// 常规表情池，不含 `shadow`（docs/Decisions.md 第 4.6 节）。
+// 常规表情池，不含 `shadow`（docs/legacy/Decisions.md 第 4.6 节）。
 std::span<const char *const> regularFaceIds();
 bool isRegularFace(QStringView faceId);
 

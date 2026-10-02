@@ -6,7 +6,7 @@ namespace mub::ui {
 
 // 对话气泡使用的字体。
 //
-// docs/Decisions.md 第 4.7 节：固定使用打包内的 Ark Pixel，不依赖系统字体，
+// docs/legacy/Decisions.md 第 4.7 节：固定使用打包内的 Ark Pixel，不依赖系统字体，
 // 也不因为系统缺字而回退到别的字族。
 //
 // 只注册一次，之后复用。注册失败时返回一个像素字号正确的默认字体，

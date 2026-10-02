@@ -20,7 +20,7 @@ namespace mub::ui {
 // 把气泡放进去会被掩码裁掉，也会被角色的固定尺寸限制。
 //
 // 窗口大小始终等于面板大小，面板本身是不透明矩形，因此窗口内没有透明边距，
-// 不会形成看不见的大矩形点击区域（docs/Decisions.md 第 4.1 节）。
+// 不会形成看不见的大矩形点击区域（docs/legacy/Decisions.md 第 4.1 节）。
 class BubbleWindow final : public QWidget
 {
     Q_OBJECT

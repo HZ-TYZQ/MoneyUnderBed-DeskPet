@@ -20,7 +20,7 @@ class AnimationPlayer
 {
 public:
     // 超过该阈值的时间跳跃视为会话中断（锁屏、睡眠、进程被挂起），
-    // 只前进一帧，不补播离开期间的帧（docs/Decisions.md 第 2.3 节）。
+    // 只前进一帧，不补播离开期间的帧（docs/legacy/Decisions.md 第 2.3 节）。
     static constexpr qint64 TimeJumpThresholdMs = 2000;
 
     explicit AnimationPlayer(const core::TimeSource &timeSource);

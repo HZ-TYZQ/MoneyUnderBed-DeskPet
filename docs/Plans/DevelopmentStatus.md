@@ -2,7 +2,7 @@
 
 对应计划：`docs/Plans/DevelopmentPlan.md`
 
-需求基线：`docs/Decisions.md`
+需求基线：`docs/legacy/Decisions.md`
 
 本文只记录阶段的当前状态和已经取得的实际结果。
 
@@ -115,7 +115,7 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 
 复测后补齐了 `hittest`、`drag-system`、`drag-manual`、`lifecycle` 与 `passthrough-qt`，14 个用例全部核心能力通过，**没有任何失败项**：
 
-- `hittest`：149 次角色点击**全部** `sprite_alpha=255`，另有 18 次从透明区穿到下层。掩码 98 个矩形，包围盒 `38,44,72,178` 明显小于 `138x222` 窗口。`docs/Decisions.md` 第 3.4 节在 Windows 上成立。
+- `hittest`：149 次角色点击**全部** `sprite_alpha=255`，另有 18 次从透明区穿到下层。掩码 98 个矩形，包围盒 `38,44,72,178` 明显小于 `138x222` 窗口。`docs/legacy/Decisions.md` 第 3.4 节在 Windows 上成立。
 - `drag-manual`：11 702 次移动，请求与实际位置 **0 / 11 730** 不一致。
 - `drag-system`：5 次请求全部 `accepted=true`。
 - `lifecycle`：`window_close` → `exit`，干净退出。
@@ -124,9 +124,9 @@ Windows CI 首次成功（run 32993815259，commit `acf10c40`，耗时 1 分 19 
 
 **首轮对 `passthrough-qt` 的判断是错的。** 首轮只记到 1 次角色点击、0 次穿透，与 `passthrough-native` 的 43/49 形成 92 比 1，据此曾初步判断 Qt 路径无效。复测数据是 135/122 与 189/181，并且逐段核对开关与点击的对应关系，两条路径全程正确。首轮异常来自测试环境（下层点击靶很可能被 PowerShell 遮住，且那轮落在角色上的点击远少于复测轮）。教训：单看总数不足以判定，必须核对分段对应关系。
 
-**因此 Windows 穿透采用纯 Qt 路径**，按 `docs/Decisions.md` 第 8.4 节「优先使用 Qt」。收尾阶段已经删除 `WindowsWindowBackend` 的 `PassthroughStrategy` 与 `MUB_WIN_PASSTHROUGH` 环境变量，只保留继承自 `QtWindowBackend` 的实现；其中补齐 `WS_EX_TOOLWINDOW` 与 `WS_EX_NOACTIVATE` 的部分保留，与穿透路径无关。
+**因此 Windows 穿透采用纯 Qt 路径**，按 `docs/legacy/Decisions.md` 第 8.4 节「优先使用 Qt」。收尾阶段已经删除 `WindowsWindowBackend` 的 `PassthroughStrategy` 与 `MUB_WIN_PASSTHROUGH` 环境变量，只保留继承自 `QtWindowBackend` 的实现；其中补齐 `WS_EX_TOOLWINDOW` 与 `WS_EX_NOACTIVATE` 的部分保留，与穿透路径无关。
 
-**像素锐利的条件是乘积为整数。** 150% 缩放下 `--scale 2` 锐利，是因为 `2 x 1.50 = 3` 正好是整数物理倍率。实际生效的是 `项目倍率 x 系统 DPR`：125% 下没有任何整数倍率能得到整数物理倍率，150% 下只有偶数倍率可以。这是 `docs/Decisions.md` 第 13 节「完整的整数显示倍率集合」的直接输入，本轮不下结论。
+**像素锐利的条件是乘积为整数。** 150% 缩放下 `--scale 2` 锐利，是因为 `2 x 1.50 = 3` 正好是整数物理倍率。实际生效的是 `项目倍率 x 系统 DPR`：125% 下没有任何整数倍率能得到整数物理倍率，150% 下只有偶数倍率可以。这是 `docs/legacy/Decisions.md` 第 13 节「完整的整数显示倍率集合」的直接输入，本轮不下结论。
 
 ### 退出门
 
@@ -224,7 +224,7 @@ MSVC 的严格警告集合是首次在本项目验证，`/WX` 打开后一次通
 - Windows 平台层不再挂起，与 Linux 同步实现。
 - 判定标准降为「双平台编译通过、自动测试通过」，不再要求先有 Windows 探针结果。
 - 阶段 3 的退出门仍不判定：退出门要求「正式产品窗口在 KDE 与 Windows 都达到探针已验证的核心表现」，那需要真实桌面人工验收。
-- 前提条件仍然成立：平台相关能力必须集中在窄接口内（`docs/Decisions.md` 第 8.4 节）。分叉只允许出现在接口实现里，不得散入动画、行为和角色逻辑。
+- 前提条件仍然成立：平台相关能力必须集中在窄接口内（`docs/legacy/Decisions.md` 第 8.4 节）。分叉只允许出现在接口实现里，不得散入动画、行为和角色逻辑。
 - 当时唯一不确定的取舍是 Windows 整窗穿透，因此探针与首版实现曾同时保留 Qt 标志和原生扩展样式两条路径。真实 Windows 复测确认两者均可用后，已按第 8.4 节选择 Qt 路径，并在收尾阶段删除原生候选与环境变量。
 - `docs/WindowsFeasibilityResults.md` 继续如实标记未实测。凡是未经实测就写进产品的 Windows 行为，都记为假设而不是结论。
 
@@ -238,7 +238,7 @@ MSVC 的严格警告集合是首次在本项目验证，`/WX` 打开后一次通
 - `BackendFactory.cpp` 是产品代码中唯一按操作系统分支的文件。
 - 启动探测按平台分文件：`LinuxStartupProbe.cpp` 直接链接 libxcb，`GenericStartupProbe.cpp` 用于其他平台。
 
-Linux 启动路径（`docs/Decisions.md` 第 8.2 节）：
+Linux 启动路径（`docs/legacy/Decisions.md` 第 8.2 节）：
 
 - 把 `QT_QPA_PLATFORM` 设为单值 `xcb`，不使用候选列表。例外只有 `offscreen` 与 `minimal` 两个无头测试平台，它们不是桌面回退路径。
 - 构造 `QApplication` 之前调用 `xcb_connect` 探测连接。
@@ -359,7 +359,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 事件协调器 `src/core/EventCoordinator`：
 
-- `EventKind` 的枚举值本身就是优先级，顺序由 `docs/Decisions.md` 第 4.2 节冻结：退出／隐藏 > 投喂 > 连续对话 > 单击反馈 > 自主闲聊。改顺序等于改产品行为。
+- `EventKind` 的枚举值本身就是优先级，顺序由 `docs/legacy/Decisions.md` 第 4.2 节冻结：退出／隐藏 > 投喂 > 连续对话 > 单击反馈 > 自主闲聊。改顺序等于改产品行为。
 - 裁决只有三种：接受、替换、抑制。**没有队列** —— 被抑制或替换的事件不会在稍后补播。
 - 同类事件默认抑制，只有单击反馈允许从头重来：用户连续点击应当得到新反馈，而不是被自己上一次点击挡住；投喂则按第 3.2 节明确忽略，且没有冷却。
 - `finish(kind)` 只清除正在进行的那一类，避免迟到的结束通知误清掉已经换上来的更高优先级事件。
@@ -396,14 +396,14 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 
 状态：进行中
 
-本阶段有一道必须等待项目所有者的检查点：计划第 11.1 节要求「项目所有者审核并冻结具体渲染参数及是否采用 `1.5×`；结果写回 `docs/Decisions.md` 后才能实现正式气泡」。
-**该检查点已于 2026-08-27 通过**：参数冻结为 `docs/Decisions.md` 第 4.8 节，正式气泡随后实现。`1.5×` 当日采用后又撤回，见下。
+本阶段有一道必须等待项目所有者的检查点：计划第 11.1 节要求「项目所有者审核并冻结具体渲染参数及是否采用 `1.5×`；结果写回 `docs/legacy/Decisions.md` 后才能实现正式气泡」。
+**该检查点已于 2026-08-27 通过**：参数冻结为 `docs/legacy/Decisions.md` 第 4.8 节，正式气泡随后实现。`1.5×` 当日采用后又撤回，见下。
 
 ### 已完成
 
 台词数据 `src/dialogue/DialogueData`：
 
-- 26 段对话、**29 条来源台词、36 个显示页面**，与 `docs/Decisions.md` 第 4.5 节声明的数字一致。
+- 26 段对话、**29 条来源台词、36 个显示页面**，与 `docs/legacy/Decisions.md` 第 4.5 节声明的数字一致。
 - 内容由决策文档第 4.4 与 4.5 节的表格**程序化抽取**，不是手工转写，避免抄错。
 - `tst_dialoguedata` 把每一页文本和每一条触发场景**回查决策文档**，任何一侧改动而另一侧没跟上都会失败。决策文档因此是台词的唯一来源。
 - 逐条标记来源类别，实测原作 8 条、新增 21 条。
@@ -681,7 +681,7 @@ run 33000709190，commit `e9f3566`：Linux 2 分 13 秒、Windows 1 分 34 秒�
 可见矩形宽 207 物理像素，正好等于 `69 × 2 倍率 × 1.5 系统缩放`，即整个窗口矩形；
 矩形四角是圆角，说明它是 DWM 画的窗口边框，而不是命中掩码失效后露出的位图。
 
-本轮只按 `docs/Decisions.md` 第 8.4 节走 Qt 路径，没有引入 `DwmSetWindowAttribute`
+本轮只按 `docs/legacy/Decisions.md` 第 8.4 节走 Qt 路径，没有引入 `DwmSetWindowAttribute`
 之类的原生调用。项目所有者已在提交 `62ed468` 的候选包上复测，两个问题都不再出现，
 因此原生兜底不需要引入，第 8.4 节的 Qt 优先路径在 Windows 边框问题上成立。
 

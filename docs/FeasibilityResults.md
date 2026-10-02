@@ -117,7 +117,7 @@ C++/Qt 可以实现本次探测范围内的桌宠基础能力，证据是 KDE Pl
 - niri + Wayland：不支持普通顶层窗口自主定位。
 - niri + XCB/xwayland-satellite：同样不支持该定位方式。
 
-上述结论只证明技术可行性。是否将 XCB 作为 Linux 运行要求、是否支持 niri、是否采用 compositor IPC 或 layer-shell，不在本次测试中决定，也不应自动写入 `docs/Decisions.md`。
+上述结论只证明技术可行性。是否将 XCB 作为 Linux 运行要求、是否支持 niri、是否采用 compositor IPC 或 layer-shell，不在本次测试中决定，也不应自动写入 `docs/legacy/Decisions.md`。
 
 ## 8. 后续若继续探测
 

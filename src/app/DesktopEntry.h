@@ -8,7 +8,7 @@ namespace mub::app {
 
 // Linux 应用菜单入口（`.desktop` 文件）。
 //
-// docs/Decisions.md 第 5.2 节：AppImage 首次启动时**询问**用户是否安装入口，
+// docs/legacy/Decisions.md 第 5.2 节：AppImage 首次启动时**询问**用户是否安装入口，
 // 不静默写入，也不依赖 AppImageLauncher；程序必须提供移除自己创建的入口；
 // 用户移动 AppImage 后重新运行该文件可以更新集成。
 // 第 3.3 节还规定，原生 GNOME 没有托盘时，应用菜单的二次启动是正式唤回通道。

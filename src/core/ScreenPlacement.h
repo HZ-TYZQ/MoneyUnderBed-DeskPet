@@ -8,7 +8,7 @@ namespace mub::core {
 
 // 角色活动区域的几何计算。纯函数，不接触 QScreen，便于确定性测试。
 //
-// 规则来自 docs/Decisions.md 第 2.1 节：
+// 规则来自 docs/legacy/Decisions.md 第 2.1 节：
 // 程序启动时角色出现在鼠标所在屏幕的底部；角色平时在当前屏幕底部活动。
 
 // 角色停在可用区域底部时的窗口左上角坐标。

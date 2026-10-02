@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 
     // 消息处理器必须早于 QApplication：Qt 在构造期间加载平台插件，
     // 失败时直接 qFatal 终止进程，程序拿不到控制权
-    // （docs/Decisions.md 第 8.2 节）。
+    // （docs/legacy/Decisions.md 第 8.2 节）。
     mub::app::installDiagnosticLog();
 
     const mub::platform::StartupProbeResult probe =
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
     }
 
     // 单实例判定必须早于任何窗口：副实例的职责只是把唤回消息递出去然后退出，
-    // 不应该先闪一个角色再消失（docs/Decisions.md 第 3.3 节）。
+    // 不应该先闪一个角色再消失（docs/legacy/Decisions.md 第 3.3 节）。
     mub::app::SingleInstance instance(mub::app::singleInstanceName());
     if (instance.acquire() == mub::app::SingleInstance::Role::Secondary) {
         qCInfo(lcMain) << "recalled the running instance; exiting";
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 
     // 设置走标准用户配置目录：默认构造的 QSettings 已经由 QStandardPaths
     // 决定位置，不会写在 EXE、AppImage 或当前工作目录旁边
-    // （docs/Decisions.md 第 5.1 节）。
+    // （docs/legacy/Decisions.md 第 5.1 节）。
     QSettings settingsBackend;
     mub::core::SettingsStore settingsStore(settingsBackend);
 
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
 
     mub::ui::CharacterPresenter presenter(window, timeSource, random);
 
-    // 气泡与角色使用同一倍率（docs/Decisions.md 第 4.8 节）。
+    // 气泡与角色使用同一倍率（docs/legacy/Decisions.md 第 4.8 节）。
     mub::ui::DialogueController dialogue(presenter, window, timeSource, random,
                                          backend.get());
     presenter.setBubbleHost(&dialogue);

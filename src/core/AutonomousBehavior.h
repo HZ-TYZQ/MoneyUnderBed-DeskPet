@@ -14,7 +14,7 @@ namespace mub::core {
 class RandomSource;
 class TimeSource;
 
-// 自主行为状态。docs/Decisions.md 第 2.1 节与计划第 9.3 节：
+// 自主行为状态。docs/legacy/Decisions.md 第 2.1 节与计划第 9.3 节：
 // 待机、行走、休息和少量特殊动作，不做饥饿、心情、亲密度或养成数值。
 enum class BehaviorState
 {
@@ -52,7 +52,7 @@ struct AutonomousBehaviorConfig
     // 接近鼠标时停在多远之外，避免直接覆盖鼠标位置。
     int cursorSafeDistancePx = 60;
     // 单帧最大推进时间。超过视为会话中断，不补算离开期间的行为
-    // （docs/Decisions.md 第 2.3 节）。
+    // （docs/legacy/Decisions.md 第 2.3 节）。
     qint64 timeJumpThresholdMs = 2000;
 };
 

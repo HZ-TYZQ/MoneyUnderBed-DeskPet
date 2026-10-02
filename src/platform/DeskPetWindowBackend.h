@@ -21,7 +21,7 @@ struct BackendCapabilities
 
 // 窄平台接口。
 //
-// docs/Decisions.md 第 8.4 节要求平台相关能力集中在窄接口中，
+// docs/legacy/Decisions.md 第 8.4 节要求平台相关能力集中在窄接口中，
 // 不把条件编译散落到动画、行为和角色逻辑里。
 // 本接口是唯一允许出现平台分叉的地方。
 //

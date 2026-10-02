@@ -38,7 +38,7 @@ target_link_libraries(money-under-bed-deskpet PRIVATE
 set_target_properties(money-under-bed-deskpet PROPERTIES
     OUTPUT_NAME "money-under-bed-deskpet"
     # Windows 使用 GUI 子系统，不弹控制台窗口；诊断信息写本地日志。
-    # 见 docs/Decisions.md 第 8.3 节。
+    # 见 docs/legacy/Decisions.md 第 8.3 节。
     WIN32_EXECUTABLE ON
     MACOSX_BUNDLE OFF
 )

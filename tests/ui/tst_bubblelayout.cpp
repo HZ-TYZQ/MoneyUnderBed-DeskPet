@@ -13,7 +13,7 @@ namespace bubble = mub::ui::bubble;
 
 namespace {
 
-// 角色帧尺寸。所有角色素材同尺寸（docs/Decisions.md 第 7 节）。
+// 角色帧尺寸。所有角色素材同尺寸（docs/legacy/Decisions.md 第 7 节）。
 constexpr int kFrameWidth = 69;
 constexpr int kFrameHeight = 111;
 
@@ -36,7 +36,7 @@ QRect characterAt(const QPoint &topLeft, const int scale)
 
 QString decisionsText()
 {
-    QFile file(QStringLiteral(MUB_SOURCE_ROOT "/docs/Decisions.md"));
+    QFile file(QStringLiteral(MUB_SOURCE_ROOT "/docs/legacy/Decisions.md"));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return {};
     }
@@ -71,7 +71,7 @@ private slots:
 void TestBubbleLayout::frozenValuesMatchTheDecisionRecord()
 {
     const QString doc = decisionsText();
-    QVERIFY2(!doc.isEmpty(), "docs/Decisions.md could not be read");
+    QVERIFY2(!doc.isEmpty(), "docs/legacy/Decisions.md could not be read");
 
     const QStringList expected{
         QStringLiteral("固定宽度 `%1`").arg(bubble::kPanelWidth),
@@ -117,7 +117,7 @@ void TestBubbleLayout::frozenValuesMatchTheDecisionRecord()
 
     for (const QString &needle : expected) {
         QVERIFY2(doc.contains(needle),
-                 qPrintable(QStringLiteral("docs/Decisions.md 第 4.8 节缺少：%1")
+                 qPrintable(QStringLiteral("docs/legacy/Decisions.md 第 4.8 节缺少：%1")
                                 .arg(needle)));
     }
 

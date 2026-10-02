@@ -8,7 +8,7 @@ class RandomSource;
 
 // 一次单击反馈的构成。
 //
-// docs/Decisions.md 第 3.1 节：即使气泡设置为关闭或被安静模式抑制，
+// docs/legacy/Decisions.md 第 3.1 节：即使气泡设置为关闭或被安静模式抑制，
 // 单击仍至少提供动作或表情反馈。因此 `hasReaction` 恒为真，
 // 只有 `hasText` 会被设置和模式关掉。
 struct ClickFeedback
@@ -25,7 +25,7 @@ struct ClickFeedback
 class ClickFeedbackSelector
 {
 public:
-    // `textChancePercent` 是 docs/Decisions.md 第 14.4 节的
+    // `textChancePercent` 是 docs/legacy/Decisions.md 第 14.4 节的
     // `clickTextChancePercent`：单击附带台词的**唯一**概率。
     //
     // `1.0.0` 候选按气泡频率在两个概率之间二选一，等于让「说话频率」决定

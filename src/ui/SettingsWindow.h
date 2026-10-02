@@ -21,7 +21,7 @@ class ValueEditor;
 
 // 设置窗口。
 //
-// docs/Decisions.md 第 14.2 节：
+// docs/legacy/Decisions.md 第 14.2 节：
 //
 // - 分为行为、对话、外观、窗口与桌面四组。
 // - 每组内分「普通」与「高级」两层。高级是**组内的展开区**，不是独立页面：

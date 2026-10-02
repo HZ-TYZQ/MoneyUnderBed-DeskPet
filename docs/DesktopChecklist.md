@@ -26,7 +26,7 @@ distrobox enter dev-fedora -- \
   /home/tyzq/Projects/MoneyUnderBed_DeskPet/build/dev/bin/money-under-bed-deskpet
 ```
 
-- **会话请用 X11**。程序按 `docs/Decisions.md` 第 8.2 节强制 `QT_QPA_PLATFORM=xcb`；
+- **会话请用 X11**。程序按 `docs/legacy/Decisions.md` 第 8.2 节强制 `QT_QPA_PLATFORM=xcb`；
   KDE Wayland 会话下会走 XWayland。原生 Wayland 的自主移动与置顶已知失败
   （见 `docs/FeasibilityResults.md`），不属于本轮范围。
 - 配置文件：`~/.config/HZ-TYZQ/MoneyUnderBed DeskPet.conf`

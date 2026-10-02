@@ -13,7 +13,7 @@ namespace mub::app {
 
 // 唯一运行时设置的持有者。
 //
-// docs/Decisions.md 第 14.2 节：设置界面只产生设置变更，不直接读写 `QSettings`，
+// docs/legacy/Decisions.md 第 14.2 节：设置界面只产生设置变更，不直接读写 `QSettings`，
 // 各行为与对话模块也不接触持久化后端；应用层统一负责校验、向领域模块应用配置
 // 和自动保存。
 //

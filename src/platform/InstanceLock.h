@@ -19,7 +19,7 @@ enum class InstanceLockResult
 
 // 唯一实例锁。
 //
-// docs/Decisions.md 第 3.3 节要求程序必须是单实例。判断「是否已有实例」和
+// docs/legacy/Decisions.md 第 3.3 节要求程序必须是单实例。判断「是否已有实例」和
 // 「怎么把唤回消息送过去」是**两件事**：
 //
 // - Windows 用命名互斥量判断唯一性。它是内核对象，取得与否是原子的，

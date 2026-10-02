@@ -5,7 +5,7 @@
 
 namespace mub::character {
 
-// 逻辑方向。素材只有四个斜向，见 docs/Decisions.md 第 7 节。
+// 逻辑方向。素材只有四个斜向，见 docs/legacy/Decisions.md 第 7 节。
 enum class Facing
 {
     UpLeft,
@@ -24,7 +24,7 @@ enum class MotionState
 QString facingId(Facing facing);
 
 // 由朝向与运动状态取精灵表逻辑标识，例如 `idle-down-left`。
-// 这是显式映射，不从文件名推断（docs/Decisions.md 第 7 节）。
+// 这是显式映射，不从文件名推断（docs/legacy/Decisions.md 第 7 节）。
 QString spriteIdFor(MotionState motion, Facing facing);
 
 bool facesLeft(Facing facing);
@@ -35,7 +35,7 @@ Facing makeFacing(bool left, bool up);
 
 // 速度方向到朝向的解析器。
 //
-// 规则（docs/Decisions.md 第 7 节）：
+// 规则（docs/legacy/Decisions.md 第 7 节）：
 // - 四象限分别对应四个斜向素材。
 // - 角色停止后保持最后移动方向。
 // - 纯水平移动默认使用正面方向：向左为 down-left，向右为 down-right。
@@ -43,7 +43,7 @@ Facing makeFacing(bool left, bool up);
 // - 使用速度死区与切换滞后，避免速度在零附近波动时频繁转身。
 struct DirectionConfig
 {
-    // 以下为内部参数，按 docs/Decisions.md 第 2.1 节在原型阶段调优，
+    // 以下为内部参数，按 docs/legacy/Decisions.md 第 2.1 节在原型阶段调优，
     // 第一版不在设置界面暴露。单位是像素每秒。
     double deadZone = 6.0;
     double hysteresis = 4.0;

@@ -4,7 +4,7 @@
 
 namespace mub {
 
-// 应用身份的唯一来源。取值见 docs/Decisions.md 第 1.2 节。
+// 应用身份的唯一来源。取值见 docs/legacy/Decisions.md 第 1.2 节。
 // 任何地方都不得再硬编码这些字符串。
 namespace metadata {
 
@@ -29,7 +29,7 @@ QString versionString();
 QString displayName();
 
 // 非官方声明。README、关于窗口和发行说明都必须展示，
-// 见 docs/Decisions.md 第 1.2 节。
+// 见 docs/legacy/Decisions.md 第 1.2 节。
 QString unofficialNotice();
 
 // 一次性把上述身份写入 Qt 全局状态。

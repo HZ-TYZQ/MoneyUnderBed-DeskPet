@@ -16,7 +16,7 @@ namespace {
 QString decisionsText()
 {
     QFile file(QDir(QStringLiteral(MUB_SOURCE_ROOT))
-                   .filePath(QStringLiteral("docs/Decisions.md")));
+                   .filePath(QStringLiteral("docs/legacy/Decisions.md")));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return {};
     }
@@ -71,7 +71,7 @@ private slots:
 
 void TestDialogueData::countsMatchTheDecisionRecord()
 {
-    // docs/Decisions.md 第 4.5 节：共有 29 条来源台词、36 个显示页面。
+    // docs/legacy/Decisions.md 第 4.5 节：共有 29 条来源台词、36 个显示页面。
     QCOMPARE(totalSourceLineCount(), 29);
     QCOMPARE(totalPageCount(), 36);
 }
@@ -111,10 +111,10 @@ void TestDialogueData::everyPageTextAppearsInTheDecisionRecord()
 
     // 决策文档是台词的唯一来源。任何一侧改动而另一侧没跟上，这里就会失败。
     const QString decisions = decisionsText();
-    QVERIFY2(!decisions.isEmpty(), "could not read docs/Decisions.md");
+    QVERIFY2(!decisions.isEmpty(), "could not read docs/legacy/Decisions.md");
     QVERIFY(!text.isEmpty());
     QVERIFY2(decisions.contains(text),
-             qPrintable(QStringLiteral("not found in docs/Decisions.md: %1").arg(text)));
+             qPrintable(QStringLiteral("not found in docs/legacy/Decisions.md: %1").arg(text)));
 }
 
 void TestDialogueData::everyTriggerAppearsInTheDecisionRecord_data()
@@ -133,7 +133,7 @@ void TestDialogueData::everyTriggerAppearsInTheDecisionRecord()
     const QString decisions = decisionsText();
     QVERIFY(!trigger.isEmpty());
     QVERIFY2(decisions.contains(trigger),
-             qPrintable(QStringLiteral("trigger not found in docs/Decisions.md: %1")
+             qPrintable(QStringLiteral("trigger not found in docs/legacy/Decisions.md: %1")
                             .arg(trigger)));
 }
 

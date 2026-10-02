@@ -64,7 +64,7 @@ public:
     bool isHidden() const;
 
 
-    // 一次性套用全部用户设置（docs/Decisions.md 第 5.1 节：修改后立即生效）。
+    // 一次性套用全部用户设置（docs/legacy/Decisions.md 第 5.1 节：修改后立即生效）。
     // 暂停不在设置里：第 2.2 节规定它只对当前运行周期有效。
     void applySettings(const core::Settings &settings);
     const core::Settings &settings() const;
@@ -89,7 +89,7 @@ public:
 
     // 提交一次行为请求。返回协调器的裁决。
     // 所有行为请求都必须经过这里，功能模块不得直接切换全局状态
-    // （docs/Decisions.md 第 4.2 节）。
+    // （docs/legacy/Decisions.md 第 4.2 节）。
     core::EventDecision requestEvent(core::EventKind kind);
 
     // 结束由调用方拥有的事件。只有当前事件类型匹配时才会清除，迟到的完成

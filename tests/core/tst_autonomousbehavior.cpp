@@ -169,7 +169,7 @@ void TestAutonomousBehavior::resumePreservesTheRemainingStateTime()
 
 void TestAutonomousBehavior::quietModeNeverApproachesTheCursor()
 {
-    // docs/Decisions.md 第 2.2 节：安静模式不主动接近鼠标。
+    // docs/legacy/Decisions.md 第 2.2 节：安静模式不主动接近鼠标。
     // 「不主动显示气泡」现在由 ChatterScheduler 保证，见 tst_chatterscheduler。
     ManualTimeSource clock;
     SeededRandomSource random(11);
@@ -383,7 +383,7 @@ void TestAutonomousBehavior::dragFreezesAutonomousBehaviour()
 
 void TestAutonomousBehavior::releaseNearTheBottomStaysPut()
 {
-    // docs/Decisions.md 第 3.1 节：松手位置靠近底部时留在该处继续活动。
+    // docs/legacy/Decisions.md 第 3.1 节：松手位置靠近底部时留在该处继续活动。
     ManualTimeSource clock;
     SeededRandomSource random(5);
     AutonomousBehavior behavior(clock, random, fastConfig());

@@ -84,7 +84,7 @@ void TestEventCoordinator::pairwisePriority_data()
     QTest::addColumn<EventDecision>("expected");
 
     // 全部 25 种组合，期望值逐条写出而不是由规则推算，
-    // 这样实现和期望不会一起错。顺序由 docs/Decisions.md 第 4.2 节冻结。
+    // 这样实现和期望不会一起错。顺序由 docs/legacy/Decisions.md 第 4.2 节冻结。
     const auto A = EventKind::AutonomousChatter;
     const auto C = EventKind::ClickFeedback;
     const auto D = EventKind::Dialogue;
@@ -138,7 +138,7 @@ void TestEventCoordinator::pairwisePriority()
 
 void TestEventCoordinator::frozenPriorityOrder()
 {
-    // 优先级顺序由 docs/Decisions.md 第 4.2 节冻结：
+    // 优先级顺序由 docs/legacy/Decisions.md 第 4.2 节冻结：
     // 退出／隐藏 > 投喂 > 连续对话 > 单击反馈 > 自主闲聊。
     QVERIFY(EventKind::Shutdown > EventKind::Feeding);
     QVERIFY(EventKind::Feeding > EventKind::Dialogue);
@@ -249,7 +249,7 @@ void TestEventCoordinator::repeatedClicksRestartTheirOwnFeedback()
 
 void TestEventCoordinator::repeatedFeedingRequestsAreIgnored()
 {
-    // docs/Decisions.md 第 3.2 节：当前投喂动画结束前忽略新的投喂请求，
+    // docs/legacy/Decisions.md 第 3.2 节：当前投喂动画结束前忽略新的投喂请求，
     // 不排队、不重播，也不引入冷却状态。
     EventCoordinator coordinator;
     QCOMPARE(coordinator.request(EventKind::Feeding), EventDecision::Accepted);

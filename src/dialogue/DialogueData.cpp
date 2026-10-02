@@ -10,12 +10,12 @@ namespace mub::dialogue {
 
 namespace {
 
-// 本文件的内容由 docs/Decisions.md 第 4.4 与 4.5 节逐条转写而来。
+// 本文件的内容由 docs/legacy/Decisions.md 第 4.4 与 4.5 节逐条转写而来。
 // tests/dialogue/tst_dialoguedata 会把每一页文本回查决策文档，
 // 因此两边任何一侧改动而另一侧没跟上，测试都会失败。
 //
 // 分页与表情映射是内容数据的一部分，不在运行时按字数、标点或文件名
-// 自动生成（docs/Decisions.md 第 4 节）。
+// 自动生成（docs/legacy/Decisions.md 第 4 节）。
 
 constexpr std::array<DialoguePage, 4> kIcecreamDropPages{{
     {u8"我刚刚掉了甜筒……", "panic"},
@@ -161,7 +161,7 @@ constexpr std::array<Dialogue, 26> kDialogues{{
      {kAuthored21Pages.data(), kAuthored21Pages.size()}},
 }};
 
-// 常规表情池。docs/Decisions.md 第 4.6 节：`shadow` 是特殊剧情素材，
+// 常规表情池。docs/legacy/Decisions.md 第 4.6 节：`shadow` 是特殊剧情素材，
 // 不进入第一版常规表情池，也不参与任何随机表情选择。
 constexpr std::array<const char *, 10> kRegularFaces{{
     "happy",

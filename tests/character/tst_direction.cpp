@@ -35,7 +35,7 @@ void TestDirection::quadrantsMapToTheFourSpriteDirections_data()
     QTest::addColumn<QPointF>("velocity");
     QTest::addColumn<Facing>("expected");
 
-    // 屏幕坐标：x 向右为正，y 向下为正（docs/Decisions.md 第 7 节）。
+    // 屏幕坐标：x 向右为正，y 向下为正（docs/legacy/Decisions.md 第 7 节）。
     QTest::newRow("dx<0 dy<0") << QPointF(-50, -50) << Facing::UpLeft;
     QTest::newRow("dx<0 dy>0") << QPointF(-50, 50) << Facing::DownLeft;
     QTest::newRow("dx>0 dy<0") << QPointF(50, -50) << Facing::UpRight;

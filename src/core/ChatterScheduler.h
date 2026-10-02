@@ -7,7 +7,7 @@ namespace mub::core {
 class RandomSource;
 class TimeSource;
 
-// 自主闲聊的调度参数。对应 docs/Decisions.md 第 14.4 节的两个新参数。
+// 自主闲聊的调度参数。对应 docs/legacy/Decisions.md 第 14.4 节的两个新参数。
 struct ChatterScheduleConfig
 {
     int minIntervalMs = 120000;
@@ -17,7 +17,7 @@ struct ChatterScheduleConfig
 
 // 自主闲聊的时间调度器。
 //
-// docs/Decisions.md 第 14.4 节：
+// docs/legacy/Decisions.md 第 14.4 节：
 //
 // - 自主闲聊由**独立的时间调度**驱动，不依赖待机、行走或休息之间的状态切换。
 //   `1.0.0` 候选把闲聊挂在自主行为的状态切换上，导致「说话频率」实际由活动

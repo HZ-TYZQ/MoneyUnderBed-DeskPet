@@ -24,7 +24,7 @@ struct IntRange
     friend bool operator==(const IntRange &, const IntRange &) = default;
 };
 
-// 用户设置，按 docs/Decisions.md 第 14.2 节分成四个领域。
+// 用户设置，按 docs/legacy/Decisions.md 第 14.2 节分成四个领域。
 //
 // **本结构仍然只保存用户设置。** 第 2.3 节：不保存角色位置、互动记录、最近行为
 // 或长期记忆；暂停与隐藏不保存。第 14.9 节重申，设置项变多不是把运行时状态写进

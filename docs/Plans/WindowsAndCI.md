@@ -2,7 +2,7 @@
 
 日期：2026-08-26
 
-状态：历史提案，不再作为可执行计划。已确认结论以 `docs/Decisions.md` 为准，新的执行顺序见 `docs/Plans/DevelopmentPlan.md`。本文保留早期技术分析；其中开机自启、独占全屏自动隐藏、普通 `QLocalServer` 作为 Windows 唯一实例锁等内容已经被最终决策否决或替代，不得据此实现。
+状态：历史提案，不再作为可执行计划。已确认结论以 `docs/legacy/Decisions.md` 为准，新的执行顺序见 `docs/Plans/DevelopmentPlan.md`。本文保留早期技术分析；其中开机自启、独占全屏自动隐藏、普通 `QLocalServer` 作为 Windows 唯一实例锁等内容已经被最终决策否决或替代，不得据此实现。
 
 本文规划 Windows 平台的实现路径，以及 Linux/Windows 双平台的 GitHub Actions 构建方案。
 
@@ -90,7 +90,7 @@ Windows 的系统移动是一个模态循环，可能影响拖动期间的定时
 
 ### 5.1 需要注意的 Linux 侧连带问题
 
-GNOME 已移除传统托盘，`QSystemTrayIcon` 在未装扩展的 GNOME 上可能不显示。而托盘若被当作唯一控制入口，显示隐藏、模式切换和退出都会随之失效。`docs/Decisions.md` 第 3.3 节已据此定为：角色右键菜单是主要控制入口，托盘只作为备用入口，必要功能不能只存在于托盘中。
+GNOME 已移除传统托盘，`QSystemTrayIcon` 在未装扩展的 GNOME 上可能不显示。而托盘若被当作唯一控制入口，显示隐藏、模式切换和退出都会随之失效。`docs/legacy/Decisions.md` 第 3.3 节已据此定为：角色右键菜单是主要控制入口，托盘只作为备用入口，必要功能不能只存在于托盘中。
 
 这意味着在 GNOME 上，用户可能失去唯一的控制入口。建议第一版不把托盘作为唯一入口，至少提供一个不依赖托盘的兜底交互，例如角色右键菜单或全局快捷键。
 
@@ -129,7 +129,7 @@ Windows 上桌宠浮在游戏或全屏视频之上通常是负体验。建议检
 
 ### 6.4 发布
 
-打 tag 时由两个 job 的产物合并创建 GitHub Release。发行说明必须包含角色素材的作者署名与非商业限制，与 `docs/Decisions.md` 第 4 节一致。
+打 tag 时由两个 job 的产物合并创建 GitHub Release。发行说明必须包含角色素材的作者署名与非商业限制，与 `docs/legacy/Decisions.md` 第 4 节一致。
 
 ### 6.5 代码签名
 
@@ -140,7 +140,7 @@ Windows 未签名可执行文件会触发 SmartScreen 警告。购买签名证�
 
 ## 7. CI 会强制提前的决策
 
-以下条目目前在 `docs/Decisions.md` 第 5 节属于未确定，但建立 CI 必须先给出答案：
+以下条目目前在 `docs/legacy/Decisions.md` 第 5 节属于未确定，但建立 CI 必须先给出答案：
 
 1. C++ 标准版本。建议 C++20，MSVC 2022 与 GCC 12 以上均完整支持。探针使用的 C++17 只对探针有效。
 2. 固定的 Qt 版本与最低 Qt 版本。
@@ -149,7 +149,7 @@ Windows 未签名可执行文件会触发 SmartScreen 警告。购买签名证�
 
 ## 8. 素材分发方式（已确认）
 
-角色 PNG 随公开仓库分发，见 `docs/Decisions.md` 第 5 节。
+角色 PNG 随公开仓库分发，见 `docs/legacy/Decisions.md` 第 5 节。
 
 对 CI 的影响：
 

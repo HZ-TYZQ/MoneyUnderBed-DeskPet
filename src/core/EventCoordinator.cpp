@@ -41,7 +41,7 @@ bool EventCoordinator::restartsOnSameKind(const EventKind kind)
         // 用户连续点击时应当给出新的反馈，而不是被自己上一次点击挡住。
         return true;
     case EventKind::Feeding:
-        // docs/Decisions.md 第 3.2 节：当前投喂动画结束前忽略新的投喂请求，
+        // docs/legacy/Decisions.md 第 3.2 节：当前投喂动画结束前忽略新的投喂请求，
         // 不排队、不重播，也不引入冷却状态。
         return false;
     case EventKind::None:

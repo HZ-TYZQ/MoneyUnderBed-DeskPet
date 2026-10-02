@@ -3,7 +3,7 @@
 #
 # 本工作流不做真实桌面验收：offscreen 只承担自动测试，
 # 置顶、穿透、任务栏和窗口管理行为必须真实桌面手工验收
-# （docs/Decisions.md 第 11.1 节）。
+# （docs/legacy/Decisions.md 第 11.1 节）。
 name: Build and test
 
 on:
@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 env:
-  # docs/Decisions.md 第 9.1 节：CI 精确锁定 Qt 6.11.2。
+  # docs/legacy/Decisions.md 第 9.1 节：CI 精确锁定 Qt 6.11.2。
   QT_VERSION: 6.11.2
   # aqtinstall 的 PyPI 最新发布版 3.3.0 认不出 Qt 6.11 起改用的
   # 按架构分目录结构。修复已合入上游 master 但尚未发布，因此锁定提交。
@@ -38,7 +38,7 @@ jobs:
       matrix:
         include:
           # AppImage 以 Ubuntu 22.04 为基线，CI 与打包保持同一发行版，
-          # 使 glibc 兼容问题在这里就暴露（docs/Decisions.md 第 9.3 节）。
+          # 使 glibc 兼容问题在这里就暴露（docs/legacy/Decisions.md 第 9.3 节）。
           - name: Linux (Ubuntu 22.04, GCC)
             runner: ubuntu-22.04
             qt_host: linux
@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@v7
 
       # 显式安装 XCB 构建依赖，不依赖 Action 的隐式依赖处理。
-      # Linux 正式后端是 XCB（docs/Decisions.md 第 8.2 节）。
+      # Linux 正式后端是 XCB（docs/legacy/Decisions.md 第 8.2 节）。
       - name: Install XCB build dependencies
         if: runner.os == 'Linux'
         run: |
@@ -165,7 +165,7 @@ jobs:
           exit 0
 
       # 打包产物自检在阶段 9 加入。这里先验证未打包的可执行文件能启动并退出，
-      # 结果以退出码为准，不依赖标准输出（docs/Decisions.md 第 11.1 节）。
+      # 结果以退出码为准，不依赖标准输出（docs/legacy/Decisions.md 第 11.1 节）。
       - name: Self-test (Linux)
         if: runner.os == 'Linux'
         shell: bash

@@ -1,6 +1,6 @@
 # MoneyUnderBed DeskPet 1.1.0 开发状态
 
-需求基线：`docs/Decisions.md`（第 14 节为本版范围），冻结于提交 `0adb5b7`。
+需求基线：`docs/legacy/Decisions.md`（第 14 节为本版范围），冻结于提交 `0adb5b7`。
 
 执行计划：`docs/Plans/DevelopmentPlan-1.1.md`，同一提交。
 
@@ -22,7 +22,7 @@ CI 都有实际结果后才写为 `已通过`；人工检查点在收到项目�
 
 ## 1.0.0 候选历史
 
-`1.0.0` 候选从未公开发布。按 `docs/Decisions.md` 第 14.1 节，不为它另建预发布标签；
+`1.0.0` 候选从未公开发布。按 `docs/legacy/Decisions.md` 第 14.1 节，不为它另建预发布标签；
 候选历史由本节记录，标签与草稿 Release 在阶段 6 删除。
 
 | 项目 | 值 |
@@ -128,7 +128,7 @@ AppImage runtime／打包工具和 25 个 Ubuntu 源码包的完整对应源码�
 
 ## 阶段 2 的边界调整
 
-计划第 6.4 节记录了原因：新模型里没有气泡频率字段（`docs/Decisions.md` 第 14.4、
+计划第 6.4 节记录了原因：新模型里没有气泡频率字段（`docs/legacy/Decisions.md` 第 14.4、
 14.2 节），而 `settings.bubble` 的三个消费者分属阶段 3 和 4，替换 `core::Settings`
 后无法编译。项目所有者于 2026-08-28 确认采用「阶段 2 顺带做完解耦」的方案：
 
@@ -144,7 +144,7 @@ AppImage runtime／打包工具和 25 个 Ubuntu 源码包的完整对应源码�
 ## 检查点 A 冻结的档位取值
 
 `src/core/SettingsPresets.cpp` 是低/中/高具体取值的唯一存放处。下列取值已由人工
-检查点 A 实测后**原样冻结**，并写回 `docs/Decisions.md` 第 14.3 至 14.5 节，
+检查点 A 实测后**原样冻结**，并写回 `docs/legacy/Decisions.md` 第 14.3 至 14.5 节，
 冻结来源记于该文件第 14.11 节：
 
 | 档位 | 低／慢／偶尔 | 中／正常 | 高／快／经常 |
@@ -264,7 +264,7 @@ AppImage runtime／打包工具和 25 个 Ubuntu 源码包的完整对应源码�
 ### 阶段 4 结束时的未决项
 
 - `src/core/SettingsPresets.cpp` 中除默认档位外的全部取值仍是原型值，须经检查点 A
-  实测冻结后写回 `docs/Decisions.md` 第 14.3 至 14.5 节，见本文件第 131 行起的表。
+  实测冻结后写回 `docs/legacy/Decisions.md` 第 14.3 至 14.5 节，见本文件第 131 行起的表。
 - `probe-windows.yml` 的去留、`ReleaseChecklist-1.1.md` 的建立与旧清单改名、
   `DesktopChecklist.md` 复核、`build.yml` 的标签触发，都在阶段 5。**均已完成。**
 
@@ -294,7 +294,7 @@ AppImage runtime／打包工具和 25 个 Ubuntu 源码包的完整对应源码�
 线程数在反复开关设置窗口与关于窗口的过程中始终为 `2`，说明 `AppLifecycle`
 复用辅助窗口实例的做法在真机上成立，没有窗口相关的线程泄漏。
 
-按 `docs/Decisions.md` 第 14.10 节，占用是否可接受由项目所有者判定：结论为
+按 `docs/legacy/Decisions.md` 第 14.10 节，占用是否可接受由项目所有者判定：结论为
 **通过**。
 
 该次采样的两列数据不具备证据力，记录在此以免被后续引用时读过头：

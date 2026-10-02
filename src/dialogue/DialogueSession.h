@@ -22,7 +22,7 @@ enum class DialogueState
 
 struct DialogueSessionConfig
 {
-    // docs/Decisions.md 第 4.1 节：`28 ms` 由 2026-08-27 的 Qt 原型审核确定。
+    // docs/legacy/Decisions.md 第 4.1 节：`28 ms` 由 2026-08-27 的 Qt 原型审核确定。
     // 第 14.4 节把它开放为设置项，该值继续作为默认值。
     int typingMsPerChar = 28;
     // 第 4.1 节：用户持续 20 s 没有操作时对话自动结束。
@@ -62,7 +62,7 @@ public:
     DialoguePacing activePacing() const;
 
     // 开始一段对话。重复触发同一段对话时从第一页重新开始
-    // （docs/Decisions.md 第 4.1 节）。
+    // （docs/legacy/Decisions.md 第 4.1 节）。
     void start(const Dialogue &dialogue);
 
     // 立即结束。用于隐藏与退出：不保留待恢复的对话页面。

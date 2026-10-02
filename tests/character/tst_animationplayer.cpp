@@ -177,7 +177,7 @@ void TestAnimationPlayer::pauseFreezesTheFrame()
 
 void TestAnimationPlayer::resumeDoesNotCatchUpOnMissedFrames()
 {
-    // docs/Decisions.md 第 2.3 节：锁屏或睡眠恢复后不补算离开期间的行为。
+    // docs/legacy/Decisions.md 第 2.3 节：锁屏或睡眠恢复后不补算离开期间的行为。
     ManualTimeSource clock;
     AnimationPlayer player(clock);
     player.play(kLoop);

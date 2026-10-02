@@ -12,7 +12,7 @@ namespace mub::ui {
 
 // 对话气泡的布局与绘制。
 //
-// 结构由 docs/Decisions.md 第 4 节冻结，取值由第 4.8 节冻结
+// 结构由 docs/legacy/Decisions.md 第 4 节冻结，取值由第 4.8 节冻结
 // （见 BubbleMetrics.h）。本类不提供改动结构的入口，
 // 唯一可变的是显示倍率 —— 那是第 5.1 节的用户设置项。
 //

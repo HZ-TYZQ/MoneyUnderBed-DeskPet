@@ -4,7 +4,7 @@
 #include <QRegularExpression>
 #include <QTest>
 
-// 应用身份的取值由 docs/Decisions.md 第 1.2 节冻结。
+// 应用身份的取值由 docs/legacy/Decisions.md 第 1.2 节冻结。
 // 本测试的作用是让任何一处改动都必须同时改决策文档。
 class TestAppMetadata final : public QObject
 {

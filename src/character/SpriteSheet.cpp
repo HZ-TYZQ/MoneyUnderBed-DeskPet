@@ -76,7 +76,7 @@ SpriteSheet SpriteSheet::fromImage(const QImage &image, SpriteSheetError *error)
         return {};
     }
     // 没有 alpha 就无法实现可见像素命中与透明区域穿透
-    // （docs/Decisions.md 第 3.4 节），因此直接判为非法素材。
+    // （docs/legacy/Decisions.md 第 3.4 节），因此直接判为非法素材。
     if (!image.hasAlphaChannel()) {
         assign(error, SpriteSheetError::NoAlphaChannel);
         return {};

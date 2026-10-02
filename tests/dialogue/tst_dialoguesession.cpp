@@ -148,7 +148,7 @@ void TestDialogueSession::defaultTypingSpeedMatchesTheFrozenDecision()
     DialogueSession session(clock);
     session.start(multiPage());
 
-    // docs/Decisions.md 第 4.1 节冻结为每字符 28 ms，默认配置必须直接遵守。
+    // docs/legacy/Decisions.md 第 4.1 节冻结为每字符 28 ms，默认配置必须直接遵守。
     clock.advance(27);
     QVERIFY(!session.update());
     QVERIFY(session.visibleText().isEmpty());
@@ -258,7 +258,7 @@ void TestDialogueSession::typingEndsAtPageComplete()
 
 void TestDialogueSession::clickWhileTypingCompletesThePage()
 {
-    // docs/Decisions.md 第 4.1 节：当前页仍在打字时，
+    // docs/legacy/Decisions.md 第 4.1 节：当前页仍在打字时，
     // 第一次点击立即补全当前页。
     ManualTimeSource clock;
     DialogueSession session(clock, config());

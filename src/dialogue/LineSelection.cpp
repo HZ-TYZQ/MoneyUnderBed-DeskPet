@@ -6,7 +6,7 @@ namespace mub::dialogue {
 
 namespace {
 
-// 每条后面的注释是 docs/Decisions.md 第 4.4／4.5 节「使用场景」一列的原文。
+// 每条后面的注释是 docs/legacy/Decisions.md 第 4.4／4.5 节「使用场景」一列的原文。
 constexpr const char *kClickFeedbackIds[] = {
     "original-02",  // 单击或低频闲聊
     "original-03",  // 低概率单击反馈；不关联任何付费入口

@@ -2,7 +2,7 @@
 
 namespace mub::core {
 
-// 活动模式。docs/Decisions.md 第 2.2 节：
+// 活动模式。docs/legacy/Decisions.md 第 2.2 节：
 // 只有安静与活跃两档，第一版不再增加额外的行为强度档位。
 enum class ActivityMode
 {

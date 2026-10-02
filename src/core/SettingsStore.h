@@ -8,7 +8,7 @@ namespace mub::core {
 
 // 设置的持久化。
 //
-// docs/Decisions.md 第 5.1 节与第 14.8 节：修改后立即生效并保存，不设「应用」阶段；
+// docs/legacy/Decisions.md 第 5.1 节与第 14.8 节：修改后立即生效并保存，不设「应用」阶段；
 // 提供「恢复默认设置」；使用各系统标准用户配置目录，不把配置写在 EXE、AppImage 或
 // 当前工作目录旁边——后者由调用方构造 `QSettings` 时保证。
 //

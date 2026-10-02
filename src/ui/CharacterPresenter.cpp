@@ -300,7 +300,7 @@ void CharacterPresenter::handleClick()
                               settings_.dialogue.clickTextChancePercent, *random_);
 
     // 即使气泡关闭或处于安静模式，也必须给出动作或表情反馈
-    // （docs/Decisions.md 第 3.1 节）。当前可用素材没有专门的反应动画，
+    // （docs/legacy/Decisions.md 第 3.1 节）。当前可用素材没有专门的反应动画，
     // 因此跳到当前循环的另一半再正常续播。与固定重置到第 0 帧不同，
     // 这保证每次点击都立刻改变画面，不会因为恰好已在第 0 帧而看不见。
     if (feedback.hasReaction) {
@@ -373,7 +373,7 @@ void CharacterPresenter::feed()
 {
     if (requestEvent(core::EventKind::Feeding) == core::EventDecision::Suppressed) {
         // 当前投喂动画结束前忽略新的投喂请求，不排队、不重播
-        // （docs/Decisions.md 第 3.2 节）。
+        // （docs/legacy/Decisions.md 第 3.2 节）。
         return;
     }
 
@@ -448,7 +448,7 @@ void CharacterPresenter::tick()
     }
 
     // 只有活跃模式才需要鼠标位置；安静模式不主动接近鼠标
-    // （docs/Decisions.md 第 2.2 节）。
+    // （docs/legacy/Decisions.md 第 2.2 节）。
     if (behavior_.mode() == core::ActivityMode::Active) {
         behavior_.setCursorPosition(QCursor::pos());
     }

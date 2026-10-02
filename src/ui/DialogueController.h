@@ -32,7 +32,7 @@ class CharacterWindow;
 // 正式对话系统。
 //
 // 把台词数据、DialogueSession 的状态机和气泡窗口接起来，并按
-// docs/Decisions.md 第 4.2 节的所有权约定持有事件。
+// docs/legacy/Decisions.md 第 4.2 节的所有权约定持有事件。
 //
 // 职责边界：本类不裁决优先级，也不决定何时触发对话 —— 那是协调器和
 // CharacterPresenter 的职责；本类只负责「事件已经批下来之后」的显示与结束。

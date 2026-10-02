@@ -19,7 +19,7 @@ QString feedingOutcomeId(FeedingOutcome outcome);
 
 struct FeedingConfig
 {
-    // 掉落概率。docs/Decisions.md 第 3.2 节：按程序内置概率偶发触发，
+    // 掉落概率。docs/legacy/Decisions.md 第 3.2 节：按程序内置概率偶发触发，
     // 不提供用户设置。属于待调优的内部参数。
     int dropChancePercent = 15;
 };

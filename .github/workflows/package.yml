@@ -668,7 +668,7 @@ jobs:
       # 标签用 `sources-<version>`，**不能**用 `v<version>-sources` 之类：
       # 本工作流与 build.yml 的过滤都是 `v*.*.*`，那种名字会匹配并触发整条流水线，
       # 而 metadata 只接受 MAJOR.MINOR.PATCH，结果是一次注定失败的运行
-      # （docs/Decisions.md 第 14.1 节记录的同一个陷阱）。
+      # （docs/legacy/Decisions.md 第 14.1 节记录的同一个陷阱）。
       # tst_releaseworkflows 对此有断言。
       - name: Publish corresponding-source release
         id: sources

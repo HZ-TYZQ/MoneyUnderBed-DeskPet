@@ -4,7 +4,7 @@
 全部文件，并在 Release 说明中重复其要点。本文件以
 `licenses/README.md` 路径随包分发。
 
-对应 `docs/Decisions.md` 第 10.1 节与第 12 节。
+对应 `docs/legacy/Decisions.md` 第 10.1 节与第 12 节。
 
 > 阶段 9 审计状态：Qt、ICU、AppImage runtime、MSVC CRT 与 Linux 随包系统库
 > 都已建立固定来源、许可材料和对应源码收集路径。只有新的 Actions 候选实际
@@ -43,7 +43,7 @@ GPL 代码本身允许商业使用，但商业使用者必须移除或替换非�
 | `licenses/msvc-runtime.md`（仅 Windows） | `packaging/licenses/msvc-runtime.md` | app-local MSVC CRT 来源和微软再分发条款 |
 
 对话字体的 TTF 编译进 Qt 资源系统，发行目录不再单独放一份，
-以免出现同一字体的两个副本（`docs/Decisions.md` 第 4.7 节）。
+以免出现同一字体的两个副本（`docs/legacy/Decisions.md` 第 4.7 节）。
 但 OFL 要求的版权声明和完整许可文本仍必须随包分发。
 
 角色 PNG 不编入 Qt 资源系统或 GPL 可执行文件。它们以原始只读数据文件

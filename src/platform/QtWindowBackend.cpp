@@ -8,7 +8,7 @@ namespace mub::platform {
 Qt::WindowFlags QtWindowBackend::deskPetFlags()
 {
     // Qt::Tool 让窗口不出现在任务栏，并尽量不进入普通窗口切换列表
-    // （docs/Decisions.md 第 3.4 节）。
+    // （docs/legacy/Decisions.md 第 3.4 节）。
     // Qt::WindowDoesNotAcceptFocus 保证点击角色不抢走当前应用的焦点。
     return Qt::FramelessWindowHint | Qt::Tool | Qt::WindowDoesNotAcceptFocus
         | Qt::NoDropShadowWindowHint;

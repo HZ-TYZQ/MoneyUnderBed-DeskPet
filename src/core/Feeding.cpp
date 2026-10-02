@@ -31,7 +31,7 @@ FeedingOutcome FeedingSelector::select(RandomSource &random) const
 
 QString FeedingSelector::dropDialogueId()
 {
-    // 对应 docs/Decisions.md 第 4.4 节的四页冰淇淋掉落对话。
+    // 对应 docs/legacy/Decisions.md 第 4.4 节的四页冰淇淋掉落对话。
     return QStringLiteral("icecream-drop");
 }
 

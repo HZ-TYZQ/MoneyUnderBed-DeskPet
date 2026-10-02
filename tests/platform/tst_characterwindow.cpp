@@ -105,7 +105,7 @@ void TestCharacterWindow::alwaysOnTopIsForwardedToTheBackend()
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
 
-    // 默认置顶（docs/Decisions.md 第 3.4 节）。
+    // 默认置顶（docs/legacy/Decisions.md 第 3.4 节）。
     QVERIFY(window.isAlwaysOnTop());
     QVERIFY(backend.alwaysOnTop());
 
@@ -238,7 +238,7 @@ void TestCharacterWindow::realBackendReportsTheCapabilitiesTheProductNeeds()
 
     const mub::platform::BackendCapabilities caps = backend->capabilities();
     QVERIFY(!caps.name.isEmpty());
-    // docs/Decisions.md 第 3.4 节与第 8.1 节把这些列为核心能力。
+    // docs/legacy/Decisions.md 第 3.4 节与第 8.1 节把这些列为核心能力。
     QVERIFY(caps.alwaysOnTop);
     QVERIFY(caps.inputPassthrough);
     QVERIFY(caps.pixelHitMask);

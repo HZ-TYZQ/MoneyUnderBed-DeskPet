@@ -118,7 +118,7 @@ void TestFeedback::clickAlwaysGivesAReaction()
     QFETCH(ActivityMode, mode);
     QFETCH(int, chancePercent);
 
-    // docs/Decisions.md 第 3.1 节：即使概率为 `0` 或被安静模式抑制，
+    // docs/legacy/Decisions.md 第 3.1 节：即使概率为 `0` 或被安静模式抑制，
     // 单击仍至少提供动作或表情反馈。
     const ClickFeedbackSelector selector;
     ScriptedRandomSource random({}, {0.0, 0.99});

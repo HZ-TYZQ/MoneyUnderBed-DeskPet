@@ -2,12 +2,12 @@
 #
 # 字体是单一来源：仓库内只有 third_party/ark-pixel-font/ 一份 TTF，
 # 编译进 Qt 资源系统后发行目录不再单独放一份。
-# 见 docs/Decisions.md 第 4.7 节与第 12.2 节。
+# 见 docs/legacy/Decisions.md 第 4.7 节与第 12.2 节。
 
 set(MUB_ARK_PIXEL_TTF
     "${CMAKE_SOURCE_DIR}/third_party/ark-pixel-font/ark-pixel-12px-proportional-zh_cn.ttf")
 
-# 该哈希由 docs/Decisions.md 第 4.7 节冻结。
+# 该哈希由 docs/legacy/Decisions.md 第 4.7 节冻结。
 # 配置期就核对，使字体被静默替换或升级时立即失败，而不是等到运行时。
 set(MUB_ARK_PIXEL_SHA256
     "37f5c3ad3fb4f2f278580a41e03ca67c085b64db2460d533d84c24a52911be96")
@@ -23,7 +23,7 @@ if(NOT MUB_ARK_PIXEL_ACTUAL_SHA256 STREQUAL MUB_ARK_PIXEL_SHA256)
         "  file    : ${MUB_ARK_PIXEL_TTF}\n"
         "  expected: ${MUB_ARK_PIXEL_SHA256}\n"
         "  actual  : ${MUB_ARK_PIXEL_ACTUAL_SHA256}\n"
-        "The font version is frozen by docs/Decisions.md section 4.7. "
+        "The font version is frozen by docs/legacy/Decisions.md section 4.7. "
         "Upgrading requires the dual-platform probe, automated tests and the "
         "full glyph-coverage check first.")
 endif()

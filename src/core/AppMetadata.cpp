@@ -9,7 +9,7 @@ namespace mub::metadata {
 
 namespace {
 
-// 界面文本一律走翻译，不硬编码（docs/Decisions.md 第 5.1 节）。
+// 界面文本一律走翻译，不硬编码（docs/legacy/Decisions.md 第 5.1 节）。
 // 第一版不提供语言设置，但资源结构保持可加载翻译文件。
 QString translate(const char *sourceText)
 {

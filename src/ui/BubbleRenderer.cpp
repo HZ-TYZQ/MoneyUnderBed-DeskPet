@@ -18,7 +18,7 @@ namespace {
 // 文字为纯白；边界与分隔线是同一种白色叠加，只有不透明度不同。
 constexpr QColor kTextColour(255, 255, 255);
 constexpr QColor kLineBase(255, 255, 255);
-// 翻页提示的内容固定是一个 □（docs/Decisions.md 第 4.8 节）。
+// 翻页提示的内容固定是一个 □（docs/legacy/Decisions.md 第 4.8 节）。
 constexpr auto kPageCueGlyph = u"□";
 
 } // namespace

@@ -1,6 +1,6 @@
 // 唯一运行时设置的持有者。
 //
-// docs/Decisions.md 第 14.2 节：设置界面只产生变更，不直接读写 QSettings；
+// docs/legacy/Decisions.md 第 14.2 节：设置界面只产生变更，不直接读写 QSettings；
 // 第 14.8 节：接收、作用与落盘分开——一次拖动只在停下来之后写一次。
 
 #include "app/SettingsController.h"

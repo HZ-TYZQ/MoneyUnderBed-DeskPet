@@ -6,7 +6,7 @@ namespace mub::core {
 
 // 行为事件类型。
 //
-// 枚举值的大小就是优先级，数值越大越优先。顺序由 docs/Decisions.md
+// 枚举值的大小就是优先级，数值越大越优先。顺序由 docs/legacy/Decisions.md
 // 第 4.2 节冻结，改动顺序等于改动产品行为，必须同时改决策文档。
 enum class EventKind
 {
@@ -35,7 +35,7 @@ QString eventDecisionId(EventDecision decision);
 
 // 统一行为／事件调度。
 //
-// docs/Decisions.md 第 4.2 节要求优先级由统一的调度逻辑实现，
+// docs/legacy/Decisions.md 第 4.2 节要求优先级由统一的调度逻辑实现，
 // 不能分散为各功能互相覆盖的临时判断。因此：
 //
 // - 所有行为请求只提交给本类，功能模块不得直接强制切换全局状态。

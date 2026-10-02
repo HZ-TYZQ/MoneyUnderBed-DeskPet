@@ -5,7 +5,7 @@
 namespace mub::platform {
 
 // Windows 与其他平台使用 Qt 的默认平台插件选择，没有需要预先探测的连接。
-// docs/Decisions.md 第 8.2 节的报错通道只针对 Linux 的 XCB 要求。
+// docs/legacy/Decisions.md 第 8.2 节的报错通道只针对 Linux 的 XCB 要求。
 StartupProbeResult probeWindowBackend()
 {
     StartupProbeResult result;

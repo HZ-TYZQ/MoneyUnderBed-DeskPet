@@ -23,7 +23,7 @@ QString describeSpriteSheetError(SpriteSheetError error);
 
 // 一张按固定帧尺寸横向排布的角色精灵表。
 //
-// 帧尺寸由作者素材决定，见 docs/Decisions.md 第 6 节与 assets/MANIFEST.md。
+// 帧尺寸由作者素材决定，见 docs/legacy/Decisions.md 第 6 节与 assets/MANIFEST.md。
 // 本类只做校验与取帧，不决定播放哪一帧，也不决定角色行为。
 class SpriteSheet
 {

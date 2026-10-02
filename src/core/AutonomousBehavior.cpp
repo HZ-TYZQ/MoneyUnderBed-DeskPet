@@ -245,7 +245,7 @@ void AutonomousBehavior::enterIdle()
 void AutonomousBehavior::enterRest()
 {
     // 休息不依赖新素材：角色停止移动并继续播放待机动画，只延长停留时间
-    // （docs/Decisions.md 第 2.1 节）。
+    // （docs/legacy/Decisions.md 第 2.1 节）。
     state_ = BehaviorState::Resting;
     velocity_ = QPointF();
     stateDeadlineMs_ = timeSource_->nowMs()
@@ -271,7 +271,7 @@ void AutonomousBehavior::enterApproachCursor()
     state_ = BehaviorState::ApproachingCursor;
     snapshotSpeed(config_.walkSpeedPxPerSec);
 
-    // 停在安全距离外，不直接覆盖鼠标位置（docs/Decisions.md 第 2.1 节）。
+    // 停在安全距离外，不直接覆盖鼠标位置（docs/legacy/Decisions.md 第 2.1 节）。
     const QPointF characterCentre =
         position_ + QPointF(characterSize_.width() / 2.0,
                             characterSize_.height() / 2.0);
@@ -314,7 +314,7 @@ void AutonomousBehavior::chooseNextFromIdle()
         return;
     }
 
-    // 安静模式不主动接近鼠标（docs/Decisions.md 第 2.2 节）。
+    // 安静模式不主动接近鼠标（docs/legacy/Decisions.md 第 2.2 节）。
     //
     // 自主闲聊**不在这里**。第 14.4 节要求它由独立的时间调度驱动，不依赖待机、
     // 行走或休息之间的状态切换；`1.0.0` 候选把它挂在这次状态切换上，结果是

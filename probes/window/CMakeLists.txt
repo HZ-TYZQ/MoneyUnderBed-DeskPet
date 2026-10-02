@@ -29,7 +29,7 @@ add_executable(deskpet-probe
 target_link_libraries(deskpet-probe PRIVATE Qt6::Widgets)
 
 # Windows 上刻意保留控制台子系统：探针的输出就是测试结果。
-# 正式产品按 docs/Decisions.md 使用 GUI 子系统，两者不一致是有意的。
+# 正式产品按 docs/legacy/Decisions.md 使用 GUI 子系统，两者不一致是有意的。
 set_target_properties(deskpet-probe PROPERTIES WIN32_EXECUTABLE OFF)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

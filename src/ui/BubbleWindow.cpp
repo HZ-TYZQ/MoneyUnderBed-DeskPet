@@ -18,7 +18,7 @@ BubbleWindow::BubbleWindow(platform::DeskPetWindowBackend *backend, QWidget *par
     setAttribute(Qt::WA_TranslucentBackground, true);
     setAttribute(Qt::WA_NoSystemBackground, true);
     // 气泡不抢焦点：出现时不能打断用户正在输入的窗口
-    // （docs/Decisions.md 第 3.4 节）。
+    // （docs/legacy/Decisions.md 第 3.4 节）。
     setAttribute(Qt::WA_ShowWithoutActivating, true);
     setAutoFillBackground(false);
 

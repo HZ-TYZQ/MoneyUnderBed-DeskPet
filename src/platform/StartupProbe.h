@@ -22,7 +22,7 @@ struct StartupProbeResult
 //
 // Qt 在 QApplication 构造期间加载平台插件，失败时直接终止进程，
 // 程序拿不到控制权，因此报错只能在构造之前处理
-// （docs/Decisions.md 第 8.2 节「XCB 不可用时的报错通道」）。
+// （docs/legacy/Decisions.md 第 8.2 节「XCB 不可用时的报错通道」）。
 //
 // Linux 上本函数会把 QT_QPA_PLATFORM 设为单值 `xcb`，
 // 绝不使用 `xcb;wayland` 这类候选列表，避免 Qt 自行回退；

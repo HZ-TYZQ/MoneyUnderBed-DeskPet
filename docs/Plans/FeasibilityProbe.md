@@ -211,4 +211,4 @@ QT_LOGGING_RULES="qt.qpa.*=true"
 - 必要的截图或短录屏。
 - 测试完成后创建 `docs/FeasibilityResults.md` 记录观察与结论。
 
-只有已经通过探测的结论，才可以补充到 `docs/Decisions.md`。
+只有已经通过探测的结论，才可以补充到 `docs/legacy/Decisions.md`。
