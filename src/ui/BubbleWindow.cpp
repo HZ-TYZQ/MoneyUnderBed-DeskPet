@@ -25,7 +25,9 @@ BubbleWindow::BubbleWindow(platform::DeskPetWindowBackend *backend, QWidget *par
     // 与角色窗口同理：标志必须在原生窗口创建之前落到 QWidget 上，
     // 否则 Windows 上气泡四周会留下 DWM 的圆角边框。
     if (backend_ != nullptr) {
-        setWindowFlags(backend_->deskPetWindowFlags() | Qt::WindowStaysOnTopHint);
+        Qt::WindowFlags flags = backend_->deskPetWindowFlags();
+        flags.setFlag(Qt::WindowStaysOnTopHint, alwaysOnTop_);
+        setWindowFlags(flags);
     }
     configureNativeWindow();
 }
@@ -50,6 +52,19 @@ void BubbleWindow::applyPlacement(const QRect &place)
     if (pos() != place.topLeft()) {
         move(place.topLeft());
     }
+}
+
+void BubbleWindow::setAlwaysOnTop(const bool enabled)
+{
+    alwaysOnTop_ = enabled;
+    if (backend_ != nullptr && windowHandle() != nullptr) {
+        backend_->setAlwaysOnTop(windowHandle(), enabled);
+    }
+}
+
+bool BubbleWindow::isAlwaysOnTop() const
+{
+    return alwaysOnTop_;
 }
 
 void BubbleWindow::mousePressEvent(QMouseEvent *event)
@@ -92,7 +107,7 @@ void BubbleWindow::configureNativeWindow()
     }
     // 与角色窗口用同一套平台配置：置顶、不进任务栏和窗口列表、不抢焦点。
     backend_->configureAsDeskPet(handle);
-    backend_->setAlwaysOnTop(handle, true);
+    backend_->setAlwaysOnTop(handle, alwaysOnTop_);
     configured_ = true;
 }
 

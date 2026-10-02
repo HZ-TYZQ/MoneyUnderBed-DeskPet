@@ -315,6 +315,10 @@ int main(int argc, char *argv[])
                      &application, [&](const mub::core::AppearanceSettings &next) {
                          dialogue.setScale(next.scale);
                      });
+    QObject::connect(&controller, &mub::app::SettingsController::windowChanged,
+                     &application, [&](const mub::core::WindowSettings &next) {
+                         dialogue.setAlwaysOnTop(next.alwaysOnTop);
+                     });
 
     // 第 14.8 节：拖动过程中立即生效但不逐帧落盘；一次编辑完成才写一次。
     QObject::connect(&settingsWindow, &mub::ui::SettingsWindow::settingsEdited,
@@ -441,6 +445,7 @@ int main(int argc, char *argv[])
     presenter.applySettings(controller.settings());
     dialogue.applyDialogueSettings(controller.settings().dialogue);
     dialogue.setScale(controller.settings().appearance.scale);
+    dialogue.setAlwaysOnTop(controller.settings().window.alwaysOnTop);
     tray.setMode(controller.settings().behavior.mode);
     settingsWindow.setSettings(controller.settings());
     aboutWindow.setSettings(controller.settings());
@@ -449,14 +454,25 @@ int main(int argc, char *argv[])
     qCInfo(lcMain) << "startup ready elapsed_ms=" << startupTimer.elapsed();
 
     // 首次启动的简短提示。第 5.2 节：一页，不做多页欢迎向导。
+    //
+    // 必须在主事件循环里弹出，不能在 application.exec() 之前直接 exec()：
+    // Qt 6 的 QCoreApplication::quit() 在主事件循环尚未运行时什么也不做。提示开着时
+    // 从托盘选「退出」，退出请求会丢失，而 AppLifecycle 已经记下「退出过」，
+    // 之后的退出请求全部被忽略，进程再也退不出去。
     if (!settingsStore.firstRunNoticeShown()) {
-        mub::ui::FirstRunWindow notice(runningAsAppImage);
-        notice.exec();
-        if (notice.wantsDesktopEntry()) {
-            desktopEntry.install(appImagePath, entryIcon);
-            refreshDesktopEntryState();
-        }
-        settingsStore.markFirstRunNoticeShown();
+        QTimer::singleShot(0, &application, [&] {
+            mub::ui::FirstRunWindow notice(runningAsAppImage);
+            notice.exec();
+            if (lifecycle.quitRequested()) {
+                // 提示开着时就退出了：用户没有确认过它，下次启动再显示。
+                return;
+            }
+            if (notice.wantsDesktopEntry()) {
+                desktopEntry.install(appImagePath, entryIcon);
+                refreshDesktopEntryState();
+            }
+            settingsStore.markFirstRunNoticeShown();
+        });
     }
 
     return application.exec();

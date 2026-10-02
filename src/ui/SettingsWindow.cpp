@@ -95,6 +95,14 @@ SettingsWindow::SettingsWindow(QWidget *parent)
         emit resetAllRequested();
     });
 
+    // 数字框和下拉框不处理回车，QDialog 会把它转给默认按钮；没有显式默认按钮时，
+    // 焦点链上第一个 autoDefault 按钮就成了默认按钮——那是「恢复本组默认值」。
+    // 本窗口的按钮全是重置或关闭，没有一个适合被回车顺手触发。
+    for (QPushButton *button : findChildren<QPushButton *>()) {
+        button->setAutoDefault(false);
+        button->setDefault(false);
+    }
+
     refreshAll();
 }
 
@@ -143,16 +151,18 @@ void SettingsWindow::bindEditor(ValueEditor *editor, const QString &name, Field 
         if (updating_) {
             return;
         }
-        field(current_) = value;
-        editFromWidgets();
+        int &target = field(current_);
+        target = value;
+        editFromWidgets(&target);
     });
     connect(editor, &ValueEditor::editingCommitted, this,
             [this, field](const int value) {
                 if (updating_) {
                     return;
                 }
-                field(current_) = value;
-                commitFromWidgets();
+                int &target = field(current_);
+                target = value;
+                commitFromWidgets(&target);
             });
 }
 
@@ -542,12 +552,19 @@ void SettingsWindow::refreshPresets()
     updating_ = wasUpdating;
 }
 
-void SettingsWindow::enforcePairs()
+void SettingsWindow::enforcePairs(const int *edited)
 {
     // 第 8.2 节：成对值在界面层就不能形成非法运行时配置。改动一端时顶开另一端，
     // 而不是交给 sanitized() 把整对退回默认值——那会在用户输入途中丢掉他刚填的值。
-    const auto fix = [](int &minimum, int &maximum) {
-        if (minimum > maximum) {
+    // 被顶开的必须是另一端：把上限改到下限以下时，下限跟着下来，而不是把上限
+    // 改回去，否则用户刚填的值同样丢了。
+    const auto fix = [edited](int &minimum, int &maximum) {
+        if (minimum <= maximum) {
+            return;
+        }
+        if (edited == &maximum) {
+            minimum = maximum;
+        } else {
             maximum = minimum;
         }
     };
@@ -556,16 +573,16 @@ void SettingsWindow::enforcePairs()
     fix(current_.behavior.restMinMs, current_.behavior.restMaxMs);
 }
 
-void SettingsWindow::editFromWidgets()
+void SettingsWindow::editFromWidgets(const int *edited)
 {
-    enforcePairs();
+    enforcePairs(edited);
     refreshAll();
     emit settingsEdited(settings());
 }
 
-void SettingsWindow::commitFromWidgets()
+void SettingsWindow::commitFromWidgets(const int *edited)
 {
-    enforcePairs();
+    enforcePairs(edited);
     refreshAll();
     emit settingsCommitted(settings());
 }

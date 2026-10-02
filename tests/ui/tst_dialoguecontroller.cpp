@@ -7,6 +7,7 @@
 #include "core/TimeSource.h"
 #include "dialogue/DialogueData.h"
 #include "dialogue/DialogueSession.h"
+#include "ui/BubbleWindow.h"
 #include "ui/CharacterPresenter.h"
 #include "ui/CharacterWindow.h"
 #include "ui/DialogueController.h"
@@ -82,6 +83,7 @@ private slots:
     void singlePageBubbleDoesNotPauseAutonomousBehaviour();
     void singlePageBubbleReleasesItsEventWhenItAutoHides();
     void sessionSuspensionFreezesTheDialogue();
+    void bubbleFollowsTheAlwaysOnTopSetting();
 };
 
 void TestDialogueController::sessionSuspensionFreezesTheDialogue()
@@ -262,6 +264,22 @@ void TestDialogueController::singlePageBubbleReleasesItsEventWhenItAutoHides()
     QTRY_VERIFY_WITH_TIMEOUT(!f.controller.isShowing(), 1000);
     QCOMPARE(f.controller.ownedEvent(), EventKind::None);
     QCOMPARE(f.presenter.coordinator().current(), EventKind::None);
+}
+
+// 第 3.4 节：置顶是用户设置。气泡若始终单独置顶，关闭置顶后会盖住角色头部
+// （第 4.8 节要求角色绘制在气泡之上），还会浮在其他程序上面。
+void TestDialogueController::bubbleFollowsTheAlwaysOnTopSetting()
+{
+    Fixture f;
+    QVERIFY(f.controller.bubble().isAlwaysOnTop());
+
+    f.controller.setAlwaysOnTop(false);
+    QVERIFY(!f.controller.bubble().isAlwaysOnTop());
+    QVERIFY(!f.backend.alwaysOnTop());
+
+    f.controller.setAlwaysOnTop(true);
+    QVERIFY(f.controller.bubble().isAlwaysOnTop());
+    QVERIFY(f.backend.alwaysOnTop());
 }
 
 QTEST_MAIN(TestDialogueController)

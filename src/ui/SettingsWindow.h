@@ -89,10 +89,11 @@ private:
     void refreshAll();
     void refreshPresets();
     // 成对上下限不得在界面层形成非法组合：改动一端时把另一端顶开。
-    void enforcePairs();
+    // `edited` 指向 current_ 里刚被用户改动的字段；为空表示不是单个数值的编辑。
+    void enforcePairs(const int *edited);
 
-    void commitFromWidgets();
-    void editFromWidgets();
+    void commitFromWidgets(const int *edited = nullptr);
+    void editFromWidgets(const int *edited = nullptr);
 
     bool updating_ = false;
     Confirmer confirmer_;

@@ -56,6 +56,7 @@ private slots:
     void neverLeavesTheActivityArea();
     void pausedFreezesEverything();
     void resumePreservesTheRemainingStateTime();
+    void releaseWhilePausedWaitsOnlyAfterResume();
     void quietModeNeverApproachesTheCursor();
     void activityModeChangeWaitsForTheCurrentBehaviour();
     void behaviourNoLongerCarriesChatter();
@@ -165,6 +166,35 @@ void TestAutonomousBehavior::resumePreservesTheRemainingStateTime()
     clock.advance(1);
     behavior.update();
     QCOMPARE(behavior.state(), BehaviorState::Walking);
+}
+
+// 暂停期间拖动并松手：返回延迟必须从恢复时才开始计，暂停开始到松手之间的时间
+// 不能再被平移一次。修复前这里会在空中多停整整一分钟。
+void TestAutonomousBehavior::releaseWhilePausedWaitsOnlyAfterResume()
+{
+    ManualTimeSource clock;
+    SeededRandomSource random(5);
+    AutonomousBehavior behavior(clock, random, fastConfig());
+    behavior.setActivityArea(kArea);
+    behavior.setCharacterSize(kCharacter);
+    behavior.update();
+
+    behavior.setPaused(true);
+    clock.advance(60000);
+    behavior.beginDrag();
+    behavior.endDrag(QPoint(800, 200));
+    QCOMPARE(behavior.state(), BehaviorState::ReturningToBottom);
+
+    clock.advance(540000);
+    behavior.update();
+    behavior.setPaused(false);
+    const QPoint released = behavior.position();
+
+    // returnDelayMs 为 500：恢复后 500 ms 内仍停在原处，之后开始返回。
+    run(clock, behavior, 480);
+    QCOMPARE(behavior.position(), released);
+    run(clock, behavior, 100);
+    QVERIFY(behavior.position() != released);
 }
 
 void TestAutonomousBehavior::quietModeNeverApproachesTheCursor()

@@ -37,6 +37,12 @@ public:
     // 按渲染器当前内容调整窗口尺寸并移动到 `place`。
     void applyPlacement(const QRect &place);
 
+    // 与角色窗口保持同一置顶状态（第 3.4 节「始终置顶」设置）。气泡若单独置顶，
+    // 关闭置顶后它会盖住角色头部，也会浮在其他程序上面，违背第 4.8 节
+    // 「角色绘制在气泡之上」。
+    void setAlwaysOnTop(bool enabled);
+    bool isAlwaysOnTop() const;
+
 signals:
     // 第 4.1 节：点击对话框和点击角色都能补全或推进台词。
     void clicked();
@@ -51,6 +57,7 @@ private:
 
     BubbleRenderer renderer_;
     platform::DeskPetWindowBackend *backend_ = nullptr;
+    bool alwaysOnTop_ = true;
     bool configured_ = false;
 };
 

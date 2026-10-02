@@ -55,6 +55,9 @@ public:
     void setScale(int scale);
     int scale() const;
 
+    // 气泡跟随「始终置顶」设置，与角色窗口一致。
+    void setAlwaysOnTop(bool enabled);
+
     // 系统会话不可交互时冻结打字、超时和自动隐藏计时。
     void setSessionSuspended(bool suspended);
 

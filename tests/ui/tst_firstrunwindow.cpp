@@ -3,6 +3,7 @@
 #include <QCheckBox>
 #include <QLabel>
 #include <QTest>
+#include <QTextDocument>
 
 using mub::ui::FirstRunWindow;
 
@@ -13,6 +14,7 @@ class TestFirstRunWindow final : public QObject
 private slots:
     void isASinglePageWithoutWizardSteps();
     void explainsMenuDragAndQuit();
+    void showsEachInstructionOnItsOwnLine();
     void doesNotOfferTheDesktopEntryOutsideAppImage();
     void offersTheDesktopEntryUncheckedByDefault();
     void reportsTheDesktopEntryChoice();
@@ -37,6 +39,19 @@ void TestFirstRunWindow::explainsMenuDragAndQuit()
                                  QStringLiteral("退出")}) {
         QVERIFY2(text->text().contains(topic), qPrintable(topic));
     }
+}
+
+// 说明文字按富文本显示，换行符在那里只是空白；三句话必须真的分成三行。
+void TestFirstRunWindow::showsEachInstructionOnItsOwnLine()
+{
+    FirstRunWindow window(false);
+    const QLabel *text = window.findChild<QLabel *>();
+    QVERIFY(text != nullptr);
+    QCOMPARE(text->textFormat(), Qt::RichText);
+
+    QTextDocument rendered;
+    rendered.setHtml(text->text());
+    QCOMPARE(rendered.toPlainText().count(QLatin1Char('\n')), 2);
 }
 
 // 应用菜单入口只对 AppImage 有意义；Windows 免安装 ZIP 不创建快捷方式。

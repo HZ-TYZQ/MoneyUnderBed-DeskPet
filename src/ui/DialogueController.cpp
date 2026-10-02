@@ -87,6 +87,11 @@ int DialogueController::scale() const
     return bubble_->renderer().scale();
 }
 
+void DialogueController::setAlwaysOnTop(const bool enabled)
+{
+    bubble_->setAlwaysOnTop(enabled);
+}
+
 void DialogueController::setSessionSuspended(const bool suspended)
 {
     session_.setSuspended(suspended);

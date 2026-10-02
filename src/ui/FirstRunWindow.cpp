@@ -17,9 +17,10 @@ FirstRunWindow::FirstRunWindow(const bool offerDesktopEntry, QWidget *parent)
 
     auto *layout = new QVBoxLayout(this);
 
+    // 富文本里的换行符只是空白，分行必须用 <br>。
     auto *text = new QLabel(
-        tr("在角色身上<b>右键</b>打开菜单：投喂、活跃模式、暂停、设置、关于和退出都在那里。\n"
-           "<b>按住左键拖动</b>可以移动角色，<b>单击</b>会有反应。\n"
+        tr("在角色身上<b>右键</b>打开菜单：投喂、活跃模式、暂停、设置、关于和退出都在那里。<br>"
+           "<b>按住左键拖动</b>可以移动角色，<b>单击</b>会有反应。<br>"
            "退出请用右键菜单里的「退出」。"),
         this);
     text->setTextFormat(Qt::RichText);

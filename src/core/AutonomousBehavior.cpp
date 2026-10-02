@@ -238,7 +238,7 @@ void AutonomousBehavior::enterIdle()
     }
     state_ = BehaviorState::Idle;
     velocity_ = QPointF();
-    stateDeadlineMs_ = timeSource_->nowMs()
+    stateDeadlineMs_ = deadlineBaseMs()
         + random_->nextInt(config_.idleMinMs, config_.idleMaxMs);
 }
 
@@ -248,7 +248,7 @@ void AutonomousBehavior::enterRest()
     // （docs/legacy/Decisions.md 第 2.1 节）。
     state_ = BehaviorState::Resting;
     velocity_ = QPointF();
-    stateDeadlineMs_ = timeSource_->nowMs()
+    stateDeadlineMs_ = deadlineBaseMs()
         + random_->nextInt(config_.restMinMs, config_.restMaxMs);
 }
 
@@ -262,7 +262,7 @@ void AutonomousBehavior::enterWalk()
                                         - characterSize_.width());
     const int targetX = random_->nextInt(leftBound, rightBound);
     target_ = QPointF(bottomAnchorFor(targetX));
-    stateDeadlineMs_ = timeSource_->nowMs()
+    stateDeadlineMs_ = deadlineBaseMs()
         + random_->nextInt(config_.walkMinMs, config_.walkMaxMs);
 }
 
@@ -292,7 +292,7 @@ void AutonomousBehavior::enterApproachCursor()
     const QPoint clamped = clampToAvailable(activityArea_, characterSize_,
                                             target_.toPoint());
     target_ = QPointF(clamped);
-    stateDeadlineMs_ = timeSource_->nowMs()
+    stateDeadlineMs_ = deadlineBaseMs()
         + random_->nextInt(config_.walkMinMs, config_.walkMaxMs);
 }
 
@@ -303,7 +303,7 @@ void AutonomousBehavior::enterReturnToBottom()
     snapshotSpeed(config_.returnSpeedPxPerSec);
     target_ = QPointF(bottomAnchorFor(position_.toPoint().x()));
     // 先停留一段时间再返回。
-    stateDeadlineMs_ = timeSource_->nowMs() + config_.returnDelayMs;
+    stateDeadlineMs_ = deadlineBaseMs() + config_.returnDelayMs;
 }
 
 void AutonomousBehavior::chooseNextFromIdle()
@@ -344,6 +344,14 @@ AutonomousBehaviorConfig behaviorConfigFrom(const BehaviorSettings &settings)
     config.cursorSafeDistancePx = settings.cursorSafeDistancePx;
     // bottomTolerancePx 与 timeJumpThresholdMs 保持默认值：第 14.7 节不开放。
     return config;
+}
+
+qint64 AutonomousBehavior::deadlineBaseMs() const
+{
+    // 暂停期间仍可能进入新状态（例如暂停时拖动角色后松手）。若从当前时刻起算，
+    // 恢复时 setPaused(false) 又会把它平移整段暂停时长，暂停开始到松手之间的
+    // 时间就被重复计入。
+    return paused_ ? pauseStartedMs_ : timeSource_->nowMs();
 }
 
 QPoint AutonomousBehavior::bottomAnchorFor(const int x) const

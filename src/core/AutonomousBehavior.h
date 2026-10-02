@@ -110,6 +110,9 @@ private:
     void enterReturnToBottom();
     void chooseNextFromIdle();
 
+    // 新状态截止时间的起算点。暂停期间进入的状态从暂停开始时起算：
+    // 恢复时截止时间会整体平移暂停时长，这样它的完整时长落在恢复之后。
+    qint64 deadlineBaseMs() const;
     QPoint bottomAnchorFor(int x) const;
     bool isNearBottom() const;
     // 朝 target_ 移动。返回是否已经到达。

@@ -22,6 +22,7 @@
 #include <QSignalSpy>
 #include <QSlider>
 #include <QTest>
+#include <QToolButton>
 
 using mub::core::ActivityMode;
 using mub::core::Settings;
@@ -73,6 +74,8 @@ private slots:
     void sliderAndSpinBoxStayInSync();
     void draggingReportsLiveValuesWithoutCommitting();
     void pairedBoundsCannotBecomeInvalid();
+    void loweringTheUpperBoundPushesTheLowerBoundDown();
+    void enterInAFieldDoesNotPressAButton();
     void groupResetAsksAndReportsTheGroup();
     void cancellingAGroupResetChangesNothing();
     void resetAllAsksAndReports();
@@ -293,6 +296,54 @@ void TestSettingsWindow::pairedBoundsCannotBecomeInvalid()
     QCOMPARE(maximum->value(), reported.behavior.idleMaxMs);
     // 界面报出来的值本身就是合法的，不需要控制器再兜底。
     QCOMPARE(mub::core::sanitized(reported), reported);
+}
+
+// 上一条的反方向：把上限改到下限以下时，被顶开的是下限，用户刚填的上限保留。
+void TestSettingsWindow::loweringTheUpperBoundPushesTheLowerBoundDown()
+{
+    SettingsWindow window;
+    window.setSettings(Settings{});
+
+    ValueEditor *minimum = editorNamed(window, "behavior-idle-min");
+    ValueEditor *maximum = editorNamed(window, "behavior-idle-max");
+    maximum->findChild<QDoubleSpinBox *>()->setValue(1.0);
+
+    const Settings reported = window.settings();
+    QCOMPARE(reported.behavior.idleMaxMs, 1000);
+    QCOMPARE(reported.behavior.idleMinMs, 1000);
+    QCOMPARE(minimum->value(), 1000);
+    QCOMPARE(mub::core::sanitized(reported), reported);
+}
+
+// 数字框和下拉框不处理回车，QDialog 会把它转给默认按钮。本窗口的按钮全是重置
+// 或关闭，回车不能触发其中任何一个。
+void TestSettingsWindow::enterInAFieldDoesNotPressAButton()
+{
+    SettingsWindow window;
+    int asked = 0;
+    window.setConfirmer([&asked](const QString &, const QString &) {
+        ++asked;
+        return false;
+    });
+    window.setSettings(Settings{});
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    for (QToolButton *advanced : window.findChildren<QToolButton *>()) {
+        advanced->setChecked(true);
+    }
+
+    auto *spin = editorNamed(window, "behavior-walk-speed")->findChild<QDoubleSpinBox *>();
+    spin->setFocus();
+    QTest::keyClick(spin, Qt::Key_Return);
+    QComboBox *combo = comboNamed(window, "behavior-tempo");
+    combo->setFocus();
+    QTest::keyClick(combo, Qt::Key_Return);
+
+    QCOMPARE(asked, 0);
+    QVERIFY(window.isVisible());
+    for (const QPushButton *button : window.findChildren<QPushButton *>()) {
+        QVERIFY2(!button->isDefault(), qPrintable(button->text()));
+    }
 }
 
 void TestSettingsWindow::groupResetAsksAndReportsTheGroup()
