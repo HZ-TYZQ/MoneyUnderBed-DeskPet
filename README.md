@@ -25,7 +25,7 @@
 
 ### Linux
 
-下载 `linux-x86_64` AppImage，添加执行权限后直接运行：
+下载 `x86_64.AppImage`，添加执行权限后直接运行：
 
 ```bash
 chmod +x MoneyUnderBed-DeskPet-*.AppImage

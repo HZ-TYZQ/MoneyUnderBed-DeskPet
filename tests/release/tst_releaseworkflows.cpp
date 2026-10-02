@@ -6,9 +6,10 @@
 
 // 发布用工作流的接线断言。
 //
-// 计划第 10 节要求：`v1.1.0` 标签必须同时运行 Build and test 与 Package
-// candidates。这两件事只写在 YAML 里，没有任何编译期约束，改坏了要等到真正
-// 打标签时才发现——而那时标签已经推出去了。本测试把它变成本地就能失败的检查。
+// 发布只走唯一的 CI 工作流（docs/Decisions.md 第 5 节）：版本标签必须触发它，
+// 源码 Release 的标签不能触发它。这些只写在 YAML 里，没有任何编译期约束，改坏了
+// 要等到真正打标签时才发现——而那时标签已经推出去了。本测试把它变成本地就能
+// 失败的检查。
 //
 // 本测试只做文本断言，不解析完整 YAML：需要守住的是「标签过滤是否存在、是否
 // 一致」，而不是 YAML 语义。
@@ -17,13 +18,14 @@ class TestReleaseWorkflows final : public QObject
     Q_OBJECT
 
 private slots:
-    void bothReleaseWorkflowsTriggerOnVersionTags();
+    void onlyTheCiWorkflowExists();
     void theTagFilterMatchesTheReleaseTag();
     void theRetiredProbeWorkflowIsGone();
     void theCurrentChecklistDoesNotDependOnTheProbe();
     void theSourceReleaseTagCannotTriggerThePipeline();
     void theBinaryReleaseNotesPointAtTheSourceRelease();
     void theUbuntuSourceArchiveHasLaunchpadFallback();
+    void theAppImageNameCarriesNoLinuxPrefix();
 };
 
 namespace {
@@ -31,6 +33,11 @@ namespace {
 QString workflowRoot()
 {
     return QStringLiteral(MUB_SOURCE_ROOT "/.github/workflows/");
+}
+
+QString ciWorkflow()
+{
+    return workflowRoot() + QStringLiteral("ci.yml");
 }
 
 QString readFile(const QString &path)
@@ -86,25 +93,20 @@ bool globMatches(const QString &pattern, const QString &text)
 
 } // namespace
 
-void TestReleaseWorkflows::bothReleaseWorkflowsTriggerOnVersionTags()
+// 测试、打包与发布在同一个工作流里，不会再出现「标签只跑了一半流水线」。
+// 旧的两条工作流若被恢复，就又回到了两份构建、两份过滤式需要保持一致的状态。
+void TestReleaseWorkflows::onlyTheCiWorkflowExists()
 {
-    for (const QString &name : {QStringLiteral("build.yml"), QStringLiteral("package.yml")}) {
-        const QString yaml = readFile(workflowRoot() + name);
-        QVERIFY2(!yaml.isEmpty(), qPrintable(name + QStringLiteral(" is missing")));
-        const QStringList filters = tagFilters(yaml);
-        QVERIFY2(!filters.isEmpty(),
-                 qPrintable(name + QStringLiteral(" has no tag trigger")));
-    }
-
-    // 两条流水线的过滤式必须逐字一致，否则会出现只跑一半的标签。
-    QCOMPARE(tagFilters(readFile(workflowRoot() + QStringLiteral("build.yml"))),
-             tagFilters(readFile(workflowRoot() + QStringLiteral("package.yml"))));
+    const QString yaml = readFile(ciWorkflow());
+    QVERIFY2(!yaml.isEmpty(), "ci.yml is missing");
+    QVERIFY2(!tagFilters(yaml).isEmpty(), "ci.yml has no tag trigger");
+    QVERIFY(!QFile::exists(workflowRoot() + QStringLiteral("build.yml")));
+    QVERIFY(!QFile::exists(workflowRoot() + QStringLiteral("package.yml")));
 }
 
 void TestReleaseWorkflows::theTagFilterMatchesTheReleaseTag()
 {
-    const QStringList filters =
-        tagFilters(readFile(workflowRoot() + QStringLiteral("build.yml")));
+    const QStringList filters = tagFilters(readFile(ciWorkflow()));
 
     for (const QString &tag : {QStringLiteral("v1.1.0"), QStringLiteral("v1.2.3")}) {
         bool matched = false;
@@ -145,13 +147,13 @@ void TestReleaseWorkflows::theCurrentChecklistDoesNotDependOnTheProbe()
 }
 
 // 对应源码单独成一个 Release，其标签**不得**匹配发布流水线的标签过滤。
-// `v1.1.0-sources` 之类的名字会匹配 `v*.*.*` 并触发整条打包流水线，而 metadata
-// 只接受 MAJOR.MINOR.PATCH，结果是一次注定失败的运行——与 docs/legacy/Decisions.md
-// 第 14.1 节记录的 rc 标签陷阱是同一个。
+// `v1.1.0-sources` 之类的名字会匹配 `v*.*.*` 并触发整条流水线，而 version 作业
+// 只接受 MAJOR.MINOR.PATCH，结果是一次注定失败的运行——与
+// docs/legacy/Decisions.md 第 14.1 节记录的 rc 标签陷阱是同一个。
 void TestReleaseWorkflows::theSourceReleaseTagCannotTriggerThePipeline()
 {
-    const QString yaml = readFile(workflowRoot() + QStringLiteral("package.yml"));
-    QVERIFY2(!yaml.isEmpty(), "package.yml is missing");
+    const QString yaml = readFile(ciWorkflow());
+    QVERIFY2(!yaml.isEmpty(), "ci.yml is missing");
 
     // 从工作流里取出源码 Release 的标签构造式，避免测试和实现各写一份。
     const QRegularExpression assignment(
@@ -159,7 +161,7 @@ void TestReleaseWorkflows::theSourceReleaseTagCannotTriggerThePipeline()
         QStringLiteral(R"RX(tag="([^"]*)\$VERSION([^"]*)")RX"));
     const QRegularExpressionMatch match = assignment.match(yaml);
     QVERIFY2(match.hasMatch(),
-             "package.yml no longer builds the source release tag as tag=\"...$VERSION...\"");
+             "ci.yml no longer builds the source release tag as tag=\"...$VERSION...\"");
 
     const QStringList filters = tagFilters(yaml);
     QVERIFY(!filters.isEmpty());
@@ -194,11 +196,11 @@ void TestReleaseWorkflows::theBinaryReleaseNotesPointAtTheSourceRelease()
     QVERIFY2(!sourceNotes.isEmpty(), "packaging/sources-release-notes.md is missing");
 
     // 工作流必须真的把占位符替换掉，否则发出去的说明里会留下 `@SOURCES_TAG@`。
-    const QString yaml = readFile(workflowRoot() + QStringLiteral("package.yml"));
+    const QString yaml = readFile(ciWorkflow());
     QVERIFY2(yaml.contains(QStringLiteral("s/@SOURCES_TAG@/")),
-             "package.yml does not substitute @SOURCES_TAG@ before publishing");
+             "ci.yml does not substitute @SOURCES_TAG@ before publishing");
     QVERIFY2(yaml.contains(QStringLiteral("s/@VERSION@/")),
-             "package.yml does not substitute @VERSION@ before publishing");
+             "ci.yml does not substitute @VERSION@ before publishing");
 }
 
 // GitHub 的 Ubuntu runner 镜像与实时 apt 镜像不是同时更新的。安全更新刚替换旧包时，
@@ -206,9 +208,10 @@ void TestReleaseWorkflows::theBinaryReleaseNotesPointAtTheSourceRelease()
 // 因这个时间窗口随机失败，也不能退而下载与随包二进制不匹配的新版本。
 void TestReleaseWorkflows::theUbuntuSourceArchiveHasLaunchpadFallback()
 {
-    const QString yaml = readFile(workflowRoot() + QStringLiteral("package.yml"));
-    QVERIFY2(yaml.contains(QStringLiteral("packaging/DownloadUbuntuSource.sh")),
-             "package.yml bypasses the exact Ubuntu source downloader");
+    const QString packager =
+        readFile(QStringLiteral(MUB_SOURCE_ROOT "/packaging/PackageAppImage.sh"));
+    QVERIFY2(packager.contains(QStringLiteral("DownloadUbuntuSource.sh")),
+             "PackageAppImage.sh bypasses the exact Ubuntu source downloader");
 
     const QString downloader = readFile(
         QStringLiteral(MUB_SOURCE_ROOT "/packaging/DownloadUbuntuSource.sh"));
@@ -221,6 +224,19 @@ void TestReleaseWorkflows::theUbuntuSourceArchiveHasLaunchpadFallback()
     QVERIFY2(downloader.contains(QStringLiteral("Checksums-Sha256"))
                  && downloader.contains(QStringLiteral("sha256sum -c")),
              "the Launchpad fallback does not verify the .dsc payload hashes");
+}
+
+// AppImageHub 的检查要求 AppImage 文件名不含 linux（所有 AppImage 都是 Linux 的），
+// 推荐形如 App-1.0-x86_64.AppImage（docs/Decisions.md 第 4 节）。
+void TestReleaseWorkflows::theAppImageNameCarriesNoLinuxPrefix()
+{
+    const QString yaml = readFile(ciWorkflow());
+    const QRegularExpression assignment(QStringLiteral(R"RX(appimage=(\S+\.AppImage))RX"));
+    const QRegularExpressionMatch match = assignment.match(yaml);
+    QVERIFY2(match.hasMatch(), "ci.yml no longer names the AppImage as appimage=....AppImage");
+    const QString name = match.captured(1);
+    QVERIFY2(!name.contains(QStringLiteral("linux"), Qt::CaseInsensitive), qPrintable(name));
+    QVERIFY2(name.endsWith(QStringLiteral("-x86_64.AppImage")), qPrintable(name));
 }
 
 QTEST_APPLESS_MAIN(TestReleaseWorkflows)

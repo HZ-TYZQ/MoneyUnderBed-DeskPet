@@ -1,0 +1,343 @@
+# 唯一的 CI 工作流（docs/Decisions.md 第 5 节）：测试 → 打包 → 发布。
+#
+# 每次 push 与 pull request 都在 Linux 与 Windows 上构建 Release、运行 CTest、
+# 打出候选包，并对实际产物执行自检；版本标签再额外发布对应源码 Release 与
+# 二进制草稿 Release。打包细节在 packaging/ 下的脚本里，工具与源码的版本锁定在
+# packaging/pins.env。
+#
+# offscreen 只承担自动测试。置顶、穿透、任务栏和窗口管理行为必须真实桌面手工验收。
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # CI 精确锁定 Qt 6.11.2。
+  QT_VERSION: 6.11.2
+  # aqtinstall 的 PyPI 最新发布版 3.3.0 认不出 Qt 6.11 起改用的按架构分目录结构。
+  # 修复已合入上游 master 但尚未发布，因此锁定提交；上游发布 3.4.0 后改回版本号。
+  AQT_SOURCE: git+https://github.com/miurahr/aqtinstall.git@16db45a70b5905ad596941b223469bc86a56901e
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      suffix: ${{ steps.version.outputs.suffix }}
+      display_version: ${{ steps.version.outputs.display_version }}
+      label: ${{ steps.version.outputs.label }}
+      appimage: ${{ steps.version.outputs.appimage }}
+      windows_zip: ${{ steps.version.outputs.windows_zip }}
+    steps:
+      - name: Resolve version from ref
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Release tags must be vMAJOR.MINOR.PATCH"
+              exit 1
+            fi
+            suffix=""
+            label="$version"
+          else
+            version="0.0.0"
+            suffix="dev.${GITHUB_SHA:0:12}"
+            label="dev-${GITHUB_SHA:0:12}"
+          fi
+          {
+            echo "version=$version"
+            echo "suffix=$suffix"
+            echo "display_version=$version${suffix:+-$suffix}"
+            echo "label=$label"
+            # AppImageHub 要求文件名不含 linux（docs/Decisions.md 第 4 节）。
+            echo "appimage=MoneyUnderBed-DeskPet-$label-x86_64.AppImage"
+            echo "windows_zip=MoneyUnderBed-DeskPet-windows-x86_64-$label.zip"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  linux:
+    name: Linux (Ubuntu 22.04) — test and AppImage
+    needs: version
+    # AppImage 以 Ubuntu 22.04 为基线，使 glibc 兼容问题在这里就暴露。
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Check whitespace and conflict markers
+        run: git diff --check "$(git hash-object -t tree /dev/null)" HEAD
+
+      - name: Install build and XCB dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            curl dpkg-dev file ninja-build patchelf \
+            libgl1-mesa-dev \
+            libxkbcommon-dev libxkbcommon-x11-0 libx11-xcb1 \
+            libxcb1-dev libxcb-cursor0 libxcb-glx0 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-shm0 libxcb-sync1 \
+            libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          aqtsource: ${{ env.AQT_SOURCE }}
+          cache: true
+
+      - name: Build
+        run: |
+          cmake --preset release -DBUILD_TESTING=ON \
+            -DMUB_VERSION="${{ needs.version.outputs.version }}" \
+            -DPROJECT_VERSION_SUFFIX="${{ needs.version.outputs.suffix }}"
+          cmake --build --preset release
+
+      - name: Test
+        run: ctest --test-dir build/release --output-on-failure
+
+      - name: Test output on failure
+        if: failure()
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          for exe in build/release/bin/tst_*; do
+            echo "===== $exe ====="
+            "$exe" || true
+          done
+
+      - name: Package AppImage
+        run: >-
+          packaging/PackageAppImage.sh build/release
+          "${{ needs.version.outputs.appimage }}"
+          "${{ needs.version.outputs.display_version }}"
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v7
+        with:
+          name: AppImage-${{ needs.version.outputs.label }}
+          path: |
+            ${{ needs.version.outputs.appimage }}
+            ${{ needs.version.outputs.appimage }}.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Linux system corresponding source
+        uses: actions/upload-artifact@v7
+        with:
+          name: Linux-system-source-${{ needs.version.outputs.label }}
+          path: linux-system-source/
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows (windows-2022, MSVC 2022) — test and ZIP
+    needs: version
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          aqtsource: ${{ env.AQT_SOURCE }}
+          cache: true
+
+      - name: Set up MSVC 2022 x64
+        uses: ilammy/msvc-dev-cmd@c1ed231f339aec74961130db0459823a08f1b215 # v1.9.0
+        with:
+          arch: x64
+
+      - name: Build
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          cmake --preset release -DBUILD_TESTING=ON `
+            "-DMUB_VERSION=${{ needs.version.outputs.version }}" `
+            "-DPROJECT_VERSION_SUFFIX=${{ needs.version.outputs.suffix }}"
+          cmake --build --preset release
+
+      - name: Test
+        run: |
+          ctest --test-dir build/release --output-on-failure
+          exit $LASTEXITCODE
+
+      # ctest 在 Windows runner 上抓不到 Qt Test 的输出，失败时只有一行 ***Failed。
+      # 失败时直接再跑一遍测试可执行文件，把它们自己的输出打进日志。
+      - name: Test output on failure
+        if: failure()
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          Get-ChildItem 'build\release\bin\tst_*.exe' | ForEach-Object {
+            Write-Host "===== $($_.Name) ====="
+            & $_.FullName
+          }
+          exit 0
+
+      - name: Package ZIP
+        run: >-
+          packaging/PackageWindows.ps1 -BuildDir build/release
+          -ZipName "${{ needs.version.outputs.windows_zip }}"
+          -DisplayVersion "${{ needs.version.outputs.display_version }}"
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v7
+        with:
+          name: Windows-ZIP-${{ needs.version.outputs.label }}
+          path: |
+            ${{ needs.version.outputs.windows_zip }}
+            ${{ needs.version.outputs.windows_zip }}.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  sources:
+    name: Corresponding source (Qt and AppImage tooling)
+    needs: version
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Archive corresponding source
+        run: packaging/ArchiveCorrespondingSource.sh corresponding-source
+
+      - name: Upload corresponding source
+        uses: actions/upload-artifact@v7
+        with:
+          name: Corresponding-source-${{ needs.version.outputs.label }}
+          path: corresponding-source/
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish source release and draft release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - version
+      - linux
+      - windows
+      - sources
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.version.outputs.version }}
+      LABEL: ${{ needs.version.outputs.label }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+
+      - name: Verify downloaded checksums
+        run: |
+          set -euo pipefail
+          (cd "dist/AppImage-$LABEL" && sha256sum -c ./*.sha256)
+          (cd "dist/Windows-ZIP-$LABEL" && sha256sum -c ./*.sha256)
+          (cd "dist/Corresponding-source-$LABEL" && sha256sum -c ./*.sha256)
+          (cd "dist/Linux-system-source-$LABEL" && sha256sum -c SHA256SUMS)
+
+      # 对应源码单独成一个 Release，正式 Release 只留二进制与校验文件。
+      #
+      # 源码 Release **直接公开**，不走草稿：草稿对外不可访问，如果二进制先转公开
+      # 而源码还是草稿，那一刻就是不合规的 GPL 分发。让源码先在，这个窗口就不存在。
+      #
+      # 标签用 `sources-<version>`，**不能**用 `v<version>-sources` 之类：本工作流的
+      # 标签过滤是 `v*.*.*`，那种名字会匹配并触发整条流水线，而 version 作业只接受
+      # MAJOR.MINOR.PATCH，结果是一次注定失败的运行。tst_releaseworkflows 对此有断言。
+      - name: Publish corresponding-source release
+        id: sources
+        run: |
+          set -euo pipefail
+          tag="sources-$VERSION"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          mapfile -t files < <(find "dist/Corresponding-source-$LABEL" \
+            "dist/Linux-system-source-$LABEL" -type f -print | sort)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "::error::No corresponding-source files were collected"
+            exit 1
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            # 源码归档按定义不该变。同一标签重跑时不覆盖，只核对完整性——
+            # 数量对不上说明上一次上传残缺或内容被改过，必须报错。
+            # 只核对数量的局限见 docs/known_issue.md 第 6 条。
+            existing="$(gh release view "$tag" --json assets --jq '[.assets[]] | length')"
+            if [[ "$existing" -ne ${#files[@]} ]]; then
+              echo "::error::$tag already exists with $existing assets, expected ${#files[@]}"
+              exit 1
+            fi
+            echo "$tag already exists with all ${#files[@]} assets; leaving it untouched"
+          else
+            sed -e "s/@VERSION@/$VERSION/g" \
+                -e "s/@SOURCES_TAG@/$tag/g" \
+                -e "s/@COMMIT@/$GITHUB_SHA/g" \
+                -e "s/@RUN_ID@/$GITHUB_RUN_ID/g" \
+                packaging/sources-release-notes.md > sources-notes.md
+            # --latest=false：源码 Release 不该抢走 Latest 标记。
+            gh release create "$tag" \
+              --target "$GITHUB_SHA" \
+              --latest=false \
+              --title "v$VERSION 的对应源码（无可执行文件）" \
+              --notes-file sources-notes.md \
+              "${files[@]}"
+          fi
+
+      - name: Create or refresh draft release
+        env:
+          SOURCES_TAG: ${{ steps.sources.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find "dist/AppImage-$LABEL" "dist/Windows-ZIP-$LABEL" \
+            -type f -print | sort)
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)"
+            if [[ "$is_draft" != true ]]; then
+              echo "::error::Refusing to replace assets of an already published release"
+              exit 1
+            fi
+            # 草稿里可能已经手工记下了候选验收结果，刷新资产时不能用模板覆盖说明。
+            gh release edit "$GITHUB_REF_NAME" --draft \
+              --title "MoneyUnderBed DeskPet $VERSION"
+            gh release upload "$GITHUB_REF_NAME" --clobber "${files[@]}"
+          else
+            sed "s/@SOURCES_TAG@/$SOURCES_TAG/g" \
+              packaging/release-notes.md > release-notes.md
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --draft \
+              --title "MoneyUnderBed DeskPet $VERSION" \
+              --notes-file release-notes.md \
+              "${files[@]}"
+          fi
