@@ -72,6 +72,11 @@ if(LINUX)
         "${CMAKE_CURRENT_SOURCE_DIR}/linux/io.github.hz_tyzq.MoneyUnderBedDeskPet.desktop"
         DESTINATION "usr/share/applications"
     )
+    # AppStream 元数据：AppImageHub 与软件中心据此显示简介与许可（docs/Decisions.md 第 4 节）。
+    install(FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/linux/io.github.hz_tyzq.MoneyUnderBedDeskPet.appdata.xml"
+        DESTINATION "usr/share/metainfo"
+    )
     # AppImage 工具只接受标准正方形图标。该文件是 natural.png 居中放入
     # 160x160 透明画布的机械衍生图，不缩放原像素；见 assets/MANIFEST.md。
     install(FILES "${CMAKE_SOURCE_DIR}/assets/icon/appimage.png"
