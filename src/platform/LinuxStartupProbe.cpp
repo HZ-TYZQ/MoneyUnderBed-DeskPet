@@ -9,11 +9,6 @@ namespace mub::platform {
 
 namespace {
 
-QString translate(const char *text)
-{
-    return QCoreApplication::translate("mub::platform", text);
-}
-
 // 只有无头测试平台可以保留原值。任何其他取值都会被改成单值 xcb。
 bool isHeadlessTestPlatform(const QByteArray &value)
 {
@@ -52,7 +47,8 @@ StartupProbeResult probeWindowBackend()
     }
 
     result.ok = false;
-    result.reason = translate(
+    result.reason = QT_TRANSLATE_NOOP(
+        "mub::platform",
         "无法连接到 X11 显示服务。\n\n"
         "本程序在 Linux 上使用 Qt 的 XCB 后端运行，在 Wayland 桌面上通过 "
         "XWayland 工作。当前环境没有可用的 XWayland 或 X11 连接。\n\n"

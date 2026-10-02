@@ -8,8 +8,10 @@ namespace mub::platform {
 struct StartupProbeResult
 {
     bool ok = true;
-    // 面向用户的失败原因，会出现在错误对话框里。
-    QString reason;
+    // 面向用户的失败原因的**源文本**，翻译上下文为 `mub::platform`。
+    // 探测发生在构造任何应用对象之前，那时还没有安装界面翻译，因此这里只给出
+    // 源文本，由报错通道在安装翻译之后再翻译。
+    const char *reason = nullptr;
     // 面向日志的细节。
     QString detail;
     // 探测后实际选定的 Qt 平台插件名。

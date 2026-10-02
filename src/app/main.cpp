@@ -4,6 +4,7 @@
 #include "app/SelfTest.h"
 #include "app/SingleInstance.h"
 #include "app/StartupFailureReport.h"
+#include "app/UiLanguage.h"
 #include "character/AnimationClip.h"
 #include "character/SpriteSheet.h"
 #include "core/AppMetadata.h"
@@ -43,6 +44,7 @@
 #include <QScreen>
 #include <QString>
 #include <QTimer>
+#include <QTranslator>
 #include <QWindow>
 
 #include <memory>
@@ -105,6 +107,10 @@ int main(int argc, char *argv[])
     }
 
     QApplication application(argc, argv);
+
+    // 界面翻译必须早于任何界面文本：命令行帮助、niri 提示和全部窗口
+    // （docs/Decisions.md 第 2 节）。
+    const std::unique_ptr<QTranslator> uiTranslator = mub::app::installUiTranslator();
 
     // 第 14.6 节：进程的生命周期由应用层显式管理。必须早于任何窗口——角色与
     // 气泡是 Qt::Tool 不计入「最后一个窗口」，一旦设置或关于窗口被关闭，Qt 的

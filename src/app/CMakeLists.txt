@@ -20,6 +20,8 @@ qt_add_executable(money-under-bed-deskpet
     SingleInstance.h
     StartupFailureReport.cpp
     StartupFailureReport.h
+    UiLanguage.cpp
+    UiLanguage.h
     main.cpp
 )
 

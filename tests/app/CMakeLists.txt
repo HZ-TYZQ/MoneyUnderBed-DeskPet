@@ -74,3 +74,12 @@ mub_add_test(tst_settingsintegration
 )
 target_include_directories(tst_settingsintegration PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(tst_settingsintegration PRIVATE MUB::Core Qt6::Widgets)
+
+# 界面语言选择、英文译文完整性与报错通道的插件探测。
+mub_add_test(tst_uilanguage
+    tst_uilanguage.cpp
+    "${CMAKE_SOURCE_DIR}/src/app/StartupFailureReport.cpp"
+    "${CMAKE_SOURCE_DIR}/src/app/UiLanguage.cpp"
+)
+target_include_directories(tst_uilanguage PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(tst_uilanguage PRIVATE MUB::Core MUB::Resources Qt6::Widgets)

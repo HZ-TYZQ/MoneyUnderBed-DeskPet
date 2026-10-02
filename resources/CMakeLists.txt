@@ -37,6 +37,22 @@ qt_add_resources(money-under-bed-resources "mub_fonts"
     FILES "${MUB_ARK_PIXEL_TTF}"
 )
 
+# 界面翻译。源文本是简体中文；系统界面语言不是中文时加载英文译文
+# （docs/Decisions.md 第 2 节）。.qm 编进资源库，产品与测试共用同一份。
+set(MUB_UI_TS_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/translations/money-under-bed-deskpet_en.ts"
+    PARENT_SCOPE)
+qt_add_lrelease(
+    TS_FILES "${CMAKE_CURRENT_SOURCE_DIR}/translations/money-under-bed-deskpet_en.ts"
+    QM_FILES_OUTPUT_VARIABLE MUB_UI_QM_FILES
+    NO_GLOBAL_TARGET
+)
+qt_add_resources(money-under-bed-resources "mub_translations"
+    PREFIX "/i18n"
+    BASE "${CMAKE_CURRENT_BINARY_DIR}"
+    FILES ${MUB_UI_QM_FILES}
+)
+
 target_link_libraries(money-under-bed-resources
     PUBLIC Qt6::Core
     PRIVATE MUB::Warnings
@@ -73,4 +89,5 @@ add_custom_target(money-under-bed-assets ALL
 target_compile_definitions(money-under-bed-resources PUBLIC
     MUB_ARK_PIXEL_RESOURCE=":/fonts/ark-pixel-12px-proportional-zh_cn.ttf"
     MUB_ARK_PIXEL_SHA256="${MUB_ARK_PIXEL_SHA256}"
+    MUB_UI_TRANSLATION_RESOURCE=":/i18n/money-under-bed-deskpet_en.qm"
 )

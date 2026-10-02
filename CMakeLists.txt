@@ -37,7 +37,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 # API 基线为 Qt 6.11（docs/legacy/Decisions.md 第 9.1 节）。
 # CI 另行断言实际版本为 6.11.2；此处不写 EXACT，否则本地 6.11.1 无法配置。
 set(MUB_QT_API_BASELINE 6.11)
-find_package(Qt6 ${MUB_QT_API_BASELINE} REQUIRED COMPONENTS Core Gui Widgets Network)
+# LinguistTools 只在构建期把界面翻译编成 .qm，不进入发行包。
+find_package(Qt6 ${MUB_QT_API_BASELINE} REQUIRED COMPONENTS Core Gui Widgets Network LinguistTools)
 if(LINUX)
     find_package(Qt6 ${MUB_QT_API_BASELINE} REQUIRED COMPONENTS DBus)
 endif()
@@ -54,6 +55,16 @@ endif()
 add_subdirectory(resources)
 add_subdirectory(src)
 add_subdirectory(packaging)
+
+# 界面文本改动后运行 `cmake --build <构建目录> --target update_translations`，
+# 把新文本提取进 .ts，再补上英文译文（docs/Decisions.md 第 2 节）。
+qt_add_lupdate(
+    TS_FILES "${MUB_UI_TS_FILES}"
+    SOURCE_TARGETS money-under-bed-deskpet money-under-bed-core money-under-bed-platform
+    LUPDATE_TARGET update_translations
+    NO_GLOBAL_TARGET
+    OPTIONS -no-obsolete -locations none
+)
 
 if(BUILD_TESTING)
     add_subdirectory(tests)

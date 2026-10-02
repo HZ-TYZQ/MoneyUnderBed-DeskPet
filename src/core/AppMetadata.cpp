@@ -7,17 +7,6 @@
 
 namespace mub::metadata {
 
-namespace {
-
-// 界面文本一律走翻译，不硬编码（docs/legacy/Decisions.md 第 5.1 节）。
-// 第一版不提供语言设置，但资源结构保持可加载翻译文件。
-QString translate(const char *sourceText)
-{
-    return QCoreApplication::translate("mub::metadata", sourceText);
-}
-
-} // namespace
-
 QString applicationName()
 {
     return QStringLiteral(MUB_APPLICATION_NAME);
@@ -58,14 +47,18 @@ QString versionString()
     return base + QLatin1Char('-') + suffix;
 }
 
+// 界面文本一律走翻译，不硬编码（docs/legacy/Decisions.md 第 5.1 节）。直接写
+// QCoreApplication::translate，lupdate 才能把文本提取进翻译文件。
+
 QString displayName()
 {
-    return translate("《床下有罐钱》非官方桌宠");
+    return QCoreApplication::translate("mub::metadata", "《床下有罐钱》非官方桌宠");
 }
 
 QString unofficialNotice()
 {
-    return translate(
+    return QCoreApplication::translate(
+        "mub::metadata",
         "本程序是非官方、非商业的二次创作项目，与《床下有罐钱》的开发者没有隶属关系，"
         "也不由其发布或背书。");
 }
