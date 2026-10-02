@@ -35,8 +35,8 @@ the following terms:
 * zlib, licensed under the terms of
   https://zlib.net/zlib_license.html
 
-Source: https://github.com/AppImage/type2-runtime/tree/75849dce7cc37e4319b633df1f116ca895c71a12
-Runtime SHA-256: 1cc49bcf1e2ccd593c379adb17c9f85a36d619088296504de95b1d06215aebbf
+Source: https://github.com/AppImage/type2-runtime/tree/8f39b89e2ac31e1640b3d3f7e9a5108e6ce805fa
+Runtime SHA-256: 156f4bdbde9c52d01814600013e0a273f0118dc2de98975f3c8c63427ec79074
 
 The corresponding-source artifact attached beside the AppImage contains the
 complete type2-runtime tree at that commit, libfuse 3.15.0 and squashfuse 0.5.2.

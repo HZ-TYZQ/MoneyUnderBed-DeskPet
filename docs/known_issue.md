@@ -59,3 +59,18 @@
 - **位置**：`.github/workflows/ci.yml` 的 `release` 作业，「Publish corresponding-source
   release」一步。
 - **修复方向**：改为比对 `SHA256SUMS` 与文件名清单，不一致时报错。
+
+## 7. 上游覆盖 AppImage 运行时的 `continuous` 发布后，Linux 打包会失败
+
+- **现象**：Linux 作业在「Download pinned AppImage tooling」一组里报
+  `runtime-x86_64: FAILED`，构建停止。
+- **触发条件**：上游 `AppImage/type2-runtime` 用新提交重新发布 `continuous`。2026-09-28
+  已发生过一次，当时把锁定从 `75849dce` 改到了 `8f39b89`。
+- **原因**：运行时只有 `continuous` 这一个持续更新的下载地址，`packaging/pins.env`
+  锁定的是其中某一次构建的 SHA-256。校验失败是有意的安全失败：运行时静态链接了
+  libfuse 等组件，不能在对应源码不变的情况下悄悄换掉二进制。
+- **处理方法**：核对上游新提交是否改动了依赖版本（`scripts/` 下的构建脚本），
+  然后同时更新 `packaging/pins.env` 的 `APPIMAGE_RUNTIME_SHA256`、
+  `APPIMAGE_RUNTIME_COMMIT` 与 `packaging/licenses/appimage-runtime.txt` 里的提交和哈希；
+  依赖版本若有变化，还要同步更新对应源码与许可文本。
+- **彻底修复方向**：改为自行托管一份固定的运行时，或锁定上游不会移动的发布。
