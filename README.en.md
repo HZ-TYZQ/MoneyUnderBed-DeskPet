@@ -1,5 +1,7 @@
 # MoneyUnderBed DeskPet (unofficial)
 
+**Vibe coded with Openai-ChatGPT and Anthropic-Claude**
+
 [中文](README.md) | English
 
 An unofficial fan-made desktop pet featuring the heroine of the Chinese game
