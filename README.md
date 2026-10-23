@@ -1,5 +1,7 @@
 # 《床下有罐钱》非官方桌宠
 
+**与Openai-ChatGPT与Anthropic-Claude协作开发**
+
 中文 | [English](README.en.md)
 
 把《床下有罐钱》的女主放到桌面上：她会自己走动、休息、说几句话，也可以被点击、
